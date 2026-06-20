@@ -1,0 +1,253 @@
+PROPUESTA SEGURA PARA IDIOMA DE USUARIO EN AFMGDE
+================================================
+
+Objetivo
+--------
+Definir una forma segura de incorporar idioma de usuario en AFMGDE sin romper la aplicacion ya validada funcionalmente.
+
+La idea no es rehacer ahora toda la internacionalizacion, sino preparar la base para que el idioma del usuario pueda controlarse de forma ordenada y compatible con la manera de trabajar observada en Besafer.
+
+
+Situacion actual en AFMGDE
+--------------------------
+Actualmente:
+
+- el modelo User no tiene campo de idioma
+- la aplicacion visible esta normalizada en espanol
+- existen ficheros base de traduccion:
+  - es.json
+  - en.json
+  - fr.json
+  - pt.json
+  - it.json
+- esos JSON todavia no estan conectados a un motor real de cambio dinamico de idioma
+
+Por tanto:
+
+- hoy no existe preferencia de idioma por usuario
+- hoy no existe selector funcional de idioma
+- hoy el idioma efectivo de la aplicacion es espanol
+
+
+Que se ha observado en Besafer Backend
+--------------------------------------
+En Besafer, el idioma no depende solo del usuario.
+
+Se han visto estos patrones:
+
+- muchas traducciones dependen del contexto de request
+- se usa cabecera tipo lang / HTTP_LANG
+- existen codigos de idioma en entidades de negocio
+- se manejan codigos de idioma tipo:
+  - SPA
+  - ENG
+  - FRA
+  - POR
+  - ITA
+
+Conclusion:
+
+No conviene meter en AFMGDE un campo de idioma sin estrategia.
+Lo correcto es usar el idioma del usuario como preferencia por defecto, pero dejar la puerta abierta a inyectarlo luego en request, igual que en Besafer.
+
+
+Recomendacion funcional
+-----------------------
+Si se decide avanzar, la recomendacion segura es:
+
+1. Añadir un campo de preferencia en User.
+2. Usarlo solo como idioma por defecto del usuario.
+3. Inyectarlo despues al request mediante middleware.
+4. Conectar mas adelante las pantallas a las traducciones.
+
+Esto evita tocar demasiadas piezas a la vez.
+
+
+Diseño recomendado
+------------------
+Campo nuevo en users.models.User:
+
+- nombre recomendado:
+  language_code
+
+Tipo:
+- CharField
+
+Longitud:
+- max_length=3
+
+Valores permitidos:
+- ESP
+- ENG
+- FRA
+- POR
+- ITA
+
+Valor por defecto recomendado:
+- ESP
+
+Motivo:
+- mantiene coherencia con los codigos que ya se usan en Besafer y en integraciones
+- evita mezclar formatos como es / es-ES / SPA / ESP sin criterio
+
+
+Estrategia de implantacion por fases
+------------------------------------
+
+FASE A - Persistencia segura
+----------------------------
+Cambios:
+- añadir language_code al usuario
+- migracion simple
+- default ESP
+- exponerlo en admin
+
+Beneficio:
+- no rompe nada
+- no cambia la UI
+- deja lista la preferencia
+
+
+FASE B - Inyeccion en request
+----------------------------
+Cambios:
+- middleware ligero
+- asignar request.lang desde user.language_code
+- fallback a ESP
+
+Beneficio:
+- ya existe contexto de idioma por usuario
+- no obliga aun a traducir toda la interfaz
+
+
+FASE C - Consumo controlado en la UI
+------------------------------------
+Cambios:
+- leer request.lang
+- empezar por textos de navegacion, titulos y etiquetas principales
+- usar es.json, en.json, fr.json, pt.json e it.json
+
+Beneficio:
+- internacionalizacion progresiva
+- menor riesgo
+
+
+FASE D - Selector o ajuste de preferencia
+-----------------------------------------
+Cambios:
+- pantalla de perfil o panel admin
+- permitir actualizar language_code
+
+Beneficio:
+- el usuario controla su idioma preferido
+
+
+Que NO recomiendo hacer de golpe
+--------------------------------
+No recomiendo:
+
+- meter el campo y traducir toda la app en la misma intervencion
+- mezclar codigos SPA y ESP sin decidir uno como oficial
+- rehacer autenticacion y sesiones a la vez
+- tocar plantillas, modelos, middleware y API en un solo cambio grande
+- introducir gettext completo sin antes decidir si queremos JSON propio o i18n Django real
+
+
+Decision de codigos
+-------------------
+Para AFMGDE recomiendo usar internamente:
+
+- ESP
+- ENG
+- FRA
+- POR
+- ITA
+
+Motivo:
+- encaja mejor con el ecosistema observado
+- es facil mapearlo luego a:
+  - es.json
+  - en.json
+  - fr.json
+  - pt.json
+  - it.json
+
+Mapeo recomendado:
+
+- ESP -> es.json
+- ENG -> en.json
+- FRA -> fr.json
+- POR -> pt.json
+- ITA -> it.json
+
+
+Impacto sobre lo ya validado
+----------------------------
+Si se hace en la fase A solamente:
+
+- el flujo funcional actual no se rompe
+- la presentacion no cambia
+- la auditoria no se rompe
+- los usuarios actuales seguiran funcionando
+- simplemente quedara guardada la preferencia de idioma
+
+
+Plan tecnico minimo recomendado
+-------------------------------
+Cuando se quiera implantar de verdad, el orden mas seguro es:
+
+1. Añadir language_code al modelo User.
+2. Crear migracion.
+3. Poner ESP por defecto.
+4. Exponer el campo en admin.
+5. Actualizar usuarios actuales con ESP.
+6. Validar login, auditoria y panel admin.
+7. Solo despues plantear el middleware de request.lang.
+
+
+Riesgo estimado
+---------------
+Riesgo bajo si solo se hace:
+- campo en User
+- migracion
+- admin
+- default ESP
+
+Riesgo medio si se añade ademas:
+- middleware
+- lectura automatica de traducciones
+
+Riesgo alto si se intenta a la vez:
+- selector de idioma
+- traduccion completa de plantillas
+- cambio de idioma en caliente
+- cambios en autenticacion o sesion
+
+
+Recomendacion final
+-------------------
+Si quieres hacerlo con muchisimo cuidado, la mejor decision es:
+
+- SI añadir el campo language_code al usuario
+- SI dejar ESP por defecto
+- SI preparar el terreno para request.lang
+- NO activar aun cambio dinamico global de idioma en esta misma intervencion
+
+Ese seria el punto de equilibrio entre:
+
+- seguridad
+- compatibilidad
+- orden
+- evolucion futura
+
+
+Siguiente paso sugerido
+-----------------------
+Si se aprueba esta propuesta, el siguiente cambio real deberia ser solo:
+
+- añadir language_code al modelo User
+- migracion
+- admin
+- sin tocar todavia la interfaz traducida
+
+Ese seria el cambio correcto para avanzar sin poner en riesgo lo que ya funciona.

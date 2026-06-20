@@ -1,0 +1,249 @@
+CONTINUIDAD DEL PROYECTO AFMGDE
+===============================
+
+Objetivo del documento
+----------------------
+Este documento sirve como contexto de continuidad por si se pierde el historial de trabajo realizado con Codex.
+
+Debe permitir retomar el proyecto exactamente desde el estado actual, sin perder:
+
+- lo ya construido
+- lo ya validado
+- los criterios de diseño adoptados
+- la relacion entre el documento funcional y la aplicacion
+
+
+Ruta del proyecto
+-----------------
+Proyecto Django:
+- C:\desarollo\proyecto_afmgde
+
+Documento funcional de referencia:
+- C:\desarollo\proyecto_afmgde\ALCANCE FUNCIONAL MÓDULO GESTIÓN DE ESTABILIDADES.docx
+
+
+Tecnologia y decisiones ya tomadas
+----------------------------------
+- aplicacion Django web
+- base activa actual: sqlite3
+- configuracion futura de SQL Server documentada aparte
+- interfaz web para usuarios normales
+- panel admin de Django para administracion total
+- auditoria funcional con trazabilidad de acciones
+- estilo visual con Bootswatch
+- mensajes visuales con SweetAlert
+- QR real en etiquetas
+
+Decision importante:
+- para la demo y presentacion se trabaja con sqlite3
+- SQL Server queda como evolucion posterior ya documentada
+
+
+Estado funcional actual
+-----------------------
+La fase 1 ha quedado validada funcionalmente.
+
+Esto significa que la aplicacion ya permite demostrar y operar correctamente:
+
+- maestro de estudios
+- maestro de productos, lotes y acondicionados
+- maestro de camaras, condiciones y ubicaciones
+- recepcion de muestras
+- alta de muestras
+- etiquetado
+- etiqueta con QR real e identificador unico
+- entrada en camara
+- calendario maestro de puntos de muestreo
+- plan anual de estabilidad
+- extracciones
+- control de stock
+- alertas
+- desviaciones de camara
+- recalculo auditado de fechas
+- auditoria consultable
+- exportacion Excel de auditoria
+- vista PDF / impresion de auditoria
+- informes operativos basicos
+
+
+Resultado de validacion alcanzado
+---------------------------------
+La fase 1 esta cerrada al 100 por 100 a nivel funcional de presentacion, demo y validacion operativa.
+
+Importante:
+- no deben reabrirse debates sobre si la fase 1 esta completa a nivel funcional
+- lo ya pendiente en el futuro no es cerrar fase 1, sino evolucionar la solucion
+
+
+Pruebas ya ejecutadas
+---------------------
+Durante la validacion se probaron y quedaron revisados:
+
+- login con usuario normal
+- creacion de estudios
+- registro de recepciones
+- alta de muestras
+- vista de etiqueta
+- QR real en etiqueta
+- etiquetado de muestra
+- entrada en camara
+- extraccion
+- alerta por stock bajo
+- informes
+- plan anual
+- desviaciones
+- recalculo auditado
+- auditoria
+- exportacion Excel
+- impresion / PDF
+- logout
+
+Problemas detectados y ya corregidos:
+
+- logout no estaba bien cableado
+- textos tecnicos en auditoria
+- mezcla de ingles y espanol en varias pantallas
+- QR solo logico, sin imagen real
+- checkbox de recalculo mal presentado visualmente
+- recálculo auditado no aparecia porque faltaban puntos de muestreo en estudios nuevos
+- columna Company en auditoria vacia
+
+Todos esos puntos fueron corregidos.
+
+
+Puntos tecnicos importantes ya implementados
+--------------------------------------------
+
+1. Auditoria
+- auditoria funcional en lenguaje entendible
+- exportable a Excel
+- vista de impresion / PDF
+- eventos web trazados
+- eventos de recálculo trazados
+- company se rellena desde el usuario autenticado o usa fallback AGQ para demo
+
+2. Estudios
+- al crear estudio se generan automaticamente puntos base de muestreo:
+  - T0
+  - T1
+  - T2
+  - T3
+
+3. Etiquetas
+- mantienen identificador textual
+- incluyen QR real en imagen
+
+4. Desviaciones
+- disponen de opcion clara de recalculo
+- al marcar recalculo, se recalculan los puntos del estudio y queda auditoria
+
+5. Idioma de usuario
+- se ha añadido el campo:
+  - language_code
+- valores:
+  - ESP
+  - ENG
+  - FRA
+  - POR
+  - ITA
+- de momento solo se guarda
+- todavia NO cambia la interfaz visible
+- esto no pertenece al cierre de fase 1
+
+
+Usuarios ya creados
+-------------------
+Administrador:
+- admin / Admin12345!
+
+Usuarios normales:
+- operador1 / Operador123!
+- operador2 / Operador123!
+
+
+Ficheros importantes creados durante el trabajo
+-----------------------------------------------
+- CIERRE_VALIDACION_FASE_1.txt
+- GUIA_USUARIO_NORMAL_APLICACION.txt
+- USUARIOS_DE_PRUEBA.txt
+- CAMBIO_A_SQL_SERVER.txt
+- PROPUESTA_IDIOMA_USUARIO_AFMGDE.txt
+- PLAN_FUTURO_INTERNACIONALIZACION_USUARIO.txt
+- translations\es.json
+- translations\en.json
+- translations\fr.json
+- translations\pt.json
+- translations\it.json
+- translations\README_TRADUCCIONES.txt
+
+
+Conclusiones que NO deben perderse
+----------------------------------
+
+1. Fase 1
+- esta completada funcionalmente
+- no se debe volver a replantear como si estuviera incompleta
+
+2. Idioma
+- el campo de idioma ya existe en usuario
+- la internacionalizacion completa todavia no esta activada
+- eso esta bien y fue una decision consciente
+
+3. Company en auditoria
+- los eventos nuevos ya muestran AGQ o el valor del usuario
+- los eventos antiguos pueden seguir vacios
+
+4. SQL Server
+- no es la base activa de demo
+- la app de presentacion se deja con sqlite3
+- el cambio a SQL Server esta documentado para despues
+
+
+Como debe retomarse el proyecto si se pierde el contexto
+--------------------------------------------------------
+Si se pierde la conversacion, el siguiente agente o la siguiente sesion debe partir de estas premisas:
+
+- la fase 1 ya esta hecha y validada
+- no hay que rehacer la fase 1
+- no hay que cuestionar si ya funciona el flujo principal
+- el siguiente objetivo natural es continuar con el documento funcional hacia fase 2
+
+
+Instruccion recomendada para retomar
+------------------------------------
+Si se quiere continuar en una nueva sesion, usar una instruccion similar a esta:
+
+"Retoma el proyecto AFMGDE desde C:\desarollo\proyecto_afmgde. Lee primero CONTINUIDAD_PROYECTO_FASE_1_Y_FASE_2.txt, CIERRE_VALIDACION_FASE_1.txt y el documento funcional ALCANCE FUNCIONAL MÓDULO GESTIÓN DE ESTABILIDADES.docx. Considera fase 1 cerrada funcionalmente y continua a partir del documento con el analisis e implantacion de fase 2, respetando la estructura y el estilo ya construidos."
+
+
+Recomendacion de trabajo para la siguiente etapa
+------------------------------------------------
+La siguiente etapa debe abordarse asi:
+
+1. Releer el documento funcional.
+2. Separar claramente:
+   - lo que ya pertenece a fase 1 y esta cerrado
+   - lo que realmente es fase 2
+3. Hacer checklist de fase 2.
+4. Diseñar la ampliacion respetando:
+   - la estructura actual del proyecto
+   - la logica de auditoria ya implantada
+   - la interfaz web ya construida
+   - los usuarios normales sin dependencia del admin
+
+
+Resumen ejecutivo final
+-----------------------
+Este proyecto NO esta en punto de arranque.
+Este proyecto ya tiene una fase 1 construida, validada y documentada.
+
+La continuidad correcta es:
+
+- conservar lo hecho
+- usar este estado como base firme
+- y seguir con el documento hacia fase 2
+
+
+Fecha de estado consolidado
+---------------------------
+- 20/06/2026

@@ -1,0 +1,195 @@
+PLAN FUTURO - INTERNACIONALIZACION POR IDIOMA DE USUARIO
+========================================================
+
+Objetivo del documento
+----------------------
+Dejar definida la estrategia recomendada para activar el cambio de idioma de la aplicacion AFMGDE a partir de la preferencia del usuario, sin ejecutar ahora dicho cambio.
+
+Este documento sirve como instruccion futura para implementar la funcionalidad cuando se decida abordar esa evolucion.
+
+
+Estado actual
+-------------
+En el estado actual del proyecto:
+
+- la fase 1 funcional ya esta validada
+- la aplicacion visible funciona en espanol
+- el modelo User ya dispone del campo:
+  - language_code
+- existen ficheros base de traduccion:
+  - translations/es.json
+  - translations/en.json
+  - translations/fr.json
+  - translations/pt.json
+  - translations/it.json
+
+Importante:
+
+- el campo language_code ya se guarda en el usuario
+- pero todavia no gobierna el idioma visual de la aplicacion
+- por tanto, aunque un usuario tenga ENG, la interfaz sigue viendose en espanol
+
+
+Conclusion funcional
+--------------------
+La internacionalizacion por idioma de usuario NO forma parte del cierre funcional obligatorio de fase 1.
+
+La fase 1 queda completada y validada sin necesidad de activar ahora el cambio dinamico de idioma.
+
+Esta funcionalidad debe tratarse como una evolucion posterior, controlada y separada, para no poner en riesgo la estabilidad ya conseguida.
+
+
+Recomendacion de implantacion
+-----------------------------
+Cuando se quiera activar esta capacidad, la recomendacion es aplicar una estrategia intermedia y segura.
+
+No se recomienda:
+
+- una solucion rapida improvisada
+- una reescritura completa con cambios masivos
+- mezclar en una sola intervencion modelos, autenticacion, middleware, plantillas y mensajes sin control
+
+La estrategia recomendada es progresiva y por capas.
+
+
+Diseño recomendado
+------------------
+El idioma visible de la aplicacion debera depender de:
+
+- user.language_code
+
+Codigos admitidos:
+
+- ESP
+- ENG
+- FRA
+- POR
+- ITA
+
+Mapeo recomendado:
+
+- ESP -> es.json
+- ENG -> en.json
+- FRA -> fr.json
+- POR -> pt.json
+- ITA -> it.json
+
+
+Implementacion futura recomendada
+---------------------------------
+Cuando se decida implementar esta funcionalidad, el trabajo debera hacerse en este orden:
+
+1. Leer language_code del usuario autenticado.
+2. Inyectar ese valor al request, por ejemplo como:
+   - request.lang
+3. Resolver el fichero JSON correspondiente segun el idioma.
+4. Cargar el diccionario de traduccion en un punto central.
+5. Hacer disponible ese diccionario a las plantillas.
+6. Traducir primero la capa visible principal.
+7. Traducir despues mensajes y textos secundarios.
+8. Revisar consistencia final.
+
+
+Orden recomendado de aplicacion por pantallas
+---------------------------------------------
+La implantacion deberia hacerse en fases visuales:
+
+FASE 1 DE INTERNACIONALIZACION VISUAL
+- base.html
+- menu principal
+- logout
+- nombres de secciones
+
+FASE 2 DE INTERNACIONALIZACION VISUAL
+- dashboard / resumen
+- estudios
+- muestras
+- operaciones
+- alertas
+- desviaciones
+- informes
+- auditoria
+
+FASE 3 DE INTERNACIONALIZACION VISUAL
+- mensajes de exito y error
+- textos de ayuda
+- etiquetas de formularios
+- titulos de tablas
+- vista de etiqueta
+
+FASE 4 DE INTERNACIONALIZACION VISUAL
+- estados
+- severidades
+- textos generados dinamicamente
+- refinamiento final
+
+
+Lo que NO debe hacerse
+----------------------
+Para proteger la estabilidad del proyecto, no debe hacerse lo siguiente en la misma intervencion:
+
+- cambiar de golpe toda la aplicacion a sistema multilenguaje
+- mezclar codigos es / en / fr con ESP / ENG / FRA sin una regla fija
+- sustituir sin plan todos los textos actuales
+- tocar login, seguridad y traducciones a la vez
+- activar selector de idioma y reestructurar la UI en un solo cambio grande
+
+
+Criterio de seguridad
+---------------------
+La implementacion futura debera respetar estos principios:
+
+- no romper el flujo funcional validado
+- no romper la autenticacion
+- no romper la auditoria
+- no romper los formularios
+- no romper las rutas existentes
+- no modificar la logica de negocio de fase 1
+
+El cambio debe limitarse a internacionalizacion visual y contexto de idioma.
+
+
+Alcance recomendado del futuro desarrollo
+-----------------------------------------
+La implementacion futura debera cubrir:
+
+- idioma preferido por usuario
+- carga automatica del idioma al entrar en la aplicacion
+- uso de los JSON de traduccion ya existentes
+- mantenimiento del espanol como fallback por defecto
+
+Fallback recomendado:
+
+- si falta language_code, usar ESP
+- si falta clave en el JSON, mostrar texto en espanol
+
+
+Resultado esperado cuando se implemente
+---------------------------------------
+Una vez ejecutado este plan, el comportamiento esperado sera:
+
+- usuario con ESP: interfaz en espanol
+- usuario con ENG: interfaz en ingles
+- usuario con FRA: interfaz en frances
+- usuario con POR: interfaz en portugues
+- usuario con ITA: interfaz en italiano
+
+Siempre manteniendo la misma logica funcional y la misma seguridad ya validada.
+
+
+Instruccion futura para ejecucion
+---------------------------------
+Cuando se quiera activar esta evolucion, la instruccion operativa sera:
+
+"Implementar exactamente el contenido definido en PLAN_FUTURO_INTERNACIONALIZACION_USUARIO.txt, con enfoque intermedio y seguro, sin rehacer la fase 1 ni romper la funcionalidad validada."
+
+
+Resumen ejecutivo
+-----------------
+La internacionalizacion por idioma de usuario:
+
+- ya tiene base preparada
+- no es necesaria para declarar completa la fase 1
+- debe ejecutarse mas adelante como evolucion controlada
+- debe hacerse por capas, no de golpe
+- debe respetar la estabilidad actual del sistema

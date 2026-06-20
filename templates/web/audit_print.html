@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Audit Trail PDF</title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #111; margin: 24px; }
+        h1 { margin-bottom: 8px; }
+        p { color: #555; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #d0d0d0; padding: 8px; text-align: left; font-size: 12px; vertical-align: top; }
+        th { background: #f2f2f2; }
+    </style>
+</head>
+<body onload="window.print()">
+    <h1>Trazabilidad</h1>
+    <p>Vista lista para imprimir o guardar como PDF desde el navegador.</p>
+    <table>
+        <tr>
+            <th>Fecha</th>
+            <th>Usuario</th>
+            <th>Evento</th>
+            <th>Entidad</th>
+            <th>Company</th>
+            <th>Origen</th>
+        </tr>
+        {% for audit in audits %}
+        <tr>
+            <td>{{ audit.performed_at|date:"Y-m-d H:i:s" }}</td>
+            <td>{% if audit.performed_by %}{{ audit.performed_by.username }}{% else %}-{% endif %}</td>
+            <td>{{ audit.friendly_action }}</td>
+            <td>{{ audit.friendly_entity }} #{{ audit.entity_id }}</td>
+            <td>{{ audit.company_code|default:"-" }}</td>
+            <td>{{ audit.friendly_route }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

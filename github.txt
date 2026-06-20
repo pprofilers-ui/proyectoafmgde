@@ -1,0 +1,16 @@
+echo "# proyectoafmgde" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/pprofilers-ui/proyectoafmgde.git
+git push -u origin main
+
+
+proyectoafmgde
+
+pprofilers@gmail.com
+
+https://www.pythonanywhere.com/user/proyectoafmgde/
+
+Moha.93345900

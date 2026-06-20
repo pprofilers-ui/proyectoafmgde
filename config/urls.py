@@ -1,0 +1,67 @@
+from django.contrib import admin
+from django.urls import include, path
+from rest_framework import permissions
+from drf_yasg import openapi
+from drf_yasg.views import get_schema_view
+
+from audit.web_views import audit_detail, audit_export_excel, audit_list, audit_print_view
+from stability.web_views import (
+    AppLoginView,
+    AppLogoutView,
+    alerts_list,
+    annual_plan_view,
+    create_deviation_web,
+    create_sample_web,
+    create_study_web,
+    create_reception,
+    dashboard,
+    deviations_view,
+    extract_sample_web,
+    label_sample_web,
+    operations_hub,
+    place_sample_in_chamber_web,
+    reports_view,
+    sample_label_preview,
+    samples_list,
+    studies_list,
+)
+
+schema_view = get_schema_view(
+    openapi.Info(
+        title='AFMGDE API',
+        default_version='v1',
+        description='API para el modulo de gestion de estudios de estabilidad.',
+    ),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
+)
+
+urlpatterns = [
+    path('', dashboard, name='dashboard'),
+    path('login/', AppLoginView.as_view(), name='login'),
+    path('logout/', AppLogoutView.as_view(), name='logout'),
+    path('app/studies/', studies_list, name='web-studies'),
+    path('app/studies/create/', create_study_web, name='web-create-study'),
+    path('app/samples/', samples_list, name='web-samples'),
+    path('app/samples/create/', create_sample_web, name='web-create-sample'),
+    path('app/alerts/', alerts_list, name='web-alerts'),
+    path('app/annual-plan/', annual_plan_view, name='web-annual-plan'),
+    path('app/reports/', reports_view, name='web-reports'),
+    path('app/deviations/', deviations_view, name='web-deviations'),
+    path('app/deviations/create/', create_deviation_web, name='web-create-deviation'),
+    path('app/operations/', operations_hub, name='web-operations'),
+    path('app/operations/reception/', create_reception, name='web-create-reception'),
+    path('app/operations/label/', label_sample_web, name='web-label-sample'),
+    path('app/operations/chamber/', place_sample_in_chamber_web, name='web-place-sample'),
+    path('app/operations/extract/', extract_sample_web, name='web-extract-sample'),
+    path('app/labels/<int:pk>/', sample_label_preview, name='web-label-preview'),
+    path('app/audit/', audit_list, name='web-audit'),
+    path('app/audit/<int:pk>/', audit_detail, name='web-audit-detail'),
+    path('app/audit/export/excel/', audit_export_excel, name='web-audit-export-excel'),
+    path('app/audit/export/print/', audit_print_view, name='web-audit-export-print'),
+    path('admin/', admin.site.urls),
+    path('api/', include('users.urls')),
+    path('api/', include('stability.urls')),
+    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+]

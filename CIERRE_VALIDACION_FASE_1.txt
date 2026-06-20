@@ -1,0 +1,89 @@
+CIERRE DE VALIDACION FUNCIONAL - FASE 1
+======================================
+
+Estado general
+--------------
+La fase 1 del modulo AFMGDE queda validada funcionalmente para presentacion, demo operativa y revision de alcance.
+
+La aplicacion permite ejecutar y demostrar el flujo completo previsto para fase 1 desde interfaz web, con trazabilidad de usuario, auditoria consultable y soporte para operativa diaria.
+
+
+Alcance funcional validado
+--------------------------
+Durante la validacion se ha comprobado correctamente:
+
+- maestro de estudios
+- maestro de productos, lotes y acondicionados
+- maestro de camaras, condiciones y ubicaciones
+- gestion de recepcion de muestras
+- alta de muestras
+- etiquetado de muestras
+- etiqueta con identificador unico y QR real
+- entrada en camara
+- calendario maestro de puntos de muestreo
+- plan anual de estabilidad
+- extracciones
+- control de stock de muestras
+- alertas operativas
+- gestion de desviaciones de camara
+- recalculo auditado de fechas de muestreo
+- auditoria funcional en lenguaje entendible para usuario normal
+- exportacion de auditoria a Excel
+- vista de impresion / PDF
+- informes operativos basicos
+
+
+Resultado de la validacion
+--------------------------
+La fase 1 queda validada al 100 por 100 a nivel funcional de presentacion y demostracion del alcance definido.
+
+Esto significa que:
+
+- el flujo principal puede ejecutarse de principio a fin
+- los usuarios normales pueden trabajar desde la web sin depender del panel admin
+- las acciones clave quedan reflejadas en auditoria
+- las alertas, desviaciones y recálculos pueden demostrarse en entorno de prueba
+
+
+Observacion importante
+----------------------
+La fase 1 esta cerrada funcionalmente.
+
+Las posibles mejoras futuras no corresponden a carencias funcionales del alcance de fase 1, sino a refuerzos de explotacion productiva o madurez regulatoria, por ejemplo:
+
+- afinado avanzado de roles y permisos
+- firma electronica en aprobaciones criticas
+- versionado documental mas estricto
+- integraciones de notificacion externa
+- endurecimiento adicional para entorno GMP productivo
+
+Estas mejoras serian una evolucion posterior y no invalidan la validacion funcional actual.
+
+
+Nota sobre el campo Company en auditoria
+----------------------------------------
+La columna Company en auditoria se rellena desde el usuario autenticado.
+
+Regla actual:
+
+- si el usuario tiene valor en company_code, se usa ese valor
+- si no lo tiene informado, para la demo se aplica AGQ como valor por defecto
+
+De este modo, la traza funcional queda visible tambien a nivel corporativo en la validacion.
+
+
+Frase recomendada para presentacion
+-----------------------------------
+La fase 1 del modulo queda completada y validada funcionalmente conforme al alcance previsto. La aplicacion permite operar el flujo completo de estudios de estabilidad, con trazabilidad, alertas, control de muestras, desviaciones y recálculo auditado de fechas, quedando como evolucion posterior solo posibles refuerzos de explotacion regulada, no carencias del alcance funcional de esta fase.
+
+
+Proyecto validado en
+--------------------
+Ruta:
+- C:\desarollo\proyecto_afmgde
+
+Usuario de prueba validado:
+- operador1
+
+Fecha de validacion:
+- 20/06/2026

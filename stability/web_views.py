@@ -1,0 +1,446 @@
+import base64
+from io import BytesIO
+from datetime import timedelta
+
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import LoginView, LogoutView
+from django.db.models import Count, F, Q, Sum
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+import qrcode
+
+from audit.utils import register_audit_event
+
+from .models import Chamber, ChamberDeviation, LabelTemplate, Sample, SampleReception, SamplingPoint, StabilityAlert, StockMovement, Study
+from .web_forms import ChamberDeviationForm, ChamberPlacementForm, SampleCreateForm, SampleExtractionForm, SampleLabelForm, SampleReceptionForm, StudyCreateForm
+
+
+DEFAULT_SAMPLING_SCHEDULE = [
+    ("T0", 0),
+    ("T1", 30),
+    ("T2", 60),
+    ("T3", 90),
+]
+
+
+def ensure_study_sampling_points(study):
+    created_points = []
+    if study.sampling_points.exists():
+        return created_points
+
+    for label, days_offset in DEFAULT_SAMPLING_SCHEDULE:
+        point = SamplingPoint.objects.create(
+            study=study,
+            label=label,
+            target_date=study.start_date + timedelta(days=days_offset),
+            tolerance_days=3,
+        )
+        created_points.append(point)
+    return created_points
+
+
+class AppLoginView(LoginView):
+    template_name = "auth/login.html"
+    redirect_authenticated_user = True
+
+
+class AppLogoutView(LogoutView):
+    pass
+
+
+@login_required
+def dashboard(request):
+    studies = Study.objects.order_by("-created_at")[:5]
+    alerts = StabilityAlert.objects.filter(status=StabilityAlert.Status.OPEN).order_by("due_date")[:8]
+    upcoming_points = SamplingPoint.objects.order_by("recalculated_date", "target_date")[:8]
+    chamber_load = Chamber.objects.annotate(sample_count=Count("samples")).order_by("-sample_count", "code")[:6]
+    upcoming_extractions = Sample.objects.select_related("study", "sampling_point").filter(
+        sampling_point__isnull=False,
+        current_stock__gt=0,
+    ).order_by("sampling_point__recalculated_date", "sampling_point__target_date")[:8]
+    context = {
+        "studies_count": Study.objects.count(),
+        "samples_count": Sample.objects.count(),
+        "receptions_count": SampleReception.objects.count(),
+        "low_stock_count": Sample.objects.filter(current_stock__lte=2).count(),
+        "stock_total": Sample.objects.aggregate(total=Sum("current_stock")).get("total") or 0,
+        "active_studies_count": Study.objects.filter(status=Study.Status.ACTIVE).count(),
+        "closed_studies_count": Study.objects.filter(status=Study.Status.CLOSED).count(),
+        "open_deviations_count": ChamberDeviation.objects.filter(requires_recalculation=True).count(),
+        "upcoming_entries_count": Sample.objects.filter(
+            status__in=[Sample.Status.RECEIVED, Sample.Status.LABELLED]
+        ).count(),
+        "alerts": alerts,
+        "studies": studies,
+        "upcoming_points": upcoming_points,
+        "upcoming_extractions": upcoming_extractions,
+        "chamber_load": chamber_load,
+        "today": timezone.localdate(),
+    }
+    return render(request, "web/dashboard.html", context)
+
+
+@login_required
+def studies_list(request):
+    studies = Study.objects.order_by("-created_at")
+    return render(request, "web/studies.html", {"studies": studies, "study_form": StudyCreateForm()})
+
+
+@login_required
+def create_study_web(request):
+    if request.method != "POST":
+        return redirect("web-studies")
+    form = StudyCreateForm(request.POST)
+    if form.is_valid():
+        study = form.save(commit=False)
+        study.company_code = getattr(request, "company_code", "") or getattr(request.user, "company_code", "") or "AGQ"
+        if study.product and not study.product_name:
+            study.product_name = study.product.name
+        if study.batch and not study.batch_number:
+            study.batch_number = study.batch.code
+        if study.packaging and not study.packaging_description:
+            study.packaging_description = study.packaging.name
+        study.save()
+        created_points = ensure_study_sampling_points(study)
+        register_audit_event(
+            study,
+            "web_create_study",
+            payload={"code": study.code, "title": study.title},
+            changes={"status": {"before": None, "after": study.status}},
+        )
+        for point in created_points:
+            register_audit_event(
+                point,
+                "web_create_sampling_point",
+                payload={"study": study.code, "point": point.label},
+                changes={"target_date": {"before": None, "after": str(point.target_date)}},
+            )
+        messages.success(request, f"Estudio {study.code} creado correctamente.")
+    else:
+        messages.error(request, "No se pudo crear el estudio. Revisa los campos obligatorios.")
+    return redirect("web-studies")
+
+
+@login_required
+def samples_list(request):
+    samples = Sample.objects.select_related("study", "sampling_point", "chamber").order_by("-created_at")
+    return render(request, "web/samples.html", {"samples": samples, "sample_form": SampleCreateForm()})
+
+
+@login_required
+def alerts_list(request):
+    alerts = StabilityAlert.objects.select_related("study", "sample").order_by("status", "due_date")
+    return render(request, "web/alerts.html", {"alerts": alerts})
+
+
+@login_required
+def operations_hub(request):
+    context = {
+        "reception_form": SampleReceptionForm(),
+        "sample_form": SampleCreateForm(),
+        "label_form": SampleLabelForm(),
+        "placement_form": ChamberPlacementForm(),
+        "extraction_form": SampleExtractionForm(),
+        "recent_receptions": SampleReception.objects.select_related("study").order_by("-received_at")[:8],
+        "label_pending_samples": Sample.objects.filter(status=Sample.Status.RECEIVED).order_by("sample_code")[:10],
+        "chamber_pending_samples": Sample.objects.filter(status=Sample.Status.LABELLED).order_by("sample_code")[:10],
+        "label_templates": LabelTemplate.objects.filter(is_active=True).order_by("code")[:10],
+    }
+    return render(request, "web/operations.html", context)
+
+
+@login_required
+def annual_plan_view(request):
+    active_studies = Study.objects.filter(status=Study.Status.ACTIVE).order_by("start_date", "code")
+    planned_studies = Study.objects.filter(status=Study.Status.DRAFT).order_by("start_date", "code")
+    closed_studies = Study.objects.filter(status=Study.Status.CLOSED).order_by("-updated_at", "code")
+    upcoming_points = SamplingPoint.objects.select_related("study").order_by("recalculated_date", "target_date")[:20]
+    upcoming_entries = Sample.objects.select_related("study").filter(
+        status__in=[Sample.Status.RECEIVED, Sample.Status.LABELLED]
+    ).order_by("created_at")[:20]
+    upcoming_extractions = Sample.objects.select_related("study", "sampling_point").filter(
+        sampling_point__isnull=False,
+        current_stock__gt=0,
+    ).order_by("sampling_point__recalculated_date", "sampling_point__target_date")[:20]
+    chamber_load = Chamber.objects.annotate(sample_count=Count("samples")).order_by("-sample_count", "code")
+    open_alerts = StabilityAlert.objects.filter(status=StabilityAlert.Status.OPEN).order_by("due_date", "severity")[:20]
+    deviations = ChamberDeviation.objects.select_related("chamber", "study").order_by("-detected_at")[:20]
+    context = {
+        "active_studies": active_studies,
+        "planned_studies": planned_studies,
+        "closed_studies": closed_studies,
+        "upcoming_points": upcoming_points,
+        "upcoming_entries": upcoming_entries,
+        "upcoming_extractions": upcoming_extractions,
+        "chamber_load": chamber_load,
+        "open_alerts": open_alerts,
+        "deviations": deviations,
+        "today": timezone.localdate(),
+    }
+    return render(request, "web/annual_plan.html", context)
+
+
+@login_required
+def reports_view(request):
+    low_stock_samples = Sample.objects.select_related("study", "sampling_point").filter(current_stock__lte=2).order_by("current_stock", "sample_code")
+    pending_labelling = Sample.objects.select_related("study").filter(status=Sample.Status.RECEIVED).order_by("sample_code")
+    pending_chamber = Sample.objects.select_related("study").filter(status=Sample.Status.LABELLED).order_by("sample_code")
+    pending_extraction = Sample.objects.select_related("study", "sampling_point").filter(
+        status=Sample.Status.IN_CHAMBER,
+        current_stock__gt=0,
+    ).order_by("sampling_point__recalculated_date", "sampling_point__target_date", "sample_code")
+    receptions_with_gap = (
+        SampleReception.objects.select_related("study")
+        .annotate(total_created=Sum("samples__quantity"))
+        .filter(quantity_expected__gt=0)
+        .filter(Q(total_created__isnull=True) | ~Q(quantity_expected=F("total_created")))
+        .order_by("-received_at")
+    )
+    recent_movements = StockMovement.objects.select_related("sample").order_by("-executed_at")[:25]
+    context = {
+        "low_stock_samples": low_stock_samples,
+        "pending_labelling": pending_labelling,
+        "pending_chamber": pending_chamber,
+        "pending_extraction": pending_extraction,
+        "receptions_with_gap": receptions_with_gap,
+        "recent_movements": recent_movements,
+    }
+    return render(request, "web/reports.html", context)
+
+
+@login_required
+def deviations_view(request):
+    deviations = ChamberDeviation.objects.select_related("chamber", "study").order_by("-detected_at")
+    context = {
+        "deviation_form": ChamberDeviationForm(),
+        "deviations": deviations,
+    }
+    return render(request, "web/deviations.html", context)
+
+
+@login_required
+def create_deviation_web(request):
+    if request.method != "POST":
+        return redirect("web-deviations")
+    form = ChamberDeviationForm(request.POST)
+    if form.is_valid():
+        deviation = form.save()
+        recalculated_points = []
+        if deviation.requires_recalculation and deviation.study_id:
+            ensure_study_sampling_points(deviation.study)
+            for point in deviation.study.sampling_points.all().order_by("target_date"):
+                previous_date = point.recalculated_date or point.target_date
+                point.recalculated_date = point.target_date + timedelta(days=point.tolerance_days)
+                point.save(update_fields=["recalculated_date", "updated_at"])
+                recalculated_points.append(
+                    {
+                        "point": point.label,
+                        "before": str(previous_date),
+                        "after": str(point.recalculated_date),
+                    }
+                )
+                register_audit_event(
+                    point,
+                    "web_recalculate_sampling_point",
+                    payload={"deviation_id": deviation.id, "point": point.label},
+                    changes={"recalculated_date": {"before": str(previous_date), "after": str(point.recalculated_date)}},
+                )
+        register_audit_event(
+            deviation,
+            "web_create_chamber_deviation",
+            payload={"chamber": deviation.chamber.code, "study": deviation.study.code if deviation.study else ""},
+            changes={"requires_recalculation": {"before": None, "after": deviation.requires_recalculation}},
+        )
+        if recalculated_points:
+            messages.success(request, f"Desviacion registrada y {len(recalculated_points)} puntos recalculados con auditoria.")
+        else:
+            messages.success(request, "Desviacion registrada correctamente.")
+    else:
+        messages.error(request, "No se pudo registrar la desviacion de camara. Revisa los campos.")
+    return redirect("web-deviations")
+
+
+@login_required
+def create_sample_web(request):
+    if request.method != "POST":
+        return redirect("web-samples")
+    form = SampleCreateForm(request.POST)
+    if form.is_valid():
+        sample = form.save(commit=False)
+        if not sample.current_stock:
+            sample.current_stock = sample.quantity
+        if not sample.received_at:
+            sample.received_at = timezone.now()
+        if sample.label_template and not sample.qr_code:
+            sample.qr_code = f"QR::{sample.sample_code}"
+        sample.save()
+        StockMovement.objects.create(
+            sample=sample,
+            movement_type=StockMovement.MovementType.RECEPTION,
+            quantity_delta=sample.quantity,
+            notes="Alta inicial de muestra desde la vista web.",
+        )
+        register_audit_event(
+            sample,
+            "web_create_sample",
+            payload={"sample_code": sample.sample_code},
+            changes={"status": {"before": None, "after": sample.status}},
+        )
+        messages.success(request, f"Muestra {sample.sample_code} creada correctamente.")
+    else:
+        messages.error(request, "No se pudo crear la muestra. Revisa los campos obligatorios.")
+    return redirect("web-samples")
+
+
+@login_required
+def create_reception(request):
+    if request.method != "POST":
+        return redirect("web-operations")
+    form = SampleReceptionForm(request.POST)
+    if form.is_valid():
+        reception = form.save()
+        messages.success(request, f"Recepcion {reception.reception_number} registrada correctamente.")
+        register_audit_event(
+            reception,
+            "web_create_reception",
+            payload={"reception_number": reception.reception_number},
+            changes={"status": {"before": None, "after": reception.status}},
+        )
+    else:
+        messages.error(request, "No se pudo registrar la recepcion. Revisa los campos.")
+    return redirect("web-operations")
+
+
+@login_required
+def label_sample_web(request):
+    if request.method != "POST":
+        return redirect("web-operations")
+    form = SampleLabelForm(request.POST)
+    if form.is_valid():
+        sample = form.cleaned_data["sample"]
+        previous_status = sample.status
+        sample.status = Sample.Status.LABELLED
+        sample.qr_code = f"QR::{sample.sample_code}"
+        sample.label_printed_at = timezone.now()
+        sample.save(update_fields=["status", "qr_code", "label_printed_at", "updated_at"])
+        StockMovement.objects.create(
+            sample=sample,
+            movement_type=StockMovement.MovementType.LABEL,
+            quantity_delta=0,
+            notes="Etiquetado realizado desde la vista web.",
+        )
+        register_audit_event(
+            sample,
+            "web_label_sample",
+            payload={"qr_code": sample.qr_code},
+            changes={"status": {"before": previous_status, "after": sample.status}},
+        )
+        messages.success(request, f"Muestra {sample.sample_code} etiquetada correctamente.")
+    else:
+        messages.error(request, "No se pudo etiquetar la muestra.")
+    return redirect("web-operations")
+
+
+@login_required
+def place_sample_in_chamber_web(request):
+    if request.method != "POST":
+        return redirect("web-operations")
+    form = ChamberPlacementForm(request.POST)
+    if form.is_valid():
+        sample = form.cleaned_data["sample"]
+        chamber = form.cleaned_data["chamber"]
+        previous_status = sample.status
+        previous_chamber = sample.chamber.code if sample.chamber else None
+        sample.chamber = chamber
+        sample.status = Sample.Status.IN_CHAMBER
+        sample.placed_in_chamber_at = timezone.now()
+        sample.save(update_fields=["chamber", "status", "placed_in_chamber_at", "updated_at"])
+        StockMovement.objects.create(
+            sample=sample,
+            movement_type=StockMovement.MovementType.CHAMBER_IN,
+            quantity_delta=0,
+            notes=f"Entrada en camara {chamber.code} desde la vista web.",
+        )
+        register_audit_event(
+            sample,
+            "web_place_in_chamber",
+            payload={"chamber": chamber.code},
+            changes={
+                "status": {"before": previous_status, "after": sample.status},
+                "chamber": {"before": previous_chamber, "after": chamber.code},
+            },
+        )
+        messages.success(request, f"Muestra {sample.sample_code} enviada a la camara {chamber.code}.")
+    else:
+        messages.error(request, "No se pudo registrar la entrada en camara.")
+    return redirect("web-operations")
+
+
+@login_required
+def extract_sample_web(request):
+    if request.method != "POST":
+        return redirect("web-operations")
+    form = SampleExtractionForm(request.POST)
+    if form.is_valid():
+        sample = form.cleaned_data["sample"]
+        quantity = form.cleaned_data["quantity"]
+        if quantity > sample.current_stock:
+            messages.error(request, f"No puedes extraer {quantity}. Stock disponible: {sample.current_stock}.")
+            return redirect("web-operations")
+        previous_stock = sample.current_stock
+        previous_status = sample.status
+        sample.current_stock = max(sample.current_stock - quantity, 0)
+        sample.status = Sample.Status.EXTRACTED
+        sample.extracted_at = timezone.now()
+        sample.save(update_fields=["current_stock", "status", "extracted_at", "updated_at"])
+        StockMovement.objects.create(
+            sample=sample,
+            movement_type=StockMovement.MovementType.EXTRACTION,
+            quantity_delta=-quantity,
+            notes="Extraccion realizada desde la vista web.",
+        )
+        if sample.current_stock <= 2:
+            StabilityAlert.objects.get_or_create(
+                study=sample.study,
+                sample=sample,
+                title=f"Stock bajo {sample.sample_code}",
+                defaults={
+                    "message": "La muestra ha quedado con stock bajo tras una extraccion web.",
+                    "severity": StabilityAlert.Severity.WARNING,
+                    "status": StabilityAlert.Status.OPEN,
+                    "due_date": timezone.localdate(),
+                },
+            )
+        register_audit_event(
+            sample,
+            "web_extract_sample",
+            payload={"quantity": quantity},
+            changes={
+                "status": {"before": previous_status, "after": sample.status},
+                "current_stock": {"before": previous_stock, "after": sample.current_stock},
+            },
+        )
+        messages.success(request, f"Extraccion registrada para {sample.sample_code}.")
+    else:
+        messages.error(request, "No se pudo registrar la extraccion.")
+    return redirect("web-operations")
+
+
+@login_required
+def sample_label_preview(request, pk):
+    sample = get_object_or_404(Sample.objects.select_related("study", "sampling_point", "chamber"), pk=pk)
+    qr_value = sample.qr_code or f"QR::{sample.sample_code}"
+    qr = qrcode.QRCode(version=1, box_size=5, border=2)
+    qr.add_data(qr_value)
+    qr.make(fit=True)
+    image = qr.make_image(fill_color="black", back_color="white")
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    qr_image_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+    context = {
+        "sample": sample,
+        "qr_value": qr_value,
+        "qr_image_base64": qr_image_base64,
+    }
+    return render(request, "web/label_preview.html", context)

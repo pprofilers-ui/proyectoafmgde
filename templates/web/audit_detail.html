@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero glass p-4 mb-4">
+    <h1>Detalle de trazabilidad</h1>
+    <p>{{ audit.friendly_entity }} #{{ audit.entity_id }} - {{ audit.friendly_action }}</p>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card glass border-0 h-100">
+            <div class="card-body">
+                <h4>Cabecera</h4>
+                <p><strong>Fecha:</strong> {{ audit.performed_at|date:"Y-m-d H:i:s" }}</p>
+                <p><strong>Usuario:</strong> {% if audit.performed_by %}{{ audit.performed_by.username }}{% else %}-{% endif %}</p>
+                <p><strong>Evento:</strong> {{ audit.friendly_action }}</p>
+                <p><strong>Entidad:</strong> {{ audit.friendly_entity }}</p>
+                <p><strong>Origen:</strong> {{ audit.friendly_route }}</p>
+                <p><strong>Company:</strong> {{ audit.company_code|default:"-" }}</p>
+                <p><strong>Contact:</strong> {{ audit.contact_code|default:"-" }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card glass border-0 mb-4">
+            <div class="card-body">
+                <h4>Cambios</h4>
+                <div class="audit-json">{{ audit.changes }}</div>
+            </div>
+        </div>
+        <div class="card glass border-0">
+            <div class="card-body">
+                <h4>Payload</h4>
+                <div class="audit-json">{{ audit.payload }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

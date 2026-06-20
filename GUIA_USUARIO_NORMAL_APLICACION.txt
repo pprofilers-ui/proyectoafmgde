@@ -1,0 +1,450 @@
+GUIA DETALLADA - USUARIO NORMAL AFMGDE
+=====================================
+
+Objetivo
+--------
+Este documento explica como trabaja un usuario normal dentro de la aplicacion web.
+El usuario normal NO necesita entrar al panel admin de Django para el trabajo diario.
+La operativa de fase 1 se realiza desde las pantallas web del sistema.
+
+
+1. Como arrancar la aplicacion
+------------------------------
+Desde la carpeta del proyecto ejecuta:
+
+C:\desarollo\proyecto_afmgde\venv\Scripts\python.exe manage.py runserver
+
+Despues abre en el navegador:
+
+http://127.0.0.1:8000/login/
+
+
+2. Usuarios disponibles
+-----------------------
+Administrador:
+- admin / Admin12345!
+
+Usuarios normales:
+- operador1 / Operador123!
+- operador2 / Operador123!
+
+El administrador puede entrar tambien en:
+- http://127.0.0.1:8000/admin/
+
+Los usuarios normales deben trabajar desde:
+- http://127.0.0.1:8000/login/
+
+
+3. Menus principales de la aplicacion
+-------------------------------------
+
+3.1. Resumen
+Ruta:
+- http://127.0.0.1:8000/
+
+Que muestra:
+- estudios totales
+- muestras totales
+- recepciones totales
+- stock total
+- estudios activos y cerrados
+- entradas pendientes
+- desviaciones criticas
+- alertas abiertas
+- calendario maestro
+- proximas extracciones
+- carga de camaras
+- ultimos estudios
+
+Uso:
+- ver la situacion general de fase 1 en una sola pantalla
+
+
+3.2. Plan anual
+Ruta:
+- http://127.0.0.1:8000/app/annual-plan/
+
+Que muestra:
+- estudios planificados
+- estudios activos
+- estudios finalizados
+- proximas entradas en camara
+- proximas extracciones
+- calendario maestro de puntos
+- carga de camaras
+- alertas abiertas
+- riesgos y desviaciones recientes
+
+Uso:
+- sirve para presentar el plan anual de estabilidad y el seguimiento operativo
+
+
+3.3. Estudios
+Ruta:
+- http://127.0.0.1:8000/app/studies/
+
+Que permite:
+- consultar el maestro de estudios
+- crear nuevos estudios
+
+Campos principales:
+- codigo
+- titulo
+- producto
+- lote
+- acondicionado
+- nombre del producto
+- numero de lote
+- descripcion de acondicionado
+- estado
+- fecha de inicio
+- fecha fin
+
+
+3.4. Muestras
+Ruta:
+- http://127.0.0.1:8000/app/samples/
+
+Que permite:
+- consultar muestras
+- crear nuevas muestras
+- revisar su etiqueta
+
+Campos funcionales principales:
+- estudio
+- recepcion
+- punto de muestreo
+- plantilla de etiqueta
+- codigo de muestra
+- cantidad
+- stock inicial
+- estado
+- estanteria
+- bandeja
+- contenedor
+- posicion
+
+Uso:
+- alta de muestras
+- control de stock
+- control de ubicacion fisica
+- acceso rapido a la etiqueta
+
+
+3.5. Operaciones
+Ruta:
+- http://127.0.0.1:8000/app/operations/
+
+Bloques visibles:
+- Registrar recepcion
+- Etiquetar muestra
+- Entrada en camara
+- Extraccion
+- Pendientes de etiquetar
+- Pendientes de entrada en camara
+- Recepciones recientes
+
+Uso:
+- ejecutar el flujo principal diario de fase 1
+
+
+3.6. Desviaciones
+Ruta:
+- http://127.0.0.1:8000/app/deviations/
+
+Que permite:
+- registrar desviaciones de camara
+- indicar impacto
+- indicar si requiere recalculo
+- dejar historico de incidencias
+
+Importante:
+- si se marca que requiere recalculo y se informa un estudio, el sistema recalcula fechas de muestreo con auditoria
+
+
+3.7. Alertas
+Ruta:
+- http://127.0.0.1:8000/app/alerts/
+
+Que muestra:
+- alertas operativas
+- severidad
+- estado
+- vencimiento
+- estudio o muestra relacionada
+
+
+3.8. Informes
+Ruta:
+- http://127.0.0.1:8000/app/reports/
+
+Que muestra:
+- muestras con stock bajo
+- recepciones con cantidades pendientes
+- pendientes de etiquetar
+- pendientes de entrada en camara
+- pendientes de extraccion
+- ultimos movimientos de stock
+
+Uso:
+- informes operativos basicos para la presentacion y el control diario
+
+
+3.9. Auditoria
+Ruta:
+- http://127.0.0.1:8000/app/audit/
+
+Que muestra:
+- fecha y hora
+- usuario
+- evento en lenguaje funcional
+- entidad afectada
+- company
+- origen de la accion
+
+Funciones:
+- filtro por entidad
+- filtro por tipo de accion
+- filtro por company
+- detalle del evento
+- exportacion a Excel
+- vista lista para imprimir o generar PDF
+
+Importante:
+- la auditoria es solo lectura
+- no se puede modificar desde la web
+
+
+3.10. Etiquetas
+Ruta:
+- desde la pantalla de muestras, boton Ver etiqueta
+
+Que muestra:
+- producto
+- presentacion
+- codigo interno
+- lote interno
+- condicion climatica
+- punto de muestreo
+- fecha de entrada en camara
+- camara y ubicacion
+- plantilla
+- QR logico
+
+
+4. Flujo funcional recomendado de fase 1
+----------------------------------------
+Orden recomendado para una prueba completa:
+
+1. Entrar con operador1.
+2. Ir a Estudios y crear un estudio.
+3. Ir a Operaciones y registrar una recepcion.
+4. Ir a Muestras y crear una o varias muestras.
+5. Volver a Operaciones y etiquetar la muestra.
+6. Registrar la entrada en camara.
+7. Registrar una extraccion.
+8. Revisar Alertas.
+9. Revisar Informes.
+10. Revisar Auditoria.
+11. Ir a Plan anual para revisar calendario y carga.
+12. Si hace falta, registrar una desviacion en Desviaciones.
+
+
+5. Como crear un estudio
+------------------------
+1. Entrar en:
+   http://127.0.0.1:8000/app/studies/
+
+2. Rellenar los campos del estudio.
+
+3. Pulsar:
+- Crear estudio
+
+4. Verificar que el estudio aparece en el listado y en el Resumen.
+
+
+6. Como registrar una recepcion
+-------------------------------
+1. Entrar en:
+   http://127.0.0.1:8000/app/operations/
+
+2. Rellenar:
+- estudio
+- batch si aplica
+- numero de recepcion
+- origen
+- responsable
+- fecha de recepcion
+- cantidad recibida
+- cantidad prevista
+- discrepancias si existen
+- cantidad asignada
+- cantidad reservada
+- cantidad de contingencia
+- estado
+- notas
+
+3. Pulsar:
+- Guardar recepcion
+
+
+7. Como crear una muestra
+-------------------------
+1. Entrar en:
+   http://127.0.0.1:8000/app/samples/
+
+2. Rellenar:
+- estudio
+- recepcion si aplica
+- punto de muestreo si aplica
+- plantilla de etiqueta si aplica
+- codigo de muestra
+- cantidad
+- stock inicial
+- estado
+- estanteria
+- bandeja
+- contenedor
+- posicion
+
+3. Pulsar:
+- Crear muestra
+
+
+8. Como etiquetar una muestra
+-----------------------------
+1. Entrar en:
+   http://127.0.0.1:8000/app/operations/
+
+2. En el bloque Etiquetar muestra:
+- elegir la muestra
+
+3. Pulsar:
+- Etiquetar
+
+4. Si quieres visualizar la etiqueta:
+- ir a Muestras
+- pulsar Ver etiqueta
+
+
+9. Como registrar entrada en camara
+-----------------------------------
+1. Entrar en:
+   http://127.0.0.1:8000/app/operations/
+
+2. En el bloque Entrada en camara:
+- elegir la muestra
+- elegir la camara
+
+3. Pulsar:
+- Registrar entrada
+
+
+10. Como registrar una extraccion
+---------------------------------
+1. Entrar en:
+   http://127.0.0.1:8000/app/operations/
+
+2. En el bloque Extraccion:
+- elegir la muestra
+- indicar cantidad
+
+3. Pulsar:
+- Registrar extraccion
+
+4. Despues revisar:
+- Muestras
+- Alertas
+- Informes
+- Auditoria
+
+
+11. Como registrar una desviacion de camara
+-------------------------------------------
+1. Entrar en:
+   http://127.0.0.1:8000/app/deviations/
+
+2. Rellenar:
+- camara
+- estudio si aplica
+- fecha y hora
+- descripcion
+- evaluacion de impacto
+- si requiere recalculo
+
+3. Pulsar:
+- Guardar desviacion
+
+4. Si requiere recalculo:
+- revisar despues el Plan anual
+- revisar la Auditoria
+
+
+12. Como consultar informes
+---------------------------
+1. Entrar en:
+   http://127.0.0.1:8000/app/reports/
+
+2. Revisar:
+- stock bajo
+- recepciones con diferencias
+- pendientes de etiquetado
+- pendientes de entrada en camara
+- pendientes de extraccion
+- movimientos recientes
+
+
+13. Como revisar la trazabilidad
+--------------------------------
+1. Entrar en:
+   http://127.0.0.1:8000/app/audit/
+
+2. Filtrar si hace falta por:
+- entidad
+- tipo de accion
+- company
+
+3. Abrir detalle con:
+- Ver
+
+4. Exportar si hace falta:
+- Excel
+- Vista de impresion / PDF
+
+
+14. Diferencia entre usuario normal y administrador
+---------------------------------------------------
+Usuario normal:
+- trabaja en la aplicacion web
+- crea estudios y muestras
+- registra recepciones, entradas, extracciones y desviaciones
+- consulta alertas, informes y auditoria
+- no usa el panel admin como herramienta diaria
+
+Administrador:
+- tiene acceso a toda la web
+- tiene acceso al panel /admin/
+- puede revisar y administrar todos los modelos
+
+
+15. Estado funcional para presentacion
+--------------------------------------
+La aplicacion cubre la fase 1 operativa de presentacion con:
+- maestro de estudios
+- maestro de productos, lotes y acondicionados
+- maestro de camaras, condiciones y ubicaciones
+- recepcion de muestras
+- etiquetado
+- entrada en camara
+- calendario maestro y plan anual
+- extracciones
+- control de stock
+- desviaciones de camara
+- recalculo auditado de fechas
+- alertas
+- audit trail
+- informes operativos basicos
+
+Notas:
+- la base activa actual es sqlite3 para facilitar la demo
+- la configuracion de SQL Server queda documentada en CAMBIO_A_SQL_SERVER.txt

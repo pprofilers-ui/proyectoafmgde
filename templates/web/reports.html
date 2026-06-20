@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero glass p-4 p-lg-5 mb-4">
+    <h1 class="display-5 mb-2">Informes operativos basicos</h1>
+    <p class="lead text-secondary mb-0">Consulta rapida de pendientes, bajo stock, recepciones incompletas y ultimos movimientos para presentar la fase 1 de forma funcional.</p>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card glass border-0 h-100">
+            <div class="card-body">
+                <h3>Muestras con stock bajo</h3>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <tr><th>Muestra</th><th>Estudio</th><th>Stock</th></tr>
+                        {% for sample in low_stock_samples %}
+                        <tr>
+                            <td>{{ sample.sample_code }}</td>
+                            <td>{{ sample.study.code }}</td>
+                            <td>{{ sample.current_stock }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3">No hay muestras con stock bajo.</td></tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card glass border-0 h-100">
+            <div class="card-body">
+                <h3>Recepciones con cantidades pendientes</h3>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <tr><th>Recepcion</th><th>Estudio</th><th>Esperado</th><th>Creado</th></tr>
+                        {% for reception in receptions_with_gap %}
+                        <tr>
+                            <td>{{ reception.reception_number }}</td>
+                            <td>{{ reception.study.code }}</td>
+                            <td>{{ reception.quantity_expected }}</td>
+                            <td>{{ reception.total_created|default:"0" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4">No hay diferencias pendientes.</td></tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-4">
+        <div class="card glass border-0 h-100">
+            <div class="card-body">
+                <h3>Pendientes de etiquetar</h3>
+                <ul class="list-group list-group-flush">
+                    {% for sample in pending_labelling %}
+                    <li class="list-group-item bg-transparent px-0">{{ sample.sample_code }} | {{ sample.study.code }}</li>
+                    {% empty %}
+                    <li class="list-group-item bg-transparent px-0 text-muted">Sin pendientes.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card glass border-0 h-100">
+            <div class="card-body">
+                <h3>Pendientes de entrada en camara</h3>
+                <ul class="list-group list-group-flush">
+                    {% for sample in pending_chamber %}
+                    <li class="list-group-item bg-transparent px-0">{{ sample.sample_code }} | {{ sample.study.code }}</li>
+                    {% empty %}
+                    <li class="list-group-item bg-transparent px-0 text-muted">Sin pendientes.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card glass border-0 h-100">
+            <div class="card-body">
+                <h3>Pendientes de extraccion</h3>
+                <ul class="list-group list-group-flush">
+                    {% for sample in pending_extraction %}
+                    <li class="list-group-item bg-transparent px-0">{{ sample.sample_code }} | {{ sample.sampling_point.label|default:"Sin punto" }}</li>
+                    {% empty %}
+                    <li class="list-group-item bg-transparent px-0 text-muted">Sin pendientes.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card glass border-0">
+    <div class="card-body">
+        <h3>Ultimos movimientos de stock</h3>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <tr><th>Fecha</th><th>Muestra</th><th>Movimiento</th><th>Cantidad</th><th>Notas</th></tr>
+                {% for movement in recent_movements %}
+                <tr>
+                    <td>{{ movement.executed_at }}</td>
+                    <td>{{ movement.sample.sample_code }}</td>
+                    <td>{{ movement.get_movement_type_display }}</td>
+                    <td>{{ movement.quantity_delta }}</td>
+                    <td>{{ movement.notes }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5">No hay movimientos registrados.</td></tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

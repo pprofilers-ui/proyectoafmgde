@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero glass p-4 p-lg-5 mb-4">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-8">
+            <h1 class="display-4 mb-2">Estudios</h1>
+            <p class="lead text-secondary mb-0">Da de alta nuevos estudios de estabilidad y revisa los que ya existen en la aplicacion.</p>
+        </div>
+        <div class="col-lg-4">
+            <div class="mini-kpi">
+                <div class="small text-uppercase text-muted">Uso recomendado</div>
+                <div class="fw-semibold mt-2">Primero crea el estudio y despues sigue el flujo de recepcion y muestras.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-5">
+        <div class="card glass soft-card border-0 h-100">
+            <div class="card-body p-4 p-lg-5">
+                <div class="app-section-title">Crear estudio</div>
+                <div class="app-section-copy">Alta funcional para usuarios normales sin pasar por el panel admin.</div>
+                <form method="post" action="/app/studies/create/" class="row g-4">
+                    {% csrf_token %}
+                    {% for field in study_form %}
+                    <div class="{% if field.name == 'title' or field.name == 'packaging_description' or field.name == 'product_name' or field.name == 'batch_number' %}col-12{% else %}col-md-6{% endif %}">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors|striptags }}</div>{% endif %}
+                    </div>
+                    {% endfor %}
+                    <div class="col-12 pt-2">
+                        <button class="btn btn-primary btn-lg soft-pill" type="submit">Crear estudio</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-7">
+        <div class="card glass soft-card border-0 h-100">
+            <div class="card-body p-4 p-lg-5">
+                <div class="app-section-title">Listado de estudios</div>
+                <div class="app-section-copy">Consulta rapida del estado de estudios dados de alta.</div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <tr>
+                            <th>Codigo</th>
+                            <th>Titulo</th>
+                            <th>Producto</th>
+                            <th>Lote</th>
+                            <th>Estado</th>
+                            <th>Inicio</th>
+                        </tr>
+                        {% for study in studies %}
+                        <tr>
+                            <td class="fw-semibold">{{ study.code }}</td>
+                            <td>{{ study.title }}</td>
+                            <td>{{ study.product_name }}</td>
+                            <td>{{ study.batch_number }}</td>
+                            <td><span class="badge text-bg-light">{{ study.get_status_display }}</span></td>
+                            <td>{{ study.start_date }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-muted">No hay estudios todavia.</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

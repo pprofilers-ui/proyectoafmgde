@@ -1,0 +1,75 @@
+CAMBIO A SQL SERVER - AFMGDE
+===========================
+
+Estado actual
+-------------
+Ahora el proyecto esta configurado para trabajar con sqlite3.
+Esto es lo recomendado para presentacion, pruebas rapidas y despliegue sencillo en PythonAnywhere.
+
+Fichero activo
+--------------
+La configuracion activa esta en:
+- config/settings.py
+
+Base de datos activa ahora
+--------------------------
+Se usa sqlite3 con este archivo local:
+- db.sqlite3
+
+Cuando quieras pasar a SQL Server
+---------------------------------
+1. Instala o verifica estas dependencias en el entorno virtual:
+   - mssql-django
+   - pyodbc
+
+   Comando:
+   C:\desarollo\proyecto_afmgde\venv\Scripts\python.exe -m pip install mssql-django pyodbc
+
+2. Rellena el archivo .env con los datos reales:
+   - DB_NAME
+   - DB_HOST
+   - DB_PORT
+   - DB_USER
+   - DB_PASSWORD
+   - DB_DRIVER
+   - DB_TRUSTED_CONNECTION
+   - DB_EXTRA_PARAMS
+
+   Ejemplo Azure SQL:
+   DB_NAME=dev-agriquem_desarrollo_sil
+   DB_HOST=dev-ddbbsil-smi.40963e240862.database.windows.net
+   DB_PORT=1433
+   DB_USER=mohammed.sebti
+   DB_PASSWORD=TU_PASSWORD
+   DB_DRIVER=ODBC Driver 18 for SQL Server
+   DB_TRUSTED_CONNECTION=false
+   DB_EXTRA_PARAMS=Encrypt=yes;TrustServerCertificate=yes
+
+3. Abre config/settings.py.
+
+4. Busca el bloque activo de sqlite3:
+
+   DATABASES = {
+       'default': {
+           'ENGINE': 'django.db.backends.sqlite3',
+           'NAME': BASE_DIR / 'db.sqlite3',
+       }
+   }
+
+5. Comenta ese bloque y descomenta el bloque de SQL Server que ya esta preparado justo debajo.
+
+6. Ejecuta migraciones:
+   C:\desarollo\proyecto_afmgde\venv\Scripts\python.exe manage.py migrate
+
+7. Crea el superusuario:
+   C:\desarollo\proyecto_afmgde\venv\Scripts\python.exe manage.py createsuperuser
+
+8. Arranca el servidor:
+   C:\desarollo\proyecto_afmgde\venv\Scripts\python.exe manage.py runserver
+
+Notas importantes
+-----------------
+- Si vas a presentarlo en PythonAnywhere, es mejor seguir con sqlite3 por simplicidad.
+- Pasa a SQL Server cuando ya este validado el flujo funcional.
+- Si la base SQL Server es compartida, confirma antes que puedes crear tablas y migraciones.
+- Si usas SQL Server local, en settings.py tambien tienes un ejemplo comentado para SQLEXPRESS.

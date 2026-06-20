@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero glass p-4 p-lg-5 mb-4">
+    <h1 class="display-5 mb-2">Plan anual y calendario maestro</h1>
+    <p class="lead text-secondary mb-0">Vista ejecutiva de fase 1 para controlar estudios planificados, activos, cierres, entradas, extracciones, carga de camaras y riesgos operativos.</p>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-4">
+        <div class="card glass border-0 h-100">
+            <div class="card-body">
+                <h3>Estudios planificados</h3>
+                <ul class="list-group list-group-flush">
+                    {% for study in planned_studies %}
+                    <li class="list-group-item bg-transparent px-0">
+                        <div class="fw-semibold">{{ study.code }}</div>
+                        <div class="text-muted small">{{ study.title }} | Inicio {{ study.start_date }}</div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item bg-transparent px-0 text-muted">No hay estudios en borrador.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card glass border-0 h-100">
+            <div class="card-body">
+                <h3>Estudios activos</h3>
+                <ul class="list-group list-group-flush">
+                    {% for study in active_studies %}
+                    <li class="list-group-item bg-transparent px-0">
+                        <div class="fw-semibold">{{ study.code }}</div>
+                        <div class="text-muted small">{{ study.title }} | Lote {{ study.batch_number }}</div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item bg-transparent px-0 text-muted">No hay estudios activos.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card glass border-0 h-100">
+            <div class="card-body">
+                <h3>Estudios finalizados</h3>
+                <ul class="list-group list-group-flush">
+                    {% for study in closed_studies %}
+                    <li class="list-group-item bg-transparent px-0">
+                        <div class="fw-semibold">{{ study.code }}</div>
+                        <div class="text-muted small">{{ study.title }} | Fin {{ study.end_date|default:"-" }}</div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item bg-transparent px-0 text-muted">No hay estudios cerrados.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card glass border-0 h-100">
+            <div class="card-body">
+                <h3>Proximas entradas en camara</h3>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <tr><th>Muestra</th><th>Estudio</th><th>Estado</th></tr>
+                        {% for sample in upcoming_entries %}
+                        <tr>
+                            <td>{{ sample.sample_code }}</td>
+                            <td>{{ sample.study.code }}</td>
+                            <td>{{ sample.get_status_display }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3">No hay entradas pendientes.</td></tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card glass border-0 h-100">
+            <div class="card-body">
+                <h3>Proximas extracciones</h3>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <tr><th>Muestra</th><th>Punto</th><th>Fecha objetivo</th></tr>
+                        {% for sample in upcoming_extractions %}
+                        <tr>
+                            <td>{{ sample.sample_code }}</td>
+                            <td>{{ sample.sampling_point.label|default:"-" }}</td>
+                            <td>{{ sample.sampling_point.effective_date|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3">No hay extracciones programadas.</td></tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card glass border-0 h-100">
+            <div class="card-body">
+                <h3>Calendario maestro de puntos</h3>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <tr><th>Estudio</th><th>Punto</th><th>Fecha efectiva</th></tr>
+                        {% for point in upcoming_points %}
+                        <tr>
+                            <td>{{ point.study.code }}</td>
+                            <td>{{ point.label }}</td>
+                            <td>{{ point.effective_date }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3">No hay puntos planificados.</td></tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card glass border-0 h-100">
+            <div class="card-body">
+                <h3>Carga de camaras</h3>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <tr><th>Camara</th><th>Condicion</th><th>Muestras</th></tr>
+                        {% for chamber in chamber_load %}
+                        <tr>
+                            <td>{{ chamber.code }}</td>
+                            <td>{{ chamber.storage_condition.code|default:"-" }}</td>
+                            <td>{{ chamber.sample_count }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3">No hay camaras registradas.</td></tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card glass border-0 h-100">
+            <div class="card-body">
+                <h3>Alertas abiertas</h3>
+                <ul class="list-group list-group-flush">
+                    {% for alert in open_alerts %}
+                    <li class="list-group-item bg-transparent px-0">
+                        <div class="fw-semibold">{{ alert.title }}</div>
+                        <div class="text-muted small">{{ alert.get_severity_display }} | Vence {{ alert.due_date|default:"-" }}</div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item bg-transparent px-0 text-muted">No hay alertas abiertas.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card glass border-0 h-100">
+            <div class="card-body">
+                <h3>Riesgos y desviaciones recientes</h3>
+                <ul class="list-group list-group-flush">
+                    {% for deviation in deviations %}
+                    <li class="list-group-item bg-transparent px-0">
+                        <div class="fw-semibold">{{ deviation.chamber.code }} | {{ deviation.detected_at }}</div>
+                        <div class="text-muted small">{{ deviation.description|truncatechars:120 }}</div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item bg-transparent px-0 text-muted">No hay desviaciones registradas.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero glass p-4 mb-4">
+    <h1>Trazabilidad</h1>
+    <p>Consulta solo lectura de trazabilidad. Desde aqui se revisa lo ocurrido, pero no se modifica nada. Puedes exportar a Excel o generar una vista lista para PDF.</p>
+</div>
+
+<div class="card glass border-0 mb-4 no-print">
+    <div class="card-body">
+        <form class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Entidad</label>
+                <input class="form-control" type="text" name="entity_name" value="{{ request.GET.entity_name }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Tipo accion</label>
+                <select class="form-select" name="action_type">
+                    <option value="">Todas</option>
+                    {% for value, label in action_types %}
+                    <option value="{{ value }}" {% if request.GET.action_type == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Company</label>
+                <input class="form-control" type="text" name="company_code" value="{{ request.GET.company_code }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end gap-2">
+                <button class="btn btn-primary w-100" type="submit">Filtrar</button>
+            </div>
+        </form>
+        <div class="mt-3 d-flex gap-2 flex-wrap">
+            <a class="btn btn-outline-success rounded-pill" href="/app/audit/export/excel/?entity_name={{ request.GET.entity_name }}&action_type={{ request.GET.action_type }}&company_code={{ request.GET.company_code }}">Exportar Excel</a>
+            <a class="btn btn-outline-secondary rounded-pill" target="_blank" href="/app/audit/export/print/?entity_name={{ request.GET.entity_name }}&action_type={{ request.GET.action_type }}&company_code={{ request.GET.company_code }}">Vista PDF / imprimir</a>
+        </div>
+    </div>
+</div>
+
+<div class="card glass border-0">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <tr>
+                    <th>Fecha</th>
+                    <th>Usuario</th>
+                    <th>Evento</th>
+                    <th>Entidad</th>
+                    <th>Company</th>
+                    <th>Origen</th>
+                    <th></th>
+                </tr>
+                {% for audit in audits %}
+                <tr>
+                    <td>{{ audit.performed_at|date:"Y-m-d H:i:s" }}</td>
+                    <td>{% if audit.performed_by %}{{ audit.performed_by.username }}{% else %}-{% endif %}</td>
+                    <td><span class="badge text-bg-light">{{ audit.friendly_action }}</span></td>
+                    <td>{{ audit.friendly_entity }} #{{ audit.entity_id }}</td>
+                    <td>{{ audit.company_code|default:"-" }}</td>
+                    <td class="text-muted">{{ audit.friendly_route }}</td>
+                    <td><a class="btn btn-sm btn-outline-primary rounded-pill" href="/app/audit/{{ audit.id }}/">Ver</a></td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

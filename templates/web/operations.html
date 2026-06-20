@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero glass p-4 p-lg-5 mb-4">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-8">
+            <h1 class="display-4 mb-2">Operaciones diarias</h1>
+            <p class="lead text-secondary mb-0">Recepciona muestras, emite etiquetas, asigna camara y registra extracciones desde una unica pantalla de trabajo.</p>
+        </div>
+        <div class="col-lg-4">
+            <div class="mini-kpi">
+                <div class="small text-uppercase text-muted">Flujo fase 1</div>
+                <div class="fw-semibold mt-2">Recepcion -> Etiquetado -> Camara -> Extraccion</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-12 col-xxl-7">
+        <div class="card glass soft-card border-0 h-100">
+            <div class="card-body p-4 p-lg-5">
+                <div class="app-section-title">Registrar recepcion</div>
+                <div class="app-section-copy">Da entrada formal a una remesa, registra discrepancias y reparte cantidades asignadas, reservadas o de contingencia.</div>
+                <form method="post" action="/app/operations/reception/" class="row g-4">
+                    {% csrf_token %}
+                    {% for field in reception_form %}
+                    <div class="{% if field.name == 'notes' or field.name == 'discrepancy_notes' %}col-12{% else %}col-md-6{% endif %}">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                        {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors|striptags }}</div>{% endif %}
+                    </div>
+                    {% endfor %}
+                    <div class="col-12 pt-2">
+                        <button class="btn btn-primary btn-lg soft-pill" type="submit">Guardar recepcion</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xxl-5">
+        <div class="d-grid gap-4">
+            <div class="card glass soft-card border-0">
+                <div class="card-body p-4">
+                    <div class="app-section-title">Etiquetar muestra</div>
+                    <div class="app-section-copy">Genera el identificador interno y deja la muestra preparada para imprimir la etiqueta.</div>
+                    <form method="post" action="/app/operations/label/" class="row g-3 align-items-end">
+                        {% csrf_token %}
+                        <div class="col-md-8">
+                            <label class="form-label">{{ label_form.sample.label }}</label>
+                            {{ label_form.sample }}
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-success w-100 soft-pill" type="submit">Etiquetar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card glass soft-card border-0">
+                <div class="card-body p-4">
+                    <div class="app-section-title">Entrada en camara</div>
+                    <div class="app-section-copy">Asigna la camara de estabilidad y deja constancia del momento de entrada.</div>
+                    <form method="post" action="/app/operations/chamber/" class="row g-3">
+                        {% csrf_token %}
+                        <div class="col-md-6">
+                            <label class="form-label">{{ placement_form.sample.label }}</label>
+                            {{ placement_form.sample }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ placement_form.chamber.label }}</label>
+                            {{ placement_form.chamber }}
+                        </div>
+                        <div class="col-12 pt-2">
+                            <button class="btn btn-info text-white soft-pill" type="submit">Registrar entrada</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card glass soft-card border-0">
+                <div class="card-body p-4">
+                    <div class="app-section-title">Extraccion</div>
+                    <div class="app-section-copy">Descuenta stock y documenta la salida de unidades para el punto de muestreo correspondiente.</div>
+                    <form method="post" action="/app/operations/extract/" class="row g-3">
+                        {% csrf_token %}
+                        <div class="col-md-8">
+                            <label class="form-label">{{ extraction_form.sample.label }}</label>
+                            {{ extraction_form.sample }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">{{ extraction_form.quantity.label }}</label>
+                            {{ extraction_form.quantity }}
+                        </div>
+                        <div class="col-12 pt-2">
+                            <button class="btn btn-warning soft-pill" type="submit">Registrar extraccion</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-1">
+    <div class="col-lg-4">
+        <div class="card glass soft-card border-0 h-100">
+            <div class="card-body p-4">
+                <div class="app-section-title">Pendientes de etiquetar</div>
+                <div class="app-section-copy">Muestras ya recepcionadas que aun no tienen etiqueta operativa.</div>
+                <ul class="list-group list-group-flush">
+                    {% for sample in label_pending_samples %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0 py-3">
+                        <div>
+                            <div class="fw-semibold">{{ sample.sample_code }}</div>
+                            <div class="text-muted small">{{ sample.study.code }}</div>
+                        </div>
+                        <a class="btn btn-sm btn-outline-secondary rounded-pill" href="/app/labels/{{ sample.id }}/">Ver etiqueta</a>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item bg-transparent px-0 py-3 text-muted">No hay muestras pendientes.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card glass soft-card border-0 h-100">
+            <div class="card-body p-4">
+                <div class="app-section-title">Pendientes de entrada en camara</div>
+                <div class="app-section-copy">Muestras etiquetadas que todavia no estan ubicadas en una camara activa.</div>
+                <ul class="list-group list-group-flush">
+                    {% for sample in chamber_pending_samples %}
+                    <li class="list-group-item bg-transparent px-0 py-3">
+                        <div class="fw-semibold">{{ sample.sample_code }}</div>
+                        <div class="text-muted small">{{ sample.study.code }}</div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item bg-transparent px-0 py-3 text-muted">No hay pendientes.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card glass soft-card border-0 h-100">
+            <div class="card-body p-4">
+                <div class="app-section-title">Recepciones recientes</div>
+                <div class="app-section-copy">Ultimos movimientos de entrada para validar el trabajo reciente del equipo.</div>
+                <ul class="list-group list-group-flush">
+                    {% for reception in recent_receptions %}
+                    <li class="list-group-item bg-transparent px-0 py-3">
+                        <div class="fw-semibold">{{ reception.reception_number }}</div>
+                        <div class="text-muted small">{{ reception.study.code }} - {{ reception.quantity_received }} unidades</div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item bg-transparent px-0 py-3 text-muted">No hay recepciones.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

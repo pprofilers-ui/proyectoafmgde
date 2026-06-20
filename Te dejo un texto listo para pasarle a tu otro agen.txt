@@ -1,0 +1,119 @@
+Te dejo un texto listo para pasarle a tu otro agente. Lo he preparado mirando cómo está hecho este backend y cruzándolo con el documento, incluyendo lo que pide la fase 1 y la fase 2.
+
+Quiero que me ayudes a crear una nueva aplicación web en Django/Python para gestión de estudios de estabilidad, pero no como un proyecto genérico: debe seguir la misma filosofía, estructura y criterios de seguridad que ya existen en este backend `besafer_backend`.
+
+La nueva aplicación tiene que respetar el estilo técnico y funcional del proyecto actual. No quiero una arquitectura inventada ni “demasiado limpia” si rompe la coherencia con lo que ya tenemos. Debes tomar como referencia real cómo está organizado este backend: rutas, vistas, serializers, autenticación, permisos, manejo de errores, documentación Swagger y separación entre lógica de negocio propia e integraciones externas.
+
+Puntos obligatorios de arquitectura y seguridad que debes respetar:
+
+1. Framework y patrón general.
+Usa Django + Django REST Framework con un patrón parecido al actual:
+- rutas en `urls.py`
+- vistas en `views/`
+- serializers en `serializers/`
+- modelos en `models/`
+- utilidades e integraciones en `utils/` o `helpers/`
+- tests en la carpeta de tests siguiendo el estilo actual del repo
+- documentación Swagger con `drf-yasg`
+
+2. Login y autenticación.
+El sistema debe tener login con JWT, siguiendo el enfoque existente:
+- endpoint de autorización similar a `/user/authorization`
+- refresh token similar a `/user/refresh`
+- autenticación centralizada en una clase equivalente a `CustomJWTAuthentication`
+- no usar un login básico aislado: el acceso debe contemplar contexto de usuario y empresa
+
+3. Contexto de seguridad y cabeceras.
+Debes mantener el mismo enfoque de seguridad por contexto que ya usa este backend. La app nueva debe estar preparada para trabajar con estas cabeceras y conceptos:
+- `Authorization: Bearer <token>`
+- `company`
+- `contact`
+- `address`
+- `lang`
+- `app-version`
+
+La autenticación no debe limitarse a validar el token: también debe resolver el contexto operativo del usuario, igual que aquí se hace con `request.company` y `request.contact`. Si aplica al nuevo módulo, el acceso a datos debe filtrarse por empresa, contacto, dirección y perfil de usuario.
+
+4. Control de permisos.
+Sigue el modelo actual de permisos:
+- permisos por endpoint o acción
+- posibilidad de usar permisos personalizados como `HavePermission`
+- diferenciación entre usuario interno/agq y usuario cliente
+- nada de exponer datos globales sin scoping por compañía o rol
+
+5. Manejo de errores.
+Conserva una respuesta homogénea de errores como la del backend actual:
+- usar handler centralizado
+- mantener semántica clara para `401`, `403`, `406`, `409`
+- no devolver errores desestructurados
+- preservar mensajes y códigos de error entendibles por frontend u otros consumidores
+
+6. Documentación API.
+Cada endpoint nuevo debe llevar Swagger correcto desde el principio:
+- descripción
+- parámetros
+- request body
+- responses
+- errores esperados
+- headers relevantes si el endpoint los necesita
+
+7. Integración con ESB.
+Esto es muy importante: nosotros tenemos un ESB en medio.
+La nueva aplicación no debe acoplarse directamente a sistemas externos si el flujo real debe pasar por ESB. Quiero que dejes preparada una capa de integración equivalente a la filosofía actual de `esb.py` y `esb_service.py`, donde:
+- la vista controla contrato, validación ligera, permisos y normalización
+- la capa de servicio encapsula llamadas externas
+- se puedan adaptar respuestas externas sin romper el contrato interno
+- se contemple manejo de timeout, errores de conexión y trazabilidad
+
+8. Compatibilidad futura.
+Diseña la app de forma que la fase 1 quede operativa ya, pero sin cerrar el camino a la fase 2. No quiero rehacerlo todo después. La base de datos, modelos, permisos, auditoría y estructura de módulos deben permitir crecer de forma ordenada.
+
+Alcance funcional exacto que debe cubrir la aplicación:
+
+Fase 1, alcance mínimo viable GMP, obligatorio:
+- Maestro de estudios
+- Maestro de productos / lotes / acondicionados
+- Maestro de cámaras / condiciones / ubicaciones
+- Gestión de recepción de muestras
+- Etiquetado
+- Entrada en cámara
+- Calendario de puntos de muestreo
+- Motor de fechas y tolerancias
+- Extracciones
+- Control de stock de muestras
+- Gestión de desviaciones de cámara
+- Recalculo auditado de fechas
+- Alertas y calendario maestro
+- Audit trail y roles
+- Informes operativos básicos
+
+Fase 2, evolución funcional, dejar prevista en diseño:
+- Integración con monitorización de cámaras
+- Integración con LIMS analítico / instrumentos
+- Gestión avanzada OOS/OOT
+- CAPA/QMS integrado
+- Portal cliente
+- Proyección de vida útil
+- Optimización de capacidad de cámaras
+- Firma electrónica avanzada
+- Validación completa paperless
+
+Requisitos regulatorios y de calidad que deben influir en el diseño:
+- GMP
+- ICH Q1A / Q1B / Q1E
+- Data Integrity / ALCOA+
+- 21 CFR Part 11 / Annex 11
+- Validación CSV
+- SOP internos
+
+Cómo quiero que me entregues la propuesta o la implementación:
+- primero analiza este backend y reutiliza sus patrones reales
+- propón estructura de app, modelos, endpoints y permisos
+- indica qué partes irán en fase 1 y cuáles quedarán preparadas para fase 2
+- define claramente qué integraciones deben abstraerse por ESB
+- añade Swagger y tests desde el inicio
+- evita cambios de estilo que rompan la coherencia con el repositorio actual
+
+Quiero que priorices coherencia con este proyecto por encima de “hacerlo más bonito”. La aplicación debe parecer hecha por el mismo equipo y con la misma forma de trabajar, especialmente en autenticación, permisos, trazabilidad, documentación y paso por ESB.
+
+Si quieres, en el siguiente paso también te lo convierto en una versión más técnica tipo “prompt de implementación” o en una versión tipo “análisis funcional + arquitectura + backlog fase 1”.

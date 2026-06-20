@@ -1,0 +1,136 @@
+USUARIOS DE PRUEBA - AFMGDE
+==========================
+
+Proyecto:
+C:\desarollo\proyecto_afmgde
+
+
+1. Administrador principal inicial
+----------------------------------
+Uso:
+- acceso total al panel admin
+- acceso a la aplicacion web normal
+- gestion tecnica y funcional completa
+
+Credenciales:
+- usuario: admin
+- password: Admin12345!
+
+Rutas:
+- login web: http://127.0.0.1:8000/login/
+- panel admin: http://127.0.0.1:8000/admin/
+
+
+2. Administrador principal de trabajo
+-------------------------------------
+Uso:
+- acceso total al panel admin
+- acceso a la aplicacion web normal
+- administracion funcional completa
+- usuario personal de Mohammed
+
+Datos:
+- nombre: Mohammed Sebti Benzakour
+
+Credenciales:
+- usuario: mohammed.sebti
+- password: SeguridadMohammed9182@$
+
+Rutas:
+- login web: http://127.0.0.1:8000/login/
+- panel admin: http://127.0.0.1:8000/admin/
+
+
+3. Usuario normal 1
+-------------------
+Uso:
+- acceso a la aplicacion web normal
+- sin acceso al panel admin
+
+Datos:
+- nombre: operador1
+
+Credenciales:
+- usuario: operador1
+- password: Operador123!
+
+Ruta de entrada:
+- http://127.0.0.1:8000/login/
+
+
+4. Usuario normal 2
+-------------------
+Uso:
+- acceso a la aplicacion web normal
+- sin acceso al panel admin
+
+Datos:
+- nombre: operador2
+
+Credenciales:
+- usuario: operador2
+- password: Operador123!
+
+Ruta de entrada:
+- http://127.0.0.1:8000/login/
+
+
+5. Usuario normal 3
+-------------------
+Uso:
+- acceso a la aplicacion web normal
+- sin acceso al panel admin
+
+Datos:
+- nombre: Juan Manuel Suarez-Barcena Ramirez
+
+Credenciales:
+- usuario: juan.suarez
+- password: SeguridadJuan4817@$
+
+Ruta de entrada:
+- http://127.0.0.1:8000/login/
+
+
+6. Usuario normal 4
+-------------------
+Uso:
+- acceso a la aplicacion web normal
+- sin acceso al panel admin
+
+Datos:
+- nombre: Celia Alvarez Sastre
+
+Credenciales:
+- usuario: celia.alvarez
+- password: SeguridadCelia2604@$
+
+Ruta de entrada:
+- http://127.0.0.1:8000/login/
+
+
+7. Usuario normal 5
+-------------------
+Uso:
+- acceso a la aplicacion web normal
+- sin acceso al panel admin
+
+Datos:
+- nombre: Nicolas Pellicer Sola
+
+Credenciales:
+- usuario: nicolas.pellicer
+- password: SeguridadNico7359@$
+
+Ruta de entrada:
+- http://127.0.0.1:8000/login/
+
+
+Notas
+-----
+- Mohammed queda creado como administrador completo.
+- Los usuarios normales no deben trabajar desde /admin/.
+- El panel /admin/ queda reservado para administradores.
+- Todos los usuarios nuevos se han creado con company_code = AGQ.
+- Todos los usuarios nuevos se han creado con language_code = ESP.
+- Si cambias alguna password, actualiza este fichero.

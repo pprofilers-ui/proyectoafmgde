@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero glass p-4 mb-4">
+    <h1>Panel operativo</h1>
+    <p>Desde aqui puedes revisar la situacion general de la fase 1: estudios, recepciones, muestras, stock, puntos de muestreo, desviaciones y alertas abiertas.</p>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6 col-xl-3"><div class="card glass metric-card border-0"><div class="card-body"><div class="text-muted">Estudios</div><div class="display-5 fw-bold">{{ studies_count }}</div></div></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card glass metric-card border-0"><div class="card-body"><div class="text-muted">Muestras</div><div class="display-5 fw-bold">{{ samples_count }}</div></div></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card glass metric-card border-0"><div class="card-body"><div class="text-muted">Recepciones</div><div class="display-5 fw-bold">{{ receptions_count }}</div></div></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card glass metric-card border-0"><div class="card-body"><div class="text-muted">Stock total</div><div class="display-5 fw-bold">{{ stock_total }}</div></div></div></div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6 col-xl-3"><div class="card glass metric-card border-0"><div class="card-body"><div class="text-muted">Estudios activos</div><div class="display-6 fw-bold">{{ active_studies_count }}</div></div></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card glass metric-card border-0"><div class="card-body"><div class="text-muted">Estudios cerrados</div><div class="display-6 fw-bold">{{ closed_studies_count }}</div></div></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card glass metric-card border-0"><div class="card-body"><div class="text-muted">Entradas pendientes</div><div class="display-6 fw-bold">{{ upcoming_entries_count }}</div></div></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card glass metric-card border-0"><div class="card-body"><div class="text-muted">Desviaciones criticas</div><div class="display-6 fw-bold">{{ open_deviations_count }}</div></div></div></div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+    <div class="card glass border-0 h-100">
+        <div class="card-body">
+        <h3>Alertas abiertas</h3>
+        <div class="table-responsive">
+        <table class="table table-hover">
+            <tr><th>Titulo</th><th>Vencimiento</th><th>Severidad</th></tr>
+            {% for alert in alerts %}
+            <tr>
+                <td>{{ alert.title }}</td>
+                <td>{{ alert.due_date|default:"-" }}</td>
+                <td><span class="badge text-bg-warning">{{ alert.severity }}</span></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3">No hay alertas.</td></tr>
+            {% endfor %}
+        </table>
+        </div>
+        </div>
+    </div>
+    </div>
+    <div class="col-lg-6">
+    <div class="card glass border-0 h-100">
+        <div class="card-body">
+        <h3>Calendario maestro</h3>
+        <div class="table-responsive">
+        <table class="table table-hover">
+            <tr><th>Estudio</th><th>Punto</th><th>Fecha</th></tr>
+            {% for item in upcoming_points %}
+            <tr>
+                <td>{{ item.study.code }}</td>
+                <td>{{ item.label }}</td>
+                <td>{{ item.effective_date }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3">Sin puntos programados.</td></tr>
+            {% endfor %}
+        </table>
+        </div>
+        </div>
+    </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+    <div class="card glass border-0 h-100">
+        <div class="card-body">
+        <h3>Proximas extracciones</h3>
+        <div class="table-responsive">
+        <table class="table table-hover">
+            <tr><th>Muestra</th><th>Punto</th><th>Fecha</th></tr>
+            {% for item in upcoming_extractions %}
+            <tr>
+                <td>{{ item.sample_code }}</td>
+                <td>{{ item.sampling_point.label|default:"-" }}</td>
+                <td>{{ item.sampling_point.effective_date|default:"-" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3">Sin extracciones proximas.</td></tr>
+            {% endfor %}
+        </table>
+        </div>
+        </div>
+    </div>
+    </div>
+    <div class="col-lg-6">
+    <div class="card glass border-0 h-100">
+        <div class="card-body">
+        <h3>Carga de camaras</h3>
+        <div class="table-responsive">
+        <table class="table table-hover">
+            <tr><th>Camara</th><th>Condicion</th><th>Muestras</th></tr>
+            {% for chamber in chamber_load %}
+            <tr>
+                <td>{{ chamber.code }}</td>
+                <td>{{ chamber.storage_condition.code|default:"-" }}</td>
+                <td>{{ chamber.sample_count }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3">Sin datos de camaras.</td></tr>
+            {% endfor %}
+        </table>
+        </div>
+        </div>
+    </div>
+    </div>
+</div>
+
+<div class="card glass border-0">
+    <div class="card-body">
+    <h3>Ultimos estudios</h3>
+    <div class="table-responsive">
+    <table class="table table-hover">
+        <tr><th>Codigo</th><th>Titulo</th><th>Producto</th><th>Lote</th><th>Estado</th></tr>
+        {% for study in studies %}
+        <tr>
+            <td>{{ study.code }}</td>
+            <td>{{ study.title }}</td>
+            <td>{{ study.product_name }}</td>
+            <td>{{ study.batch_number }}</td>
+            <td><span class="badge text-bg-light">{{ study.status }}</span></td>
+        </tr>
+        {% endfor %}
+    </table>
+    </div>
+    </div>
+</div>
+{% endblock %}

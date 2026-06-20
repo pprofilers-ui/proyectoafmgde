@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero glass p-4 p-lg-5 mb-4">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-8">
+            <h1 class="display-4 mb-2">Muestras</h1>
+            <p class="lead text-secondary mb-0">Aqui puedes dar de alta muestras nuevas y controlar su estado, stock y etiqueta.</p>
+        </div>
+        <div class="col-lg-4">
+            <div class="mini-kpi">
+                <div class="small text-uppercase text-muted">Alta recomendada</div>
+                <div class="fw-semibold mt-2">Primero crea el estudio, luego recepciona y despues da de alta las muestras.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-5">
+        <div class="card glass soft-card border-0 h-100">
+            <div class="card-body p-4 p-lg-5">
+                <div class="app-section-title">Crear muestra</div>
+                <div class="app-section-copy">Alta manual de muestra vinculada a estudio, recepcion, punto de muestreo, plantilla de etiqueta y ubicacion fisica.</div>
+                <form method="post" action="/app/samples/create/" class="row g-4">
+                    {% csrf_token %}
+                    {% for field in sample_form %}
+                    <div class="{% if field.name == 'sample_code' %}col-12{% else %}col-md-6{% endif %}">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors|striptags }}</div>{% endif %}
+                    </div>
+                    {% endfor %}
+                    <div class="col-12 pt-2">
+                        <button class="btn btn-primary btn-lg soft-pill" type="submit">Crear muestra</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-7">
+        <div class="card glass soft-card border-0 h-100">
+            <div class="card-body p-4 p-lg-5">
+                <div class="app-section-title">Listado de muestras</div>
+                <div class="app-section-copy">Consulta operativa con stock, estado y acceso rapido a la etiqueta.</div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <tr>
+                            <th>Codigo</th>
+                            <th>Estudio</th>
+                            <th>Punto</th>
+                            <th>Camara</th>
+                            <th>Stock</th>
+                            <th>Estado</th>
+                            <th>Ubicacion</th>
+                            <th>QR</th>
+                            <th></th>
+                        </tr>
+                        {% for sample in samples %}
+                        <tr>
+                            <td class="fw-semibold">{{ sample.sample_code }}</td>
+                            <td>{{ sample.study.code }}</td>
+                            <td>{{ sample.sampling_point.label|default:"-" }}</td>
+                            <td>{{ sample.chamber.code|default:"-" }}</td>
+                            <td>{{ sample.current_stock }}</td>
+                            <td><span class="badge text-bg-light">{{ sample.get_status_display }}</span></td>
+                            <td>{{ sample.shelf|default:"-" }} / {{ sample.tray|default:"-" }} / {{ sample.physical_position|default:"-" }}</td>
+                            <td>{{ sample.qr_code|default:"-" }}</td>
+                            <td><a class="btn btn-sm btn-outline-secondary rounded-pill" href="/app/labels/{{ sample.id }}/">Etiqueta</a></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-muted">No hay muestras todavia.</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+Prueba esta hoja de ruta, en este orden, para validar la fase 1 de punta a punta:
+
+1. Entra en `http://127.0.0.1:8000/login/` con `operador1 / Operador123!`.
+2. Revisa `Resumen` y confirma que ves contadores, alertas, calendario maestro, próximas extracciones y carga de cámaras.
+3. Ve a `Estudios` y crea un estudio nuevo completo.
+4. Comprueba que el estudio aparece en el listado con estado en español.
+5. Ve a `Operaciones` y registra una recepción nueva con cantidades, discrepancia si quieres y notas.
+6. Comprueba que la recepción se guarda sin mensajes raros ni etiquetas en inglés.
+7. Ve a `Muestras` y crea una muestra ligada al estudio y, si quieres, a la recepción.
+8. Revisa que la muestra salga en el listado con estado, ubicación y botón de etiqueta.
+9. Pulsa `Etiqueta` y comprueba que la vista de etiqueta sale en español y con los campos correctos.
+10. Vuelve a `Operaciones`, usa `Etiquetar muestra` y confirma que cambia el estado.
+11. En la misma pantalla, registra `Entrada en cámara` y comprueba que la muestra queda en cámara.
+12. Registra una `Extracción` y verifica que baja el stock.
+13. Ve a `Alertas` y revisa si aparece alerta de stock bajo cuando corresponda.
+14. Ve a `Informes` y comprueba:
+- stock bajo
+- pendientes de etiquetar
+- pendientes de entrada en cámara
+- pendientes de extracción
+- movimientos recientes
+15. Ve a `Plan anual` y revisa:
+- estudios planificados/activos/finalizados
+- próximas entradas
+- próximas extracciones
+- calendario maestro
+- carga de cámaras
+- alertas y desviaciones
+16. Ve a `Desviaciones` y crea una desviación de cámara.
+17. Si marcas recálculo, revisa luego `Plan anual` y `Auditoría`.
+18. Ve a `Auditoría` y comprueba que los textos salen funcionales, no técnicos.
+19. Prueba exportar auditoría a Excel y abrir la vista de impresión/PDF.
+20. Cierra sesión y comprueba que `Salir` funciona bien.
+
+Cuando acabes cada bloque, me dices así:
+- `Estudios OK`
+- `Operaciones OK`
+- `Muestras OK`
+- o me pegas el fallo exacto
+
+Y lo vamos cerrando contigo paso a paso.
