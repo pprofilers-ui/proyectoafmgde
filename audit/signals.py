@@ -2,7 +2,7 @@ from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 from django.forms.models import model_to_dict
 from django.db import connection
-
+from decimal import Decimal
 from .context import get_audit_request
 from .models import AuditTrail
 
@@ -33,6 +33,8 @@ def _serialize_instance(instance):
     for key, value in data.items():
         if hasattr(value, "isoformat"):
             serialized[key] = value.isoformat()
+        elif isinstance(value, Decimal):
+            serialized[key] = float(value)
         else:
             serialized[key] = value
     return serialized

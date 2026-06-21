@@ -197,12 +197,3 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
 
-
-# ==============================================================================
-# CORRECCIÓN PARA ERROR: "Object of type Decimal is not JSON serializable"
-# ==============================================================================
-import json
-from django.core.serializers.json import DjangoJSONEncoder
-
-# Forzamos a que todo el proyecto use el encoder de Django que sí acepta Decimales
-json.JSONEncoder = DjangoJSONEncoder
