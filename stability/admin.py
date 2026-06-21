@@ -56,6 +56,19 @@ class StorageConditionAdmin(admin.ModelAdmin):
     list_display = ("code", "name", "temperature_set_point", "humidity_set_point", "light_condition", "is_active")
     list_filter = ("is_active",)
     search_fields = ("code", "name")
+    
+    # ---- AÑADE ESTO PARA QUE PUEDA ASIGNAR CONDICIONES ----
+    def has_module_permission(self, request):
+        return request.user.is_staff
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_staff
+
+    def has_add_permission(self, request):
+        return request.user.is_staff
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_staff
 
 
 @admin.register(ChamberLocation)
@@ -63,6 +76,19 @@ class ChamberLocationAdmin(admin.ModelAdmin):
     list_display = ("code", "name", "room", "shelf", "position", "is_active")
     list_filter = ("is_active", "room")
     search_fields = ("code", "name", "room")
+    
+    # ---- AÑADE ESTO PARA QUE PUEDA ASIGNAR UBICACIONES ----
+    def has_module_permission(self, request):
+        return request.user.is_staff
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_staff
+
+    def has_add_permission(self, request):
+        return request.user.is_staff
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_staff
 
 
 @admin.register(Study)
