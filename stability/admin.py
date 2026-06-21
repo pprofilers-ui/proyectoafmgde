@@ -1,5 +1,7 @@
 from django.contrib import admin
 
+from audit.admin import AuditTrailAdmin
+
 from .models import (
     Chamber,
     ChamberDeviation,
@@ -214,3 +216,26 @@ class StabilityAlertAdmin(admin.ModelAdmin):
     list_display = ("title", "study", "sample", "severity", "status", "due_date")
     list_filter = ("severity", "status")
     search_fields = ("title", "message")
+
+
+# =====================================================================
+# 🚀 CONTROL DE PERMISOS AUTOMÁTICO (VISTA TOTAL MENOS USUARIOS Y GRUPOS)
+# =====================================================================
+
+# 1. Definimos exactamente qué clases Admin del archivo queremos autorizar para el Staff
+clases_maestras = [
+    ProductAdmin, PackagingConfigurationAdmin, ProductBatchAdmin,
+    StorageConditionAdmin, ChamberLocationAdmin, StudyAdmin,
+    ChamberAdmin, SamplingPointAdmin, SampleReceptionAdmin,
+    SampleAdmin, StockMovementAdmin, ChamberDeviationAdmin, 
+    StabilityAlertAdmin, AuditTrailAdmin
+]
+
+# 2. Recorremos los modelos registrados en Django y aplicamos los permisos a sus instancias
+for modelo, instance_admin in admin.site._registry.items():
+    if type(instance_admin) in clases_maestras:
+        instance_admin.has_module_permission = lambda request: request.user.is_staff
+        instance_admin.has_view_permission = lambda request, obj=None: request.user.is_staff
+        instance_admin.has_add_permission = lambda request: request.user.is_staff
+        instance_admin.has_change_permission = lambda request, obj=None: request.user.is_staff
+        instance_admin.has_delete_permission = lambda request, obj=None: request.user.is_staff
