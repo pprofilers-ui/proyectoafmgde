@@ -18,7 +18,11 @@ class Product(TimeStampedModel):
     strength = models.CharField(max_length=100, blank=True)
     company_code = models.CharField(max_length=50, default="AGQ")
     is_active = models.BooleanField(default=True)
-
+    
+    class Meta:
+        verbose_name = "Producto"
+        verbose_name_plural = "Productos"
+    
     def __str__(self):
         return f"{self.code} - {self.name}"
 
@@ -29,7 +33,11 @@ class PackagingConfiguration(TimeStampedModel):
     material = models.CharField(max_length=100, blank=True)
     presentation = models.CharField(max_length=255, blank=True)
     is_active = models.BooleanField(default=True)
-
+    
+    class Meta:
+        verbose_name = "Configuración de Acondicionamiento"
+        verbose_name_plural = "Configuraciones de Acondicionamiento"
+        
     def __str__(self):
         return f"{self.code} - {self.name}"
 
@@ -43,7 +51,11 @@ class LabelTemplate(TimeStampedModel):
     format_name = models.CharField(max_length=100, blank=True)
     color_hex = models.CharField(max_length=20, default="#DCEBFF")
     is_active = models.BooleanField(default=True)
-
+    
+    class Meta:
+        verbose_name = "Plantilla de Etiqueta"
+        verbose_name_plural = "Plantillas de Etiquetas"
+    
     def __str__(self):
         return f"{self.code} - {self.name}"
 
@@ -63,6 +75,10 @@ class ProductBatch(TimeStampedModel):
     quantity_released = models.PositiveIntegerField(default=0)
     notes = models.TextField(blank=True)
 
+    class Meta:
+        verbose_name = "Lote de Producto"
+        verbose_name_plural = "Lotes de Productos"
+    
     def __str__(self):
         return self.code
 
@@ -74,7 +90,11 @@ class StorageCondition(TimeStampedModel):
     humidity_set_point = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     light_condition = models.CharField(max_length=100, blank=True)
     is_active = models.BooleanField(default=True)
-
+    
+    class Meta:
+        verbose_name = "Condición de Almacenamiento"
+        verbose_name_plural = "Condiciones de Almacenamiento"
+    
     def __str__(self):
         return f"{self.code} - {self.name}"
 
@@ -86,7 +106,11 @@ class ChamberLocation(TimeStampedModel):
     shelf = models.CharField(max_length=50, blank=True)
     position = models.CharField(max_length=50, blank=True)
     is_active = models.BooleanField(default=True)
-
+    
+    class Meta:
+        verbose_name = "Ubicación de Cámara"
+        verbose_name_plural = "Ubicaciones de Cámaras"
+    
     def __str__(self):
         return f"{self.code} - {self.name}"
 
@@ -118,6 +142,8 @@ class Study(TimeStampedModel):
 
     class Meta:
         ordering = ["-created_at"]
+        verbose_name = "Estudio de Estabilidad"
+        verbose_name_plural = "Estudios de Estabilidad"
 
     def __str__(self):
         return f"{self.code} - {self.title}"
@@ -145,6 +171,10 @@ class Chamber(TimeStampedModel):
     humidity_set_point = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     is_active = models.BooleanField(default=True)
 
+    class Meta:
+        verbose_name = "Cámara"
+        verbose_name_plural = "Cámaras"
+    
     def __str__(self):
         return f"{self.code} - {self.name}"
 
@@ -158,6 +188,8 @@ class SamplingPoint(TimeStampedModel):
 
     class Meta:
         ordering = ["target_date"]
+        verbose_name = "Punto de Muestreo"
+        verbose_name_plural = "Puntos de Muestreo"
 
     @property
     def effective_date(self):
@@ -189,6 +221,10 @@ class SampleReception(TimeStampedModel):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     notes = models.TextField(blank=True)
 
+    class Meta:
+        verbose_name = "Recepción de Muestra"
+        verbose_name_plural = "Recepciones de Muestras"
+    
     def __str__(self):
         return self.reception_number
 
@@ -227,7 +263,11 @@ class Sample(TimeStampedModel):
     received_at = models.DateTimeField(null=True, blank=True)
     placed_in_chamber_at = models.DateTimeField(null=True, blank=True)
     extracted_at = models.DateTimeField(null=True, blank=True)
-
+    
+    class Meta:
+        verbose_name = "Muestra"
+        verbose_name_plural = "Muestras"
+        
     def __str__(self):
         return self.sample_code
 
@@ -248,6 +288,8 @@ class StockMovement(TimeStampedModel):
 
     class Meta:
         ordering = ["-executed_at"]
+        verbose_name = "Movimiento de Stock"
+        verbose_name_plural = "Movimientos de Stock"
 
     def __str__(self):
         return f"{self.sample.sample_code} - {self.movement_type}"
@@ -261,6 +303,10 @@ class ChamberDeviation(TimeStampedModel):
     impact_assessment = models.TextField(blank=True)
     requires_recalculation = models.BooleanField(default=False)
 
+    class Meta:
+        verbose_name = "Desviación de Cámara"
+        verbose_name_plural = "Desviaciones de Cámaras"
+    
     def __str__(self):
         return f"{self.chamber.code} - {self.detected_at:%Y-%m-%d %H:%M}"
 
@@ -285,6 +331,8 @@ class StabilityAlert(TimeStampedModel):
 
     class Meta:
         ordering = ["status", "due_date", "-created_at"]
-
+        verbose_name = "Alerta de Estabilidad"
+        verbose_name_plural = "Alertas de Estabilidad"
+    
     def __str__(self):
         return self.title

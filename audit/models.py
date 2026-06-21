@@ -26,6 +26,8 @@ class AuditTrail(models.Model):
 
     class Meta:
         ordering = ['-performed_at']
-
+        verbose_name = "Traza de Auditoría"
+        verbose_name_plural = "Trazas de Auditoría"
+    
     def __str__(self):
         return f'{self.entity_name}:{self.entity_id} - {self.action}'
