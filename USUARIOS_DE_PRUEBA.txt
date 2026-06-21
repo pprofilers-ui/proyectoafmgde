@@ -126,6 +126,18 @@ Ruta de entrada:
 - http://127.0.0.1:8000/login/
 
 
+
+usuario.administrador
+UsAdmin947834$@
+usuario.administrador@prueba.com
+
+admin_funcional
+UsAdmin947834$@
+
+
+responsable.maestros
+UsAdmin947834$@
+
 Notas
 -----
 - Mohammed queda creado como administrador completo.

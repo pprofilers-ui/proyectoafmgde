@@ -22,6 +22,19 @@ class ProductAdmin(admin.ModelAdmin):
     list_display = ("code", "name", "reference", "dosage_form", "strength", "company_code", "is_active")
     list_filter = ("company_code", "is_active")
     search_fields = ("code", "name", "reference")
+    
+    # ---- COPIA ESTO DENTRO DE PRODUCTADMIN ----
+    def has_module_permission(self, request):
+        return request.user.is_staff
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_staff
+
+    def has_add_permission(self, request):
+        return request.user.is_staff
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_staff
 
 
 @admin.register(PackagingConfiguration)
@@ -64,6 +77,19 @@ class ChamberAdmin(admin.ModelAdmin):
     list_display = ("code", "name", "location", "storage_condition", "chamber_location", "is_active")
     list_filter = ("is_active", "storage_condition")
     search_fields = ("code", "name", "location")
+    
+    # ---- COPIA ESTO DENTRO DE CHAMBERADMIN ----
+    def has_module_permission(self, request):
+        return request.user.is_staff
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_staff
+
+    def has_add_permission(self, request):
+        return request.user.is_staff
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_staff
 
 
 @admin.register(SamplingPoint)
