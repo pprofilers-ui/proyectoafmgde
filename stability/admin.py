@@ -49,6 +49,25 @@ class ProductBatchAdmin(admin.ModelAdmin):
     list_display = ("code", "product", "packaging", "manufactured_at", "expiry_date", "quantity_released")
     list_filter = ("product", "packaging")
     search_fields = ("code", "product__name")
+    
+    # ==== 🚀 EVITA EL ERROR DE JSON CON LOS DECIMALES EN LOS LOTES ====
+    def save_model(self, request, obj, form, change):
+        if hasattr(obj, 'quantity_released') and obj.quantity_released is not None:
+            obj.quantity_released = float(obj.quantity_released)
+        super().save_model(request, obj, form, change)
+
+    # ==== PERMISOS PARA EL USUARIO DE MAESTROS ====
+    def has_module_permission(self, request):
+        return request.user.is_staff
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_staff
+
+    def has_add_permission(self, request):
+        return request.user.is_staff
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_staff
 
 
 @admin.register(StorageCondition)

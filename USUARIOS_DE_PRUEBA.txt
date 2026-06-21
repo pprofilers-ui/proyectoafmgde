@@ -134,7 +134,7 @@ usuario.administrador@prueba.com
 admin_funcional
 UsAdmin947834$@
 
-
+ESTE ES EL USUARIO CREADO PARA CHAMBER Y PRODUCT
 responsable.maestros
 UsAdmin947834$@
 
