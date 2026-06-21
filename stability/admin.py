@@ -69,6 +69,17 @@ class StorageConditionAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return request.user.is_staff
+    
+    # ==== ESTE TRUCO INTERCEPTA EL FORMULARIO Y EVITA EL ERROR DE JSON ====
+    def save_model(self, request, obj, form, change):
+        # Forzamos a que los datos del formulario pasen como floats limpios de Python
+        if obj.temperature_set_point is not None:
+            obj.temperature_set_point = float(obj.temperature_set_point)
+        if obj.humidity_set_point is not None:
+            obj.humidity_set_point = float(obj.humidity_set_point)
+        
+        # Llama al guardado normal de Django una vez limpio
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(ChamberLocation)
