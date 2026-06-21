@@ -42,6 +42,19 @@ class PackagingConfigurationAdmin(admin.ModelAdmin):
     list_display = ("code", "name", "material", "presentation", "is_active")
     list_filter = ("is_active",)
     search_fields = ("code", "name", "material")
+    
+    # ==== PERMISOS PARA QUE PUEDA ASIGNAR LOS ACONDICIONAMIENTOS ====
+    def has_module_permission(self, request):
+        return request.user.is_staff
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_staff
+
+    def has_add_permission(self, request):
+        return request.user.is_staff
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_staff
 
 
 @admin.register(ProductBatch)
