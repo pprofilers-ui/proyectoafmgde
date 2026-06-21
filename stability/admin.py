@@ -127,6 +127,19 @@ class ChamberAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return request.user.is_staff
+    
+    # ==== 🚀 AGREGA ESTO AL FINAL DE CHAMBERADMIN ====
+    def save_model(self, request, obj, form, change):
+        # Si el usuario ha escrito algo en la temperatura, lo convertimos a float limpio
+        if hasattr(obj, 'temperature_set_point') and obj.temperature_set_point is not None:
+            obj.temperature_set_point = float(obj.temperature_set_point)
+            
+        # Si el usuario ha escrito algo en la humedad, lo convertimos a float limpio
+        if hasattr(obj, 'humidity_set_point') and obj.humidity_set_point is not None:
+            obj.humidity_set_point = float(obj.humidity_set_point)
+            
+        # Una vez transformados a float, Django y el sistema de logs los guardarán sin romper el JSON
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(SamplingPoint)
