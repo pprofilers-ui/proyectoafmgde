@@ -35,8 +35,8 @@ class PackagingConfiguration(TimeStampedModel):
     is_active = models.BooleanField(default=True)
     
     class Meta:
-        verbose_name = "Configuración de Acondicionamiento"
-        verbose_name_plural = "Configuraciones de Acondicionamiento"
+        verbose_name = "Formato"
+        verbose_name_plural = "Formatos"
         
     def __str__(self):
         return f"{self.code} - {self.name}"

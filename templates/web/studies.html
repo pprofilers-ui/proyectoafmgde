@@ -17,70 +17,142 @@
 </div>
 
 <div class="row g-4">
-    <div class="col-12">
-        <div class="card glass soft-card border-0 h-100">
-            <div class="card-body p-4 p-lg-5">
-                <div class="app-section-title">Crear estudio</div>
-                <div class="app-section-copy">Alta funcional para usuarios normales sin pasar por el panel admin.</div>
-                <form method="post" action="/app/studies/create/" class="row g-4">
-                    {% csrf_token %}
-                    {% for field in study_form %}
-                    <div class="{% if field.name == 'title' or field.name == 'packaging_description' or field.name == 'product_name' or field.name == 'batch_number' %}col-12{% else %}col-md-6{% endif %}">
-                        <label class="form-label">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors|striptags }}</div>{% endif %}
-                    </div>
-                    {% endfor %}
-                    <div class="col-12 pt-2">
-                        <button class="btn btn-primary btn-lg soft-pill" type="submit">Crear estudio</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
+    <!-- LISTADO ARRIBA -->
     <div class="col-12">
         <div class="card glass soft-card border-0 h-100">
             <div class="card-body p-4 p-lg-5">
-                <div class="app-section-title">Listado de estudios</div>
-                <div class="app-section-copy">Consulta rapida del estado de estudios dados de alta.</div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <div class="app-section-title">Listado de estudios</div>
+                        <div class="app-section-copy">
+                            Consulta rápida del estado de estudios dados de alta.
+                        </div>
+                    </div>
+
+                    <button
+                        class="btn btn-primary rounded-pill"
+                        type="button"
+                        onclick="toggleStudyForm()">
+                        <i class="bi bi-plus-lg"></i> Nuevo estudio
+                    </button>
+                </div>
+
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
                         <tr>
-                            <th>Codigo</th>
-                            <th>Titulo</th>
+                            <th>Código</th>
+                            <th>Título</th>
                             <th>Producto</th>
                             <th>Lote</th>
                             <th>Estado</th>
                             <th>Inicio</th>
                             <th>Acciones</th>
                         </tr>
+
                         {% for study in studies %}
                         <tr>
                             <td class="fw-semibold">{{ study.code }}</td>
                             <td>{{ study.title }}</td>
                             <td>{{ study.product_name }}</td>
                             <td>{{ study.batch_number }}</td>
-                            <td><span class="badge text-bg-light">{{ study.get_status_display }}</span></td>
+                            <td>
+                                <span class="badge text-bg-light">
+                                    {{ study.get_status_display }}
+                                </span>
+                            </td>
                             <td>{{ study.start_date }}</td>
                             <td class="text-nowrap">
-                                <a class="btn btn-sm btn-outline-primary rounded-pill me-1" href="#" onclick="openStudyEditModal('{{ study.id }}', '{{ study.code|escapejs }}', '{{ study.title|escapejs }}', '{{ study.packaging_id|default:'' }}', '{{ study.product_name|escapejs }}', '{{ study.batch_number|escapejs }}', '{{ study.packaging_description|escapejs }}', '{{ study.status }}', '{{ study.start_date|date:"Y-m-d" }}', '{{ study.end_date|default:''|date:"Y-m-d" }}'); return false;">Editar</a>
-                                <form method="post" action="/app/studies/{{ study.id }}/delete/" class="d-inline study-delete-form">
+                                <a
+                                    class="btn btn-sm btn-outline-primary rounded-pill me-1"
+                                    href="#"
+                                    onclick="openStudyEditModal('{{ study.id }}', '{{ study.code|escapejs }}', '{{ study.title|escapejs }}', '{{ study.packaging_id|default:'' }}', '{{ study.product_name|escapejs }}', '{{ study.batch_number|escapejs }}', '{{ study.packaging_description|escapejs }}', '{{ study.status }}', '{{ study.start_date|date:'Y-m-d' }}', '{{ study.end_date|default:''|date:'Y-m-d' }}'); return false;">
+                                    Editar
+                                </a>
+
+                                <form
+                                    method="post"
+                                    action="/app/studies/{{ study.id }}/delete/"
+                                    class="d-inline study-delete-form">
                                     {% csrf_token %}
-                                    <button class="btn btn-sm btn-outline-danger rounded-pill" type="submit">Eliminar</button>
+                                    <button
+                                        class="btn btn-sm btn-outline-danger rounded-pill"
+                                        type="submit">
+                                        Eliminar
+                                    </button>
                                 </form>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-muted">No hay estudios todavia.</td>
+                            <td colspan="7" class="text-muted">
+                                No hay estudios todavía.
+                            </td>
                         </tr>
                         {% endfor %}
                     </table>
                 </div>
+
             </div>
         </div>
     </div>
+
+    <!-- FORMULARIO ABAJO OCULTO -->
+    <div class="col-12" id="createStudySection" style="display:none;">
+        <div class="card glass soft-card border-0 h-100">
+            <div class="card-body p-4 p-lg-5">
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <div class="app-section-title">Crear estudio</div>
+                        <div class="app-section-copy">
+                            Alta funcional para usuarios normales sin pasar por el panel admin.
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="btn btn-outline-secondary rounded-pill"
+                        onclick="toggleStudyForm()">
+                        Cerrar
+                    </button>
+                </div>
+
+                <form method="post" action="/app/studies/create/" class="row g-4">
+                    {% csrf_token %}
+
+                    {% for field in study_form %}
+                    <div class="{% if field.name == 'title' or field.name == 'packaging_description' %}col-12{% elif field.name == 'packaging' or field.name == 'product_name' or field.name == 'batch_number' or field.name == 'status' or field.name == 'start_date' or field.name == 'end_date' %}col-md-4{% else %}col-md-6{% endif %}">
+                        
+                        <label class="form-label">
+                            {{ field.label }}
+                        </label>
+
+                        {{ field }}
+
+                        {% if field.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ field.errors|striptags }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    <div class="col-12 pt-2">
+                        <button
+                            class="btn btn-primary btn-lg soft-pill"
+                            type="submit">
+                            Crear estudio
+                        </button>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <div class="modal fade" id="studyEditModal" tabindex="-1" aria-hidden="true">
@@ -119,7 +191,7 @@
                             {{ study_form.batch_number }}
                         </div>
                         <div class="col-12">
-                            <label class="form-label">Descripcion del acondicionado</label>
+                            <label class="form-label">Comentarios</label>
                             {{ study_form.packaging_description }}
                         </div>
                         <div class="col-md-6">
@@ -157,6 +229,25 @@ function openStudyEditModal(studyId, code, title, packagingId, productName, batc
     const modal = new bootstrap.Modal(document.getElementById('studyEditModal'));
     modal.show();
 }
+
+
+function toggleStudyForm() {
+    const section = document.getElementById('createStudySection');
+
+    if (section.style.display === 'none' || section.style.display === '') {
+        section.style.display = 'block';
+
+        setTimeout(() => {
+            section.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }, 100);
+    } else {
+        section.style.display = 'none';
+    }
+}
+
 
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.study-delete-form').forEach(function (form) {

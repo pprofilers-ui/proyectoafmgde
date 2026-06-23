@@ -77,7 +77,7 @@ _apply_admin_field_labels(Study, {
     "packaging": "Acondicionado",
     "product_name": "Nombre del producto",
     "batch_number": "Número de lote",
-    "packaging_description": "Descripción del acondicionado",
+    "packaging_description": "Comentarios",
     "company_code": "Código empresa",
     "status": "Estado",
     "start_date": "Fecha de inicio",

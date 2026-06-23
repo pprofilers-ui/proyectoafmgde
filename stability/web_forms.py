@@ -120,7 +120,7 @@ class StudyCreateForm(forms.ModelForm):
             "packaging": "Acondicionado",
             "product_name": "Nombre del producto",
             "batch_number": "Numero de lote",
-            "packaging_description": "Descripcion del acondicionado",
+            "packaging_description": "Comentarios",
             "status": "Estado",
             "start_date": "Fecha de inicio",
             "end_date": "Fecha de fin",
@@ -130,7 +130,7 @@ class StudyCreateForm(forms.ModelForm):
             "title": "Titulo del estudio",
             "product_name": "Nombre visible del producto",
             "batch_number": "Codigo del lote",
-            "packaging_description": "Descripcion del acondicionado",
+            "packaging_description": "Comentarios",
         }
         for name, field in self.fields.items():
             field.label = labels.get(name, field.label)
@@ -170,7 +170,7 @@ class StudyEditForm(forms.ModelForm):
             "packaging": "Acondicionado",
             "product_name": "Nombre del producto",
             "batch_number": "Numero de lote",
-            "packaging_description": "Descripcion del acondicionado",
+            "packaging_description": "Comentarios",
             "status": "Estado",
             "start_date": "Fecha de inicio",
             "end_date": "Fecha de fin",
@@ -180,7 +180,7 @@ class StudyEditForm(forms.ModelForm):
             "title": "Titulo del estudio",
             "product_name": "Nombre visible del producto",
             "batch_number": "Codigo del lote",
-            "packaging_description": "Descripcion del acondicionado",
+            "packaging_description": "Comentarios",
         }
         for name, field in self.fields.items():
             field.label = labels.get(name, field.label)
