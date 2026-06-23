@@ -1,0 +1,430 @@
+Validar Credenciales 3.2.13
+
+
+<add key="Besafer2_Rijndael_Key" value="msxZMY9a9vxf.HqTWK4tgaK4uon?J6YA" />
+
+
+
+
+Sí me acuerdo del contexto, y aquí en `besafer_backend` lo que veo es esto, sin tocar nada:
+
+`No he encontrado en el código una integración directa visible con /usuariosAPI/usuarios/validarCredenciales/6`
+o con el nombre `validarCredenciales`.
+
+Lo que sí existe claramente en este backend es otro flujo de login:
+- endpoint: `POST /user/authorization`
+- rutas en [user/urls.py](C:\desarollo\besafer_backend\user\urls.py)
+- serializer principal en [user/serializers.py](C:\desarollo\besafer_backend\user\serializers.py)
+- autenticación JWT en [user/authentication.py](C:\desarollo\besafer_backend\user\authentication.py)
+
+Lo importante:
+- este backend autentica con `SimpleJWT`
+- después mete contexto corporativo en request:
+  - `company`
+  - `contact`
+  - `app-version`
+- eso es el login “real” visible del backend actual
+
+Sobre lo que me has pasado de Postman:
+- el servicio `Validar Credenciales 3.2.13` parece ser un `servicio externo del ESB`
+- usa `Basic Auth`
+- devuelve un JSON con un campo:
+  - `"Message": "...."`
+- por lo que enseñas, ese `Message` parece venir `cifrado u ofuscado`
+
+Sobre esta clave:
+- `Besafer2_Rijndael_Key = msxZMY9a9vxf.HqTWK4tgaK4uon?J6YA`
+
+mi lectura es:
+- eso apunta a un esquema externo de cifrado tipo `Rijndael/AES`
+- `pero no he visto en este backend actual una implementación directa de ese descifrado para ese servicio concreto`
+
+También encontré una cosa parecida, pero `no es lo mismo`:
+- en [besafer/config.py](C:\desarollo\besafer_backend\besafer\config.py) hay cifrado/descifrado
+- pero usa `Fernet` derivado de `SECRET_KEY`
+- eso es para configuración interna, `no para ese servicio 3.2.13`
+
+Conclusión práctica:
+- `este backend no parece usar ese servicio como login principal visible`
+- `el login actual del backend es JWT propio`
+- el servicio `validarCredenciales` que te pide tu responsable parece más bien una `validación externa contra ESB`
+- si lo quieres aplicar en tu Django, seguramente habrá que:
+  1. llamar al ESB con `Basic Auth`
+  2. recibir `Message`
+  3. descifrar ese `Message` con la clave Rijndael
+  4. interpretar el resultado
+  5. y a partir de ahí decidir si creas sesión/JWT en tu app
+
+Mi recomendación para cuando entremos en tu carpeta:
+- no sustituir de golpe tu login Django
+- primero crear un `adaptador de autenticación externo`
+- probar llamada + respuesta + descifrado
+- y luego integrarlo en tu login web
+
+Cuando te cambies a la carpeta de tu proyecto, seguimos desde aquí y te ayudo a diseñarlo con mucho cuidado. Si quieres, al entrar allí lo primero que haremos será:
+- definir cómo llamar al servicio
+- reproducir el `Basic Auth`
+- y preparar el descifrado del `Message` con esa clave.
+
+
+
+
+
+
+********************************************************************************************************************************************************
+
+
+Sí, te he entendido perfectamente, y además ahora `mucho mejor` con las capturas.
+
+Tu flujo real sería este:
+
+1. `Primer servicio`
+- `GET /api/test/validarCredenciales/{idAplicacion}/{Usuario}/{Password}`
+- este servicio recibe `usuario + password`
+- devuelve un JSON con:
+  - `"Message": "...."`
+- ese `Message` es el valor cifrado/transformado
+
+2. `Segundo servicio`
+- `POST /api/usuarios/validarCredenciales/{idAplicacion}`
+- le mandas en el body:
+  - `{"Message": "...."}`
+- y responde:
+  - `{"Response": true}` o `false`
+
+Entonces, efectivamente, en tu aplicación `no tienes que inventarte el login final directamente`.
+Primero tienes que reproducir `exactamente el comportamiento del primer servicio`, y luego llamar al segundo.
+
+O dicho fácil:
+
+- el `primer servicio` genera el mensaje seguro a partir de usuario y contraseña
+- el `segundo servicio` valida ese mensaje
+- si el segundo responde `true`, entonces tu app deja entrar al usuario
+
+Eso encaja totalmente con lo que te dijo tu responsable.
+
+Mi recomendación para la PoC `.py` es esta:
+
+**Objetivo del script**
+- probar fuera de AFMGDE todo el flujo corporativo
+- sin tocar tu login actual
+
+**Qué haría el script**
+1. recibir:
+- `idAplicacion`
+- `usuario`
+- `password`
+
+2. llamar al primer endpoint:
+- `/api/test/validarCredenciales/...`
+- obtener `Message`
+
+3. llamar al segundo endpoint:
+- `/api/usuarios/validarCredenciales/{idAplicacion}`
+- enviar `{"Message": "..."}`
+- obtener `Response`
+
+4. mostrar por consola:
+- URL 1 llamada
+- `Message` recibido
+- URL 2 llamada
+- `Response` final
+- resultado:
+  - `credenciales validas`
+  - o `credenciales invalidas`
+
+Entonces, la lógica futura en Django será:
+- pantalla login actual
+- el usuario pone usuario/password
+- tu backend hace internamente lo mismo que este `.py`
+- si `Response = true`, haces login Django
+
+Así que sí:
+`el método de tu aplicación tiene que replicar el primer servicio`
+y después encadenar el segundo.
+
+Y me gusta mucho que lo hagamos primero como script, porque así:
+- no tocamos tu app
+- validamos el contrato real
+- y quitamos muchísimo riesgo
+
+Si quieres, el siguiente paso ya es claro:
+te preparo `un .py independiente` que haga exactamente ese flujo de dos llamadas.
+
+
+
+
+
+
+
+************************************************************
+
+
+
+Ya te lo he dejado, sin tocar AFMGDE:
+
+- script: [tools/probar_login_agq.py](C:\desarollo\besafer_backend\tools\probar_login_agq.py)
+- guía de uso: [tools/USO_PROBAR_LOGIN_AGQ.txt](C:\desarollo\besafer_backend\tools\USO_PROBAR_LOGIN_AGQ.txt)
+
+Qué hace:
+- llama al primer servicio
+- recoge `Message`
+- llama al segundo servicio
+- te dice si `Response` es `true` o `false`
+
+Ejemplo:
+```powershell
+python tools/probar_login_agq.py --base-url "https://api-pro-sil.agqlabs.com:44383" --app-id 6 --username "mohammed.sebti" --password "TU_PASSWORD"
+```
+
+Si quieres solo el primer paso:
+```powershell
+python tools/probar_login_agq.py --base-url "https://api-pro-sil.agqlabs.com:44383" --app-id 6 --username "mohammed.sebti" --password "TU_PASSWORD" --message-only
+```
+
+Haz la prueba y pégame la salida. Con eso vemos si el flujo corporativo responde bien antes de pensar en integrarlo.
+
+
+
+
+
+Corregido.
+
+He quitado `solo` estos dos ficheros de `besafer_backend`:
+- `tools/probar_login_agq.py`
+- `tools/USO_PROBAR_LOGIN_AGQ.txt`
+
+Y te los he puesto en tu proyecto correcto:
+- [probar_login_agq.py](C:\desarollo\proyecto_afmgde\probar_login_agq.py)
+- [USO_PROBAR_LOGIN_AGQ.txt](C:\desarollo\proyecto_afmgde\USO_PROBAR_LOGIN_AGQ.txt)
+
+No he tocado nada más de la carpeta `besafer_backend`.
+
+Cuando quieras, ya puedes ejecutarlo desde:
+```powershell
+cd C:\desarollo\proyecto_afmgde
+python probar_login_agq.py --base-url "https://api-pro-sil.agqlabs.com:44383" --app-id 6 --username "mohammed.sebti" --password "TU_PASSWORD"
+```
+
+Si quieres, ahora te acompaño en la primera ejecución.
+
+
+
+
+cd C:\desarollo\proyecto_afmgde
+python probar_login_agq.py --base-url "https://api-pro-sil.agqlabs.com:44383" --app-id 6 --username "mohammed.sebti" --password "11111mS$"
+
+
+(venv) PS C:\desarollo\proyecto_afmgde> python probar_login_agq.py --base-url "https://api-pro-sil.agqlabs.com:44383" --app-id 6 --api-basic "c2lsX2FwaTpoalJBU3NAZXc1T3JPNw==" --username "mohammed.sebti" --password "11111mS$"
+usage: probar_login_agq.py [-h] --base-url BASE_URL [--app-id APP_ID] --username USERNAME --password PASSWORD
+                           [--timeout TIMEOUT] [--message-only]
+probar_login_agq.py: error: unrecognized arguments: --api-basic c2lsX2FwaTpoalJBU3NAZXc1T3JPNw==
+(venv) PS C:\desarollo\proyecto_afmgde> 
+
+
+
+
+python probar_login_agq.py --base-url "https://api-pro-sil.agqlabs.com:44383" --app-id 6 --api-basic "c2lsX2FwaTpoalJBU3NAZXc1T3JPNw==" --username "mohammed.sebti" --password "11111mS$"
+
+
+
+(venv) PS C:\desarollo\proyecto_afmgde> python probar_login_agq.py --base-url "https://api-pro-sil.agqlabs.com:44383" --app-id 6 --api-basic "c2lsX2FwaTpoalJBU3NAZXc1T3JPNw==" --username "mohammed.sebti" --password "11111mS$"
+
+=== Configuración ===
+{
+  "base_url": "https://api-pro-sil.agqlabs.com:44383",
+  "app_id": 6,
+  "api_basic_configured": true,
+  "username": "mohammed.sebti",
+  "message_only": false,
+  "timeout": 30
+}
+
+=== Respuesta paso 1 - generar Message ===
+{
+  "Message": "juILQZxdXeRjwfFiWxE29t6fF3WBN+i8ND7fIgM8YLKXPLZOzcCz0c6KO2pOpnX7LqJASLreh+0aZ1L1+xsXfQ==Gj8iCxQO4QTugHJw",
+  "_debug": {
+    "url": "https://api-pro-sil.agqlabs.com:44383/api/test/validarCredenciales/6/mohammed.sebti/11111mS%24",
+    "status_code": 200
+  }
+}
+
+=== Respuesta paso 2 - validar Message ===
+{
+  "Response": true,
+  "_debug": {
+    "url": "https://api-pro-sil.agqlabs.com:44383/api/usuarios/validarCredenciales/6",
+    "status_code": 200
+  }
+}
+
+Resultado final: credenciales válidas.
+(venv) PS C:\desarollo\proyecto_afmgde> 
+
+
+
+
+
+
+https://api-pro-sil.agqlabs.com:44383/swagger/ui/index#!/Usuarios/Usuarios_UsuarioValidarCredenciales
+
+
+
+
+
+Ya lo tienes preparado `sin tocar tu login actual`.
+
+He añadido:
+- clase interna: [users/agq_auth_service.py](C:\desarollo\proyecto_afmgde\users\agq_auth_service.py)
+- prueba aislada: [probar_login_agq_servicio.py](C:\desarollo\proyecto_afmgde\probar_login_agq_servicio.py)
+- guía: [USO_PROBAR_LOGIN_AGQ_SERVICIO.txt](C:\desarollo\proyecto_afmgde\USO_PROBAR_LOGIN_AGQ_SERVICIO.txt)
+
+Importante:
+- esto `no está conectado` al formulario `/login/`
+- tu login Django actual sigue igual
+- solo hemos metido una clase reutilizable y un script para probarla
+
+Pruébalo así:
+
+```powershell
+python probar_login_agq_servicio.py --base-url "https://api-pro-sil.agqlabs.com:44383" --app-id 6 --api-basic "c2lsX2FwaTpoalJBU3NAZXc1T3JPNw==" --username "mohammed.sebti" --password "11111mS$"
+```
+
+Si devuelve `credenciales válidas`, ya tendremos la pieza interna lista para una futura integración segura.
+
+
+
+python probar_login_agq_servicio.py --base-url "https://api-pro-sil.agqlabs.com:44383" --app-id 6 --api-basic "c2lsX2FwaTpoalJBU3NAZXc1T3JPNw==" --username "mohammed.sebti" --password "11111mS$"
+
+
+
+
+
+
+
+(venv) PS C:\desarollo\proyecto_afmgde> python probar_login_agq_servicio.py --base-url "https://api-pro-sil.agqlabs.com:44383" --app-id 6 --api-basic "c2lsX2FwaTpoalJBU3NAZXc1T3JPNw==" --username "mohammed.sebti" --password "11111mS$"
+
+=== Configuración ===
+{
+  "base_url": "https://api-pro-sil.agqlabs.com:44383",
+  "app_id": 6,
+  "username": "mohammed.sebti",
+  "timeout": 30,
+  "uses_internal_service_class": true
+}
+
+=== Respuesta paso 1 - generar Message ===
+{
+  "Message": "Ydc3H/XYLZ6kB8ks8J5QGcCTCwbV+K+zsqXXLN9i4Ek9fp52Jeu/448O7NIp/DYnDvOZdtX7Rh6XWOu08YfXAQ==E@F$1xOaA@WA1L-m",
+  "_debug": {
+    "url": "https://api-pro-sil.agqlabs.com:44383/api/test/validarCredenciales/6/mohammed.sebti/11111mS%24",
+    "status_code": 200
+  }
+}
+
+=== Respuesta paso 2 - validar Message ===
+{
+  "Response": true,
+  "_debug": {
+    "url": "https://api-pro-sil.agqlabs.com:44383/api/usuarios/validarCredenciales/6",
+    "status_code": 200
+  }
+}
+
+Resultado final: credenciales válidas.
+(venv) PS C:\desarollo\proyecto_afmgde> 
+
+
+
+
+
+
+
+
+
+
+
+
+Perfecto. Ahora ya tienes `la prueba corporativa funcionando dentro de AFMGDE`, pero todavía `sin tocar el login real`, que era justo la forma segura de hacerlo.
+
+Lo que ya hemos conseguido:
+- la llamada al primer servicio funciona
+- se genera `Message`
+- la validación del segundo servicio funciona
+- `Response = true`
+- la clase interna `AgqAuthService` ya es reutilizable
+- tu login actual Django sigue intacto
+
+Mi valoración ahora es muy buena:
+- `ya no estamos en teoría`
+- `ya tienes una base técnica real y comprobada`
+- y el riesgo para integrar después ha bajado muchísimo
+
+El estado correcto ahora es:
+- login actual: sigue funcionando como siempre
+- autenticación AGQ: ya probada de forma aislada y segura
+- siguiente paso futuro: decidir cómo enganchar esto a `/login/`
+
+Mi recomendación en este punto:
+- `no integrar hoy todavía`
+- deja esto así
+- documenta que la prueba ha sido exitosa
+- y cuando quieras damos el siguiente salto con cabeza
+
+Si quieres, el siguiente paso que te puedo preparar `sin integrar aún` es un fichero de texto con:
+- qué hemos validado
+- cómo funciona el flujo AGQ
+- y cómo debería hacerse la integración futura sin romper el login actual.
+
+
+
+
+
+
+
+
+
+
+--------------------------------------------------------------------------------------------------
+
+No puedo dejar ese fichero `tal cual` con las credenciales y el `api_basic` en texto plano dentro del proyecto, porque sería un riesgo real de seguridad.
+
+Sí te lo puedo dejar `de forma segura`, y te recomiendo esta versión:
+- explicar el flujo completo
+- indicar qué archivos existen
+- indicar qué comandos usar
+- pero `sin guardar`:
+  - el `api_basic`
+  - la password de `mohammed.sebti`
+
+Puedo dejarlo con marcadores así:
+- `API_BASIC_TECNICO = [COMPLETAR EN ENTORNO SEGURO]`
+- `PASSWORD_USUARIO_AGQ = [COMPLETAR EN PRUEBA]`
+
+Y el resto del contexto sí quedaría documentado para retomar perfectamente.
+
+Si quieres, te lo creo ahora mismo en ese formato seguro.
+
+
+
+
+
+------------------------------------------------------------------------------------------
+
+
+Ya te lo he dejado junto a `manage.py` en:
+
+[CONTINUIDAD_LOGIN_AGQ_EXTERNO.txt](C:\desarollo\proyecto_afmgde\CONTINUIDAD_LOGIN_AGQ_EXTERNO.txt)
+
+Ahí queda guardado:
+- el flujo real de los dos servicios
+- el `api_basic`
+- el usuario y password de prueba
+- los scripts creados
+- el estado exacto: `probado, funcionando, pero no integrado aún en /login/`
+
+Y muy importante: en ese mismo fichero te dejé el aviso para que lo borres o lo limpies cuando demos el paso de integrarlo de verdad.
+
+
+
+

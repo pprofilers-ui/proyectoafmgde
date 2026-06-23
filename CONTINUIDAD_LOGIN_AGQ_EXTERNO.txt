@@ -1,0 +1,228 @@
+CONTINUIDAD - LOGIN AGQ EXTERNO EN AFMGDE
+=========================================
+
+Objetivo de este documento
+--------------------------
+Guardar el estado exacto alcanzado en la investigacion y prueba del login corporativo AGQ para AFMGDE, de forma que si se pierde la conversacion se pueda retomar desde este punto sin repetir todo el analisis.
+
+
+Contexto funcional
+------------------
+La aplicacion AFMGDE ya tiene su fase 1 funcional cerrada y validada.
+
+El login actual de la aplicacion Django sigue funcionando con autenticacion local normal.
+
+El objetivo de esta linea de trabajo NO ha sido sustituir todavia el login actual, sino estudiar y probar de forma segura el servicio corporativo AGQ de validacion de credenciales para futuros empleados AGQ, por ejemplo:
+
+- mohammed.sebti
+
+
+Conclusion principal ya confirmada
+----------------------------------
+Se ha validado con exito que AFMGDE puede consumir correctamente el flujo corporativo AGQ de validacion de credenciales, siempre que se respeten los dos pasos del servicio y la autenticacion tecnica de la API.
+
+
+Flujo real confirmado
+---------------------
+El flujo correcto NO es un unico endpoint.
+
+Se compone de dos llamadas:
+
+1. Primer servicio
+- GET /api/test/validarCredenciales/{idAplicacion}/{Usuario}/{Password}
+- requiere credencial tecnica Basic de la API
+- devuelve:
+  {
+    "Message": "...."
+  }
+
+2. Segundo servicio
+- POST /api/usuarios/validarCredenciales/{idAplicacion}
+- requiere la misma credencial tecnica Basic de la API
+- body:
+  {
+    "Message": "...."
+  }
+- devuelve:
+  {
+    "Response": true
+  }
+
+
+Autenticacion tecnica de la API
+-------------------------------
+Para consumir los servicios NO basta con usar solo el usuario/password AGQ.
+
+Tambien hace falta la credencial tecnica de la API, observada en Swagger.
+
+Valor probado con exito:
+- api_basic = c2lsX2FwaTpoalJBU3NAZXc1T3JPNw==
+
+Esto significa que existen dos capas:
+
+1. credencial tecnica para acceder a la API
+2. credenciales del empleado AGQ que se quieren validar
+
+
+Datos de prueba validados
+-------------------------
+Base URL probada:
+- https://api-pro-sil.agqlabs.com:44383
+
+IdAplicacion probado:
+- 6
+
+Usuario AGQ probado:
+- mohammed.sebti
+
+Password probada:
+- 11111mS$
+
+Resultado validado:
+- Response = true
+
+
+Archivos creados para esta prueba
+---------------------------------
+Dentro de AFMGDE se han creado estos ficheros:
+
+1. Script de prueba directa:
+- probar_login_agq.py
+
+2. Servicio interno reutilizable:
+- users/agq_auth_service.py
+
+3. Script de prueba usando la clase interna:
+- probar_login_agq_servicio.py
+
+4. Documentacion de uso:
+- USO_PROBAR_LOGIN_AGQ.txt
+- USO_PROBAR_LOGIN_AGQ_SERVICIO.txt
+
+
+Estado actual del proyecto respecto a login AGQ
+-----------------------------------------------
+Punto muy importante:
+
+- el login visual real de AFMGDE NO ha sido modificado
+- la pantalla /login/ sigue funcionando como antes
+- no se ha conectado todavia el servicio AGQ al formulario de login
+- no se ha roto la autenticacion local
+- no se ha tocado el flujo funcional ya validado
+
+En otras palabras:
+
+Lo que se ha hecho hasta ahora es una prueba segura, aislada y controlada.
+
+
+Comandos de prueba que ya funcionaron
+-------------------------------------
+Desde C:\desarollo\proyecto_afmgde
+
+1. Script de prueba directa:
+
+python probar_login_agq.py --base-url "https://api-pro-sil.agqlabs.com:44383" --app-id 6 --api-basic "c2lsX2FwaTpoalJBU3NAZXc1T3JPNw==" --username "mohammed.sebti" --password "11111mS$"
+
+2. Script de prueba usando la clase interna:
+
+python probar_login_agq_servicio.py --base-url "https://api-pro-sil.agqlabs.com:44383" --app-id 6 --api-basic "c2lsX2FwaTpoalJBU3NAZXc1T3JPNw==" --username "mohammed.sebti" --password "11111mS$"
+
+Resultado observado:
+- credenciales válidas
+
+
+Conclusion tecnica importante
+-----------------------------
+No hace falta descifrar manualmente Message dentro de AFMGDE.
+
+La logica correcta es:
+
+1. pedir Message al primer servicio
+2. reenviar Message al segundo servicio
+3. usar Response=true/false como resultado final
+
+Esto simplifica mucho la integracion futura.
+
+
+Servicio interno ya preparado
+-----------------------------
+La clase:
+- users/agq_auth_service.py
+
+ya encapsula este flujo y devuelve un resultado estructurado.
+
+Su responsabilidad actual es:
+
+- generar Message
+- validar Message
+- devolver si las credenciales son validas
+- sin tocar login Django real
+
+
+Lo que NO se ha hecho todavia
+-----------------------------
+No se ha hecho aun:
+
+- conexion del servicio AGQ con la vista /login/
+- creacion automatica de sesion Django desde Response=true
+- mapeo automatico de empleado AGQ a usuario local Django
+- fallback de login local/admin
+- gestion final de errores visuales para el usuario
+
+
+Recomendacion de integracion futura
+-----------------------------------
+Cuando se retome este trabajo, la recomendacion segura es:
+
+1. mantener la misma pantalla /login/
+2. reutilizar AgqAuthService por detras
+3. si Response=true:
+   - buscar o crear usuario local Django
+   - ejecutar login(request, user)
+4. mantener un usuario admin local de respaldo
+5. no eliminar de golpe la autenticacion local hasta validar bien el nuevo flujo
+
+
+Orden recomendado del siguiente paso
+------------------------------------
+Si se decide continuar despues, el orden correcto es:
+
+1. revisar este documento
+2. revisar users/agq_auth_service.py
+3. revisar probar_login_agq_servicio.py
+4. confirmar que el login actual sigue intacto
+5. diseñar la integracion del servicio en la vista de login
+6. implementar con fallback seguro
+
+
+Frase de continuidad recomendada
+--------------------------------
+Si se pierde la conversacion y hay que retomar, usar una instruccion parecida a esta:
+
+"Retoma AFMGDE desde C:\desarollo\proyecto_afmgde. Lee primero CONTINUIDAD_LOGIN_AGQ_EXTERNO.txt. Considera ya validado el flujo AGQ de dos servicios con api_basic tecnico y credenciales de mohammed.sebti. NO modifiques todavia lo ya validado de fase 1 y NO des por conectado el login AGQ al formulario /login/. Continua desde la clase users/agq_auth_service.py para diseñar la integracion futura con mucho cuidado."
+
+
+Resumen ejecutivo final
+-----------------------
+Estado alcanzado:
+
+- fase 1 de AFMGDE sigue estable
+- login local actual sigue intacto
+- servicio AGQ externo ya probado con éxito
+- clase interna ya creada
+- integracion final pendiente para una siguiente fase controlada
+
+
+Aviso de seguridad
+------------------
+Este fichero contiene secretos de prueba en texto plano por decision expresa del usuario.
+
+Cuando se implemente definitivamente el login AGQ:
+- borrar este fichero o limpiarlo
+- mover api_basic a .env
+- no dejar passwords reales en texto plano
+
+
+Fecha de consolidacion
+----------------------
+- 22/06/2026

@@ -1,0 +1,25 @@
+PRUEBA DEL SERVICIO AGQ DESDE AFMGDE
+===================================
+
+Ficheros:
+- users/agq_auth_service.py
+- probar_login_agq_servicio.py
+
+Objetivo:
+- encapsular el flujo corporativo AGQ dentro del proyecto AFMGDE
+- sin tocar todavía la vista de login actual
+
+Importante:
+- este servicio NO está conectado al formulario /login/
+- la autenticación actual de Django sigue intacta
+
+Ejemplo de uso:
+
+python probar_login_agq_servicio.py --base-url "https://api-pro-sil.agqlabs.com:44383" --app-id 6 --api-basic "c2lsX2FwaTpoalJBU3NAZXc1T3JPNw==" --username "mohammed.sebti" --password "TU_PASSWORD"
+
+Resultado esperado:
+- si todo va bien, mostrará el Message del primer paso y Response=true o false del segundo
+- esto valida que AFMGDE ya dispone internamente de una clase reutilizable para integrar el login AGQ más adelante
+
+Siguiente paso futuro, no hacer todavía:
+- conectar AgqAuthService con la vista de login Django

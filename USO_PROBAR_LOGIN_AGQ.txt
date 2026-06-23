@@ -1,0 +1,32 @@
+PRUEBA AISLADA LOGIN AGQ
+=======================
+
+Fichero:
+- probar_login_agq.py
+
+Objetivo:
+- probar fuera de AFMGDE el flujo corporativo de validar credenciales
+- no toca el login real de la aplicación
+
+Flujo probado:
+1. GET /api/test/validarCredenciales/{idAplicacion}/{Usuario}/{Password}
+2. leer Message
+3. POST /api/usuarios/validarCredenciales/{idAplicacion}
+4. enviar {"Message": "..."}
+5. verificar Response = true o false
+
+Ejemplo de uso:
+
+python probar_login_agq.py --base-url "https://api-pro-sil.agqlabs.com:44383" --app-id 6 --username "mohammed.sebti" --password "TU_PASSWORD"
+
+Si solo quieres ver el Message del primer paso:
+
+python probar_login_agq.py --base-url "https://api-pro-sil.agqlabs.com:44383" --app-id 6 --username "mohammed.sebti" --password "TU_PASSWORD" --message-only
+
+Interpretación esperada:
+- si el segundo servicio devuelve {"Response": true}, las credenciales son válidas
+- si devuelve {"Response": false}, no son válidas
+
+Nota importante:
+- este script no integra todavía nada en Django
+- es solo una PoC aislada y segura
