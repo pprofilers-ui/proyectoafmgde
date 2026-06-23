@@ -17,33 +17,28 @@
 </div>
 
 <div class="row g-4">
-    <div class="col-12">
-        <div class="card glass soft-card border-0 h-100">
-            <div class="card-body p-4 p-lg-5">
-                <div class="app-section-title">Crear muestra</div>
-                <div class="app-section-copy">Alta manual de muestra vinculada a estudio, recepcion, plantilla de etiqueta y ubicacion fisica.</div>
-                <form method="post" action="/app/samples/create/" class="row g-4">
-                    {% csrf_token %}
-                    {% for field in sample_form %}
-                    <div class="{% if field.name == 'sample_code' %}col-12{% else %}col-md-6{% endif %}">
-                        <label class="form-label">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors|striptags }}</div>{% endif %}
-                    </div>
-                    {% endfor %}
-                    <div class="col-12 pt-2">
-                        <button class="btn btn-primary btn-lg soft-pill" type="submit">Crear muestra</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
+    <!-- LISTADO ARRIBA -->
     <div class="col-12">
         <div class="card glass soft-card border-0 h-100">
             <div class="card-body p-4 p-lg-5">
-                <div class="app-section-title">Listado de muestras</div>
-                <div class="app-section-copy">Consulta operativa con stock, estado y acceso rapido a la etiqueta.</div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <div class="app-section-title">Listado de muestras</div>
+                        <div class="app-section-copy">
+                            Consulta operativa con stock, estado y acceso rapido a la etiqueta.
+                        </div>
+                    </div>
+
+                    <button
+                        class="btn btn-primary rounded-pill"
+                        type="button"
+                        onclick="toggleSampleForm()">
+                        Nueva muestra
+                    </button>
+                </div>
+
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
                         <tr>
@@ -57,6 +52,7 @@
                             <th>QR</th>
                             <th>Acciones</th>
                         </tr>
+
                         {% for sample in samples %}
                         <tr>
                             <td class="fw-semibold">{{ sample.sample_code }}</td>
@@ -68,25 +64,100 @@
                             <td>{{ sample.shelf|default:"-" }} / {{ sample.tray|default:"-" }} / {{ sample.physical_position|default:"-" }}</td>
                             <td>{{ sample.qr_code|default:"-" }}</td>
                             <td class="text-nowrap">
-                                <a class="btn btn-sm btn-outline-secondary rounded-pill me-1" href="/app/labels/{{ sample.id }}/">Etiqueta</a>
-                                <a class="btn btn-sm btn-outline-success rounded-pill me-1" href="/app/samples/{{ sample.id }}/schedules/">Fechas de muestreo</a>
-                                <a class="btn btn-sm btn-outline-primary rounded-pill me-1" href="#" onclick="openSampleEditModal('{{ sample.id }}', '{{ sample.sample_code|escapejs }}', '{{ sample.study.id }}', '{{ sample.reception_id|default:'' }}', '{{ sample.label_template_id|default:'' }}', '{{ sample.quantity }}', '{{ sample.current_stock }}', '{{ sample.status }}', '{{ sample.shelf|escapejs }}', '{{ sample.tray|escapejs }}', '{{ sample.container|escapejs }}', '{{ sample.physical_position|escapejs }}'); return false;">Editar</a>
-                                <form method="post" action="/app/samples/{{ sample.id }}/delete/" class="d-inline sample-delete-form">
+
+                                <a class="btn btn-sm btn-outline-secondary rounded-pill me-1"
+                                   href="/app/labels/{{ sample.id }}/">
+                                   Etiqueta
+                                </a>
+
+                                <a class="btn btn-sm btn-outline-success rounded-pill me-1"
+                                   href="/app/samples/{{ sample.id }}/schedules/">
+                                   Fechas de muestreo
+                                </a>
+
+                                <a class="btn btn-sm btn-outline-primary rounded-pill me-1"
+                                   href="#"
+                                   onclick="openSampleEditModal('{{ sample.id }}', '{{ sample.sample_code|escapejs }}', '{{ sample.study.id }}', '{{ sample.reception_id|default:'' }}', '{{ sample.label_template_id|default:'' }}', '{{ sample.quantity }}', '{{ sample.current_stock }}', '{{ sample.status }}', '{{ sample.shelf|escapejs }}', '{{ sample.tray|escapejs }}', '{{ sample.container|escapejs }}', '{{ sample.physical_position|escapejs }}'); return false;">
+                                   Editar
+                                </a>
+
+                                <form method="post"
+                                      action="/app/samples/{{ sample.id }}/delete/"
+                                      class="d-inline sample-delete-form">
                                     {% csrf_token %}
-                                    <button class="btn btn-sm btn-outline-danger rounded-pill" type="submit">Eliminar</button>
+                                    <button class="btn btn-sm btn-outline-danger rounded-pill" type="submit">
+                                        Eliminar
+                                    </button>
                                 </form>
+
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="9" class="text-muted">No hay muestras todavia.</td>
+                            <td colspan="9" class="text-muted">
+                                No hay muestras todavia.
+                            </td>
                         </tr>
                         {% endfor %}
                     </table>
                 </div>
+
             </div>
         </div>
     </div>
+
+    <!-- FORMULARIO ABAJO OCULTO -->
+    <div class="col-12" id="createSampleSection" style="display:none;">
+        <div class="card glass soft-card border-0 h-100">
+            <div class="card-body p-4 p-lg-5">
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+
+                    <div>
+                        <div class="app-section-title">Crear muestra</div>
+                        <div class="app-section-copy">
+                            Alta manual de muestra vinculada a estudio, recepcion, plantilla de etiqueta y ubicacion fisica.
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="btn btn-outline-secondary rounded-pill"
+                        onclick="toggleSampleForm()">
+                        Cerrar
+                    </button>
+
+                </div>
+
+                <form method="post" action="/app/samples/create/" class="row g-4">
+                    {% csrf_token %}
+
+                    {% for field in sample_form %}
+                    <div class="{% if field.name == 'sample_code' %}col-12{% else %}col-md-6{% endif %}">
+                        <label class="form-label">{{ field.label }}</label>
+
+                        {{ field }}
+
+                        {% if field.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ field.errors|striptags }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    <div class="col-12 pt-2">
+                        <button class="btn btn-primary btn-lg soft-pill" type="submit">
+                            Crear muestra
+                        </button>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <div class="modal fade" id="sampleEditModal" tabindex="-1" aria-hidden="true">
@@ -190,6 +261,24 @@ function openSampleEditModal(sampleId, sampleCode, studyId, receptionId, labelTe
     document.getElementById('edit_sample_label_template').value = labelTemplateId || '';
     const modal = new bootstrap.Modal(document.getElementById('sampleEditModal'));
     modal.show();
+}
+
+function toggleSampleForm() {
+    const section = document.getElementById('createSampleSection');
+
+    if (section.style.display === 'none' || section.style.display === '') {
+        section.style.display = 'block';
+
+        setTimeout(() => {
+            section.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }, 100);
+
+    } else {
+        section.style.display = 'none';
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function () {
