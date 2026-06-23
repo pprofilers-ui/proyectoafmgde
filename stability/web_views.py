@@ -1,6 +1,7 @@
 import base64
 from io import BytesIO
 from datetime import timedelta
+import re
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -12,8 +13,8 @@ import qrcode
 
 from audit.utils import register_audit_event
 
-from .models import Chamber, ChamberDeviation, LabelTemplate, Sample, SampleReception, SamplingPoint, StabilityAlert, StockMovement, Study
-from .web_forms import ChamberDeviationForm, ChamberPlacementForm, SampleCreateForm, SampleExtractionForm, SampleLabelForm, SampleReceptionForm, StudyCreateForm
+from .models import Chamber, ChamberDeviation, LabelTemplate, Sample, SampleReception, SampleSchedule, SamplingPoint, StabilityAlert, StockMovement, Study
+from .web_forms import ChamberDeviationForm, ChamberPlacementForm, SampleCreateForm, SampleExtractionForm, SampleLabelForm, SampleReceptionForm, SampleScheduleEditForm, SampleScheduleForm, StudyCreateForm, StudyEditForm
 
 
 DEFAULT_SAMPLING_SCHEDULE = [
@@ -22,6 +23,31 @@ DEFAULT_SAMPLING_SCHEDULE = [
     ("T2", 60),
     ("T3", 90),
 ]
+
+STUDY_CODE_PATTERN = "EST-{year}-{seq:03d}"
+SAMPLE_CODE_PATTERN = "{study_code}-M-{seq:04d}"
+
+
+def _next_sequence(existing_values):
+    max_seq = 0
+    for value in existing_values:
+        match = re.search(r"(\d+)$", value or "")
+        if match:
+            max_seq = max(max_seq, int(match.group(1)))
+    return max_seq + 1
+
+
+def generate_study_code():
+    year = timezone.localdate().year
+    existing = Study.objects.filter(code__startswith=f"EST-{year}-").values_list("code", flat=True)
+    seq = _next_sequence(existing)
+    return STUDY_CODE_PATTERN.format(year=year, seq=seq)
+
+
+def generate_sample_code(study):
+    existing = Sample.objects.filter(study=study).values_list("sample_code", flat=True)
+    seq = _next_sequence(existing)
+    return SAMPLE_CODE_PATTERN.format(study_code=study.code, seq=seq)
 
 
 def ensure_study_sampling_points(study):
@@ -94,11 +120,9 @@ def create_study_web(request):
     form = StudyCreateForm(request.POST)
     if form.is_valid():
         study = form.save(commit=False)
+        if not study.code:
+            study.code = generate_study_code()
         study.company_code = getattr(request, "company_code", "") or getattr(request.user, "company_code", "") or "AGQ"
-        if study.product and not study.product_name:
-            study.product_name = study.product.name
-        if study.batch and not study.batch_number:
-            study.batch_number = study.batch.code
         if study.packaging and not study.packaging_description:
             study.packaging_description = study.packaging.name
         study.save()
@@ -123,9 +147,62 @@ def create_study_web(request):
 
 
 @login_required
+def edit_study_web(request, pk):
+    study = get_object_or_404(Study, pk=pk)
+    if request.method != "POST":
+        return redirect("web-studies")
+    form = StudyEditForm(request.POST, instance=study)
+    if form.is_valid():
+        previous_status = study.status
+        updated_study = form.save(commit=False)
+        if not updated_study.code:
+            updated_study.code = study.code
+        if updated_study.packaging and not updated_study.packaging_description:
+            updated_study.packaging_description = updated_study.packaging.name
+        updated_study.save()
+        register_audit_event(
+            updated_study,
+            "web_update_study",
+            payload={"code": updated_study.code, "title": updated_study.title},
+            changes={"status": {"before": previous_status, "after": updated_study.status}},
+        )
+        messages.success(request, f"Estudio {updated_study.code} actualizado correctamente.")
+    else:
+        messages.error(request, "No se pudo actualizar el estudio. Revisa los campos obligatorios.")
+    return redirect("web-studies")
+
+
+@login_required
+def delete_study_web(request, pk):
+    study = get_object_or_404(Study, pk=pk)
+    if request.method == "POST":
+        register_audit_event(
+            study,
+            "web_delete_study",
+            payload={"code": study.code, "title": study.title},
+            changes={"deleted": {"before": False, "after": True}},
+        )
+        study.delete()
+        messages.success(request, f"Estudio {study.code} eliminado correctamente.")
+    return redirect("web-studies")
+
+
+@login_required
 def samples_list(request):
     samples = Sample.objects.select_related("study", "sampling_point", "chamber").order_by("-created_at")
     return render(request, "web/samples.html", {"samples": samples, "sample_form": SampleCreateForm()})
+
+
+@login_required
+def sample_schedules_view(request, pk):
+    sample = get_object_or_404(Sample.objects.select_related("study"), pk=pk)
+    schedules = sample.schedules.order_by("planned_date", "id")
+    context = {
+        "sample": sample,
+        "schedules": schedules,
+        "schedule_form": SampleScheduleForm(),
+    }
+    return render(request, "web/sample_schedules.html", context)
 
 
 @login_required
@@ -268,6 +345,8 @@ def create_sample_web(request):
     form = SampleCreateForm(request.POST)
     if form.is_valid():
         sample = form.save(commit=False)
+        if not sample.sample_code:
+            sample.sample_code = generate_sample_code(sample.study)
         if not sample.current_stock:
             sample.current_stock = sample.quantity
         if not sample.received_at:
@@ -291,6 +370,112 @@ def create_sample_web(request):
     else:
         messages.error(request, "No se pudo crear la muestra. Revisa los campos obligatorios.")
     return redirect("web-samples")
+
+
+@login_required
+def edit_sample_web(request, pk):
+    sample = get_object_or_404(Sample, pk=pk)
+    if request.method != "POST":
+        return redirect("web-samples")
+    form = SampleCreateForm(request.POST, instance=sample)
+    if form.is_valid():
+        previous_status = sample.status
+        previous_stock = sample.current_stock
+        updated_sample = form.save(commit=False)
+        if not updated_sample.sample_code:
+            updated_sample.sample_code = generate_sample_code(updated_sample.study)
+        if not updated_sample.current_stock:
+            updated_sample.current_stock = updated_sample.quantity
+        if not updated_sample.received_at:
+            updated_sample.received_at = timezone.now()
+        if updated_sample.label_template and not updated_sample.qr_code:
+            updated_sample.qr_code = f"QR::{updated_sample.sample_code}"
+        updated_sample.save()
+        register_audit_event(
+            updated_sample,
+            "web_update_sample",
+            payload={"sample_code": updated_sample.sample_code},
+            changes={
+                "status": {"before": previous_status, "after": updated_sample.status},
+                "current_stock": {"before": previous_stock, "after": updated_sample.current_stock},
+            },
+        )
+        messages.success(request, f"Muestra {updated_sample.sample_code} actualizada correctamente.")
+    else:
+        messages.error(request, "No se pudo actualizar la muestra. Revisa los campos obligatorios.")
+    return redirect("web-samples")
+
+
+@login_required
+def delete_sample_web(request, pk):
+    sample = get_object_or_404(Sample, pk=pk)
+    if request.method == "POST":
+        register_audit_event(
+            sample,
+            "web_delete_sample",
+            payload={"sample_code": sample.sample_code},
+            changes={"deleted": {"before": False, "after": True}},
+        )
+        sample.delete()
+        messages.success(request, f"Muestra {sample.sample_code} eliminada correctamente.")
+    return redirect("web-samples")
+
+
+@login_required
+def create_sample_schedule_web(request, pk):
+    sample = get_object_or_404(Sample, pk=pk)
+    if request.method != "POST":
+        return redirect("web-sample-schedules", pk=sample.pk)
+    form = SampleScheduleForm(request.POST)
+    if form.is_valid():
+        schedule = form.save(commit=False)
+        schedule.sample = sample
+        schedule.save()
+        register_audit_event(
+            schedule,
+            "web_create_sample_schedule",
+            payload={"sample_code": sample.sample_code, "planned_date": str(schedule.planned_date)},
+            changes={"is_active": {"before": None, "after": schedule.is_active}},
+        )
+        messages.success(request, "Fecha de muestreo añadida correctamente.")
+    else:
+        messages.error(request, "No se pudo añadir la fecha de muestreo.")
+    return redirect("web-sample-schedules", pk=sample.pk)
+
+
+@login_required
+def edit_sample_schedule_web(request, pk):
+    schedule = get_object_or_404(SampleSchedule.objects.select_related("sample"), pk=pk)
+    if request.method != "POST":
+        return redirect("web-sample-schedules", pk=schedule.sample_id)
+    form = SampleScheduleEditForm(request.POST, instance=schedule)
+    if form.is_valid():
+        form.save()
+        register_audit_event(
+            schedule,
+            "web_update_sample_schedule",
+            payload={"sample_code": schedule.sample.sample_code, "planned_date": str(schedule.planned_date)},
+            changes={"is_active": {"before": None, "after": schedule.is_active}},
+        )
+        messages.success(request, "Fecha de muestreo actualizada correctamente.")
+    else:
+        messages.error(request, "No se pudo actualizar la fecha de muestreo.")
+    return redirect("web-sample-schedules", pk=schedule.sample_id)
+
+
+@login_required
+def delete_sample_schedule_web(request, pk):
+    schedule = get_object_or_404(SampleSchedule.objects.select_related("sample"), pk=pk)
+    sample_pk = schedule.sample_id
+    if request.method == "POST":
+        register_audit_event(
+            schedule,
+            "web_delete_sample_schedule",
+            payload={"sample_code": schedule.sample.sample_code, "planned_date": str(schedule.planned_date)},
+        )
+        schedule.delete()
+        messages.success(request, "Fecha de muestreo eliminada correctamente.")
+    return redirect("web-sample-schedules", pk=sample_pk)
 
 
 @login_required

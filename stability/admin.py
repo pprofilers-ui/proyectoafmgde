@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from django.contrib import admin
 
 from audit.admin import AuditTrailAdmin
@@ -10,6 +12,7 @@ from .models import (
     Product,
     ProductBatch,
     Sample,
+    SampleSchedule,
     SampleReception,
     SamplingPoint,
     StabilityAlert,
@@ -17,6 +20,153 @@ from .models import (
     StorageCondition,
     Study,
 )
+
+
+def _apply_admin_field_labels(model, labels):
+    for field_name, label in labels.items():
+        try:
+            model._meta.get_field(field_name).verbose_name = label
+        except Exception:
+            continue
+
+
+_apply_admin_field_labels(Product, {
+    "code": "Código",
+    "name": "Nombre",
+    "reference": "Referencia",
+    "dosage_form": "Forma farmacéutica",
+    "strength": "Concentración",
+    "company_code": "Código empresa",
+    "is_active": "Activo",
+})
+_apply_admin_field_labels(PackagingConfiguration, {
+    "code": "Código",
+    "name": "Nombre",
+    "material": "Material",
+    "presentation": "Presentación",
+    "is_active": "Activo",
+})
+_apply_admin_field_labels(ProductBatch, {
+    "code": "Código",
+    "product": "Producto",
+    "packaging": "Acondicionado",
+    "manufactured_at": "Fecha de fabricación",
+    "expiry_date": "Fecha de caducidad",
+    "quantity_released": "Cantidad liberada",
+    "notes": "Notas",
+})
+_apply_admin_field_labels(StorageCondition, {
+    "code": "Código",
+    "name": "Nombre",
+    "temperature_set_point": "Temperatura objetivo",
+    "humidity_set_point": "Humedad objetivo",
+    "light_condition": "Condición lumínica",
+    "is_active": "Activo",
+})
+_apply_admin_field_labels(ChamberLocation, {
+    "code": "Código",
+    "name": "Nombre",
+    "room": "Sala",
+    "shelf": "Estantería",
+    "position": "Posición",
+    "is_active": "Activo",
+})
+_apply_admin_field_labels(Study, {
+    "code": "Código",
+    "title": "Título",
+    "packaging": "Acondicionado",
+    "product_name": "Nombre del producto",
+    "batch_number": "Número de lote",
+    "packaging_description": "Descripción del acondicionado",
+    "company_code": "Código empresa",
+    "status": "Estado",
+    "start_date": "Fecha de inicio",
+    "end_date": "Fecha de fin",
+})
+_apply_admin_field_labels(Chamber, {
+    "code": "Código",
+    "name": "Nombre",
+    "location": "Ubicación",
+    "storage_condition": "Condición de almacenamiento",
+    "chamber_location": "Ubicación de cámara",
+    "temperature_set_point": "Temperatura objetivo",
+    "humidity_set_point": "Humedad objetivo",
+    "is_active": "Activo",
+})
+_apply_admin_field_labels(SamplingPoint, {
+    "study": "Estudio",
+    "label": "Etiqueta",
+    "target_date": "Fecha objetivo",
+    "tolerance_days": "Días de tolerancia",
+    "recalculated_date": "Fecha recalculada",
+})
+_apply_admin_field_labels(SampleReception, {
+    "study": "Estudio",
+    "batch": "Lote",
+    "reception_number": "Número de recepción",
+    "received_from": "Recibido desde",
+    "received_by": "Recibido por",
+    "received_at": "Fecha y hora de recepción",
+    "quantity_received": "Cantidad recibida",
+    "quantity_expected": "Cantidad prevista",
+    "discrepancy_notes": "Discrepancias",
+    "quantity_assigned": "Cantidad asignada",
+    "quantity_reserved": "Cantidad reservada",
+    "quantity_contingency": "Cantidad de contingencia",
+    "status": "Estado",
+    "notes": "Notas",
+})
+_apply_admin_field_labels(Sample, {
+    "study": "Estudio",
+    "reception": "Recepción",
+    "sampling_point": "Fecha de muestreo",
+    "chamber": "Cámara",
+    "shelf": "Estantería",
+    "tray": "Bandeja",
+    "container": "Contenedor",
+    "physical_position": "Posición física",
+    "label_template": "Plantilla de etiqueta",
+    "sample_code": "Código de muestra",
+    "qr_code": "Código QR",
+    "label_printed_at": "Etiqueta impresa en",
+    "quantity": "Cantidad",
+    "current_stock": "Stock actual",
+    "status": "Estado",
+    "received_at": "Fecha de recepción",
+    "placed_in_chamber_at": "Entrada en cámara",
+    "extracted_at": "Fecha de extracción",
+})
+_apply_admin_field_labels(SampleSchedule, {
+    "sample": "Muestra",
+    "planned_date": "Fecha de muestreo",
+    "label": "Etiqueta",
+    "notes": "Notas",
+    "is_active": "Activo",
+})
+_apply_admin_field_labels(StockMovement, {
+    "sample": "Muestra",
+    "movement_type": "Tipo de movimiento",
+    "quantity_delta": "Variación de cantidad",
+    "notes": "Notas",
+    "executed_at": "Ejecutado en",
+})
+_apply_admin_field_labels(ChamberDeviation, {
+    "chamber": "Cámara",
+    "study": "Estudio",
+    "detected_at": "Detectado en",
+    "description": "Descripción",
+    "impact_assessment": "Evaluación de impacto",
+    "requires_recalculation": "Requiere recalculo",
+})
+_apply_admin_field_labels(StabilityAlert, {
+    "title": "Título",
+    "study": "Estudio",
+    "sample": "Muestra",
+    "severity": "Severidad",
+    "status": "Estado",
+    "message": "Mensaje",
+    "due_date": "Vence",
+})
 
 
 @admin.register(Product)
@@ -197,6 +347,13 @@ class SampleAdmin(admin.ModelAdmin):
     search_fields = ("sample_code", "study__code", "qr_code")
 
 
+@admin.register(SampleSchedule)
+class SampleScheduleAdmin(admin.ModelAdmin):
+    list_display = ("sample", "planned_date", "label", "is_active")
+    list_filter = ("is_active", "planned_date")
+    search_fields = ("sample__sample_code", "label", "notes")
+
+
 @admin.register(StockMovement)
 class StockMovementAdmin(admin.ModelAdmin):
     list_display = ("sample", "movement_type", "quantity_delta", "executed_at", "notes")
@@ -227,7 +384,7 @@ clases_maestras = [
     ProductAdmin, PackagingConfigurationAdmin, ProductBatchAdmin,
     StorageConditionAdmin, ChamberLocationAdmin, StudyAdmin,
     ChamberAdmin, SamplingPointAdmin, SampleReceptionAdmin,
-    SampleAdmin, StockMovementAdmin, ChamberDeviationAdmin, 
+    SampleAdmin, SampleScheduleAdmin, StockMovementAdmin, ChamberDeviationAdmin, 
     StabilityAlertAdmin, AuditTrailAdmin
 ]
 
@@ -239,3 +396,70 @@ for modelo, instance_admin in admin.site._registry.items():
         instance_admin.has_add_permission = lambda request: request.user.is_staff
         instance_admin.has_change_permission = lambda request, obj=None: request.user.is_staff
         instance_admin.has_delete_permission = lambda request, obj=None: request.user.is_staff
+
+
+_original_get_app_list = admin.site.get_app_list
+
+
+def _grouped_admin_app_list(request, app_label=None):
+    app_list = _original_get_app_list(request, app_label)
+    grouped_apps = []
+
+    maestros_order = [
+        "Chamber",
+        "ChamberLocation",
+        "StorageCondition",
+        "PackagingConfiguration",
+    ]
+    stability_order = [
+        "Study",
+        "SampleReception",
+        "Sample",
+        "SamplingPoint",
+        "SampleSchedule",
+        "StockMovement",
+        "ChamberDeviation",
+        "StabilityAlert",
+    ]
+    hidden_models = {"Product", "ProductBatch", "SamplingPoint"}
+
+    for app in app_list:
+        if app.get("app_label") != "stability":
+            grouped_apps.append(app)
+            continue
+
+        model_map = {model.get("object_name"): model for model in app.get("models", [])}
+        model_map = {
+            object_name: model
+            for object_name, model in model_map.items()
+            if object_name not in hidden_models
+        }
+
+        maestros_models_list = [
+            model_map[name]
+            for name in maestros_order
+            if name in model_map
+        ]
+        stability_models_list = [
+            model_map[name]
+            for name in stability_order
+            if name in model_map
+        ]
+
+        if maestros_models_list:
+            maestros = deepcopy(app)
+            maestros["name"] = "Maestros"
+            maestros["app_label"] = "maestros"
+            maestros["models"] = maestros_models_list
+            grouped_apps.append(maestros)
+
+        if stability_models_list:
+            estabilidad = deepcopy(app)
+            estabilidad["name"] = "Gestión de Estabilidades"
+            estabilidad["app_label"] = "gestion_estabilidades"
+            estabilidad["models"] = stability_models_list
+            grouped_apps.append(estabilidad)
+    return grouped_apps
+
+
+admin.site.get_app_list = _grouped_admin_app_list

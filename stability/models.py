@@ -272,6 +272,23 @@ class Sample(TimeStampedModel):
         return self.sample_code
 
 
+class SampleSchedule(TimeStampedModel):
+    sample = models.ForeignKey(Sample, related_name="schedules", on_delete=models.CASCADE)
+    planned_date = models.DateField()
+    label = models.CharField(max_length=100, blank=True)
+    notes = models.CharField(max_length=255, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["planned_date", "id"]
+        verbose_name = "Fecha de Muestreo"
+        verbose_name_plural = "Fechas de Muestreo"
+
+    def __str__(self):
+        suffix = f" - {self.label}" if self.label else ""
+        return f"{self.sample.sample_code} - {self.planned_date}{suffix}"
+
+
 class StockMovement(TimeStampedModel):
     class MovementType(models.TextChoices):
         RECEPTION = "reception", "Recepcion"

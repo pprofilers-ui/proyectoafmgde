@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero glass p-4 p-lg-5 mb-4">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-8">
+            <h1 class="display-4 mb-2">Fechas de muestreo</h1>
+            <p class="lead text-secondary mb-0">Consulta y gestion de las fechas asociadas a la muestra {{ sample.sample_code }}.</p>
+        </div>
+        <div class="col-lg-4">
+            <div class="mini-kpi hero">
+                <div class="small text-uppercase text-muted">Muestra asociada</div>
+                <div class="fw-semibold mt-2">{{ sample.sample_code }}</div>
+                <div class="small text-muted mt-1">{{ sample.study.code }} - {{ sample.study.title }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-5">
+        <div class="card glass soft-card border-0 h-100">
+            <div class="card-body p-4 p-lg-5">
+                <div class="app-section-title">Añadir fecha</div>
+                <div class="app-section-copy">Registra cada fecha de muestreo de forma individual para esta muestra.</div>
+                <form method="post" action="/app/samples/{{ sample.id }}/schedules/create/" class="row g-4">
+                    {% csrf_token %}
+                    {% for field in schedule_form %}
+                    <div class="{% if field.name == 'notes' %}col-12{% else %}col-12{% endif %}">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors|striptags }}</div>{% endif %}
+                    </div>
+                    {% endfor %}
+                    <div class="col-12 pt-2">
+                        <button class="btn btn-primary btn-lg soft-pill" type="submit">Añadir fecha</button>
+                        <a class="btn btn-outline-secondary btn-lg soft-pill ms-2" href="/app/samples/">Volver</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-7">
+        <div class="card glass soft-card border-0 h-100">
+            <div class="card-body p-4 p-lg-5">
+                <div class="app-section-title">Listado de fechas</div>
+                <div class="app-section-copy">Cada linea representa una fecha de muestreo consultable y borrable.</div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Etiqueta</th>
+                            <th>Notas</th>
+                            <th>Activa</th>
+                            <th>Acciones</th>
+                        </tr>
+                        {% for item in schedules %}
+                        <tr>
+                            <td class="fw-semibold">{{ item.planned_date }}</td>
+                            <td>{{ item.label|default:"-" }}</td>
+                            <td>{{ item.notes|default:"-" }}</td>
+                            <td><span class="badge text-bg-light">{{ item.is_active|yesno:"Si,No" }}</span></td>
+                            <td class="text-nowrap">
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill me-1" onclick="openScheduleEditModal('{{ item.id }}', '{{ item.planned_date|date:"Y-m-d" }}', '{{ item.label|escapejs }}', '{{ item.notes|escapejs }}', '{{ item.is_active|yesno:"true,false" }}')">Editar</button>
+                                <form method="post" action="/app/samples/schedules/{{ item.id }}/delete/" class="d-inline">
+                                    {% csrf_token %}
+                                    <button class="btn btn-sm btn-outline-danger rounded-pill" type="submit">Eliminar</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-muted">Todavia no hay fechas de muestreo.</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="scheduleEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar fecha de muestreo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <form id="scheduleEditForm" method="post" action="">
+                    {% csrf_token %}
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <label class="form-label">Fecha de muestreo</label>
+                            <input id="edit_schedule_planned_date" name="planned_date" type="date" class="form-control rounded-4 shadow-sm">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Etiqueta</label>
+                            <input id="edit_schedule_label" name="label" type="text" class="form-control rounded-4 shadow-sm">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Activa</label>
+                            <select id="edit_schedule_is_active" name="is_active" class="form-select rounded-4 shadow-sm">
+                                <option value="true">Si</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Notas</label>
+                            <input id="edit_schedule_notes" name="notes" type="text" class="form-control rounded-4 shadow-sm">
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 justify-content-end mt-4">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary rounded-pill">Guardar cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openScheduleEditModal(scheduleId, plannedDate, label, notes, isActive) {
+    const form = document.getElementById('scheduleEditForm');
+    form.action = `/app/samples/schedules/${scheduleId}/edit/`;
+    document.getElementById('edit_schedule_planned_date').value = plannedDate || '';
+    document.getElementById('edit_schedule_label').value = label || '';
+    document.getElementById('edit_schedule_notes').value = notes || '';
+    document.getElementById('edit_schedule_is_active').value = isActive === 'true' ? 'true' : 'false';
+    const modal = new bootstrap.Modal(document.getElementById('scheduleEditModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

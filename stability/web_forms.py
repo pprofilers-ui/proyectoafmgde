@@ -5,9 +5,8 @@ from .models import (
     ChamberDeviation,
     LabelTemplate,
     PackagingConfiguration,
-    Product,
-    ProductBatch,
     Sample,
+    SampleSchedule,
     SampleReception,
     SamplingPoint,
     Study,
@@ -99,8 +98,6 @@ class StudyCreateForm(forms.ModelForm):
         fields = [
             "code",
             "title",
-            "product",
-            "batch",
             "packaging",
             "product_name",
             "batch_number",
@@ -116,14 +113,10 @@ class StudyCreateForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["product"].queryset = Product.objects.filter(is_active=True).order_by("code")
-        self.fields["batch"].queryset = ProductBatch.objects.order_by("code")
         self.fields["packaging"].queryset = PackagingConfiguration.objects.filter(is_active=True).order_by("code")
         labels = {
             "code": "Codigo",
             "title": "Titulo",
-            "product": "Producto",
-            "batch": "Lote",
             "packaging": "Acondicionado",
             "product_name": "Nombre del producto",
             "batch_number": "Numero de lote",
@@ -142,7 +135,59 @@ class StudyCreateForm(forms.ModelForm):
         for name, field in self.fields.items():
             field.label = labels.get(name, field.label)
             _apply_bootstrap(field, placeholders.get(name))
-        self.fields["batch"].required = False
+        self.fields["code"].required = False
+        self.fields["code"].widget.attrs["readonly"] = True
+        self.fields["code"].widget.attrs["tabindex"] = "-1"
+        self.fields["packaging"].required = False
+        self.fields["end_date"].required = False
+
+
+class StudyEditForm(forms.ModelForm):
+    class Meta:
+        model = Study
+        fields = [
+            "code",
+            "title",
+            "packaging",
+            "product_name",
+            "batch_number",
+            "packaging_description",
+            "status",
+            "start_date",
+            "end_date",
+        ]
+        widgets = {
+            "start_date": forms.DateInput(attrs={"type": "date"}),
+            "end_date": forms.DateInput(attrs={"type": "date"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["packaging"].queryset = PackagingConfiguration.objects.filter(is_active=True).order_by("code")
+        labels = {
+            "code": "Codigo",
+            "title": "Titulo",
+            "packaging": "Acondicionado",
+            "product_name": "Nombre del producto",
+            "batch_number": "Numero de lote",
+            "packaging_description": "Descripcion del acondicionado",
+            "status": "Estado",
+            "start_date": "Fecha de inicio",
+            "end_date": "Fecha de fin",
+        }
+        placeholders = {
+            "code": "Ej. EST-2026-003",
+            "title": "Titulo del estudio",
+            "product_name": "Nombre visible del producto",
+            "batch_number": "Codigo del lote",
+            "packaging_description": "Descripcion del acondicionado",
+        }
+        for name, field in self.fields.items():
+            field.label = labels.get(name, field.label)
+            _apply_bootstrap(field, placeholders.get(name))
+        self.fields["code"].required = False
+        self.fields["code"].widget.attrs["readonly"] = True
+        self.fields["code"].widget.attrs["tabindex"] = "-1"
         self.fields["packaging"].required = False
         self.fields["end_date"].required = False
 
@@ -163,7 +208,6 @@ class SampleCreateForm(forms.ModelForm):
         fields = [
             "study",
             "reception",
-            "sampling_point",
             "label_template",
             "sample_code",
             "quantity",
@@ -179,12 +223,10 @@ class SampleCreateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["study"].queryset = Study.objects.order_by("code")
         self.fields["reception"].queryset = SampleReception.objects.order_by("-received_at")
-        self.fields["sampling_point"].queryset = SamplingPoint.objects.select_related("study").order_by("study__code", "target_date")
         self.fields["label_template"].queryset = LabelTemplate.objects.filter(is_active=True).order_by("code")
         labels = {
             "study": "Estudio",
             "reception": "Recepcion",
-            "sampling_point": "Punto de muestreo",
             "label_template": "Plantilla de etiqueta",
             "sample_code": "Codigo de muestra",
             "quantity": "Cantidad total",
@@ -207,8 +249,10 @@ class SampleCreateForm(forms.ModelForm):
         for name, field in self.fields.items():
             field.label = labels.get(name, field.label)
             _apply_bootstrap(field, placeholders.get(name))
+        self.fields["sample_code"].required = False
+        self.fields["sample_code"].widget.attrs["readonly"] = True
+        self.fields["sample_code"].widget.attrs["tabindex"] = "-1"
         self.fields["reception"].required = False
-        self.fields["sampling_point"].required = False
 
 
 class ChamberPlacementForm(forms.Form):
@@ -236,6 +280,60 @@ class SampleExtractionForm(forms.Form):
         self.fields["quantity"].label = "Cantidad"
         _apply_bootstrap(self.fields["sample"])
         _apply_bootstrap(self.fields["quantity"], "Cantidad a extraer")
+
+
+class SampleScheduleForm(forms.ModelForm):
+    class Meta:
+        model = SampleSchedule
+        fields = ["planned_date", "label", "notes", "is_active"]
+        widgets = {
+            "planned_date": forms.DateInput(attrs={"type": "date"}),
+            "notes": forms.TextInput(),
+            "is_active": forms.CheckboxInput(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        labels = {
+            "planned_date": "Fecha de muestreo",
+            "label": "Etiqueta",
+            "notes": "Notas",
+            "is_active": "Activa",
+        }
+        placeholders = {
+            "label": "Ej. T0, T1, T2, T3",
+            "notes": "Observaciones opcionales",
+        }
+        for name, field in self.fields.items():
+            field.label = labels.get(name, field.label)
+            _apply_bootstrap(field, placeholders.get(name))
+
+
+class SampleScheduleEditForm(forms.ModelForm):
+    class Meta:
+        model = SampleSchedule
+        fields = ["planned_date", "label", "notes", "is_active"]
+        widgets = {
+            "planned_date": forms.DateInput(attrs={"type": "date"}),
+            "notes": forms.TextInput(),
+            "is_active": forms.CheckboxInput(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        labels = {
+            "planned_date": "Fecha de muestreo",
+            "label": "Etiqueta",
+            "notes": "Notas",
+            "is_active": "Activa",
+        }
+        placeholders = {
+            "label": "Ej. T0, T1, T2, T3",
+            "notes": "Observaciones opcionales",
+        }
+        for name, field in self.fields.items():
+            field.label = labels.get(name, field.label)
+            _apply_bootstrap(field, placeholders.get(name))
 
 
 class ChamberDeviationForm(forms.ModelForm):

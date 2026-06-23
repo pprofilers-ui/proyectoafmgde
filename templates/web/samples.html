@@ -17,11 +17,11 @@
 </div>
 
 <div class="row g-4">
-    <div class="col-xl-5">
+    <div class="col-12">
         <div class="card glass soft-card border-0 h-100">
             <div class="card-body p-4 p-lg-5">
                 <div class="app-section-title">Crear muestra</div>
-                <div class="app-section-copy">Alta manual de muestra vinculada a estudio, recepcion, punto de muestreo, plantilla de etiqueta y ubicacion fisica.</div>
+                <div class="app-section-copy">Alta manual de muestra vinculada a estudio, recepcion, plantilla de etiqueta y ubicacion fisica.</div>
                 <form method="post" action="/app/samples/create/" class="row g-4">
                     {% csrf_token %}
                     {% for field in sample_form %}
@@ -39,7 +39,7 @@
         </div>
     </div>
 
-    <div class="col-xl-7">
+    <div class="col-12">
         <div class="card glass soft-card border-0 h-100">
             <div class="card-body p-4 p-lg-5">
                 <div class="app-section-title">Listado de muestras</div>
@@ -55,7 +55,7 @@
                             <th>Estado</th>
                             <th>Ubicacion</th>
                             <th>QR</th>
-                            <th></th>
+                            <th>Acciones</th>
                         </tr>
                         {% for sample in samples %}
                         <tr>
@@ -67,7 +67,15 @@
                             <td><span class="badge text-bg-light">{{ sample.get_status_display }}</span></td>
                             <td>{{ sample.shelf|default:"-" }} / {{ sample.tray|default:"-" }} / {{ sample.physical_position|default:"-" }}</td>
                             <td>{{ sample.qr_code|default:"-" }}</td>
-                            <td><a class="btn btn-sm btn-outline-secondary rounded-pill" href="/app/labels/{{ sample.id }}/">Etiqueta</a></td>
+                            <td class="text-nowrap">
+                                <a class="btn btn-sm btn-outline-secondary rounded-pill me-1" href="/app/labels/{{ sample.id }}/">Etiqueta</a>
+                                <a class="btn btn-sm btn-outline-success rounded-pill me-1" href="/app/samples/{{ sample.id }}/schedules/">Fechas de muestreo</a>
+                                <a class="btn btn-sm btn-outline-primary rounded-pill me-1" href="#" onclick="openSampleEditModal('{{ sample.id }}', '{{ sample.sample_code|escapejs }}', '{{ sample.study.id }}', '{{ sample.reception_id|default:'' }}', '{{ sample.label_template_id|default:'' }}', '{{ sample.quantity }}', '{{ sample.current_stock }}', '{{ sample.status }}', '{{ sample.shelf|escapejs }}', '{{ sample.tray|escapejs }}', '{{ sample.container|escapejs }}', '{{ sample.physical_position|escapejs }}'); return false;">Editar</a>
+                                <form method="post" action="/app/samples/{{ sample.id }}/delete/" class="d-inline sample-delete-form">
+                                    {% csrf_token %}
+                                    <button class="btn btn-sm btn-outline-danger rounded-pill" type="submit">Eliminar</button>
+                                </form>
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -80,4 +88,129 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="sampleEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar muestra</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <form id="sampleEditForm" method="post" action="">
+                    {% csrf_token %}
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Estudio</label>
+                            <select class="form-select rounded-4 shadow-sm" id="edit_sample_study" name="study">
+                                {% for study in sample_form.fields.study.queryset %}
+                                <option value="{{ study.id }}">{{ study.code }} - {{ study.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Recepcion</label>
+                            <select class="form-select rounded-4 shadow-sm" id="edit_sample_reception" name="reception">
+                                <option value="">---------</option>
+                                {% for reception in sample_form.fields.reception.queryset %}
+                                <option value="{{ reception.id }}">{{ reception.reception_number }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Plantilla de etiqueta</label>
+                            <select class="form-select rounded-4 shadow-sm" id="edit_sample_label_template" name="label_template">
+                                <option value="">---------</option>
+                                {% for template in sample_form.fields.label_template.queryset %}
+                                <option value="{{ template.id }}">{{ template.code }} - {{ template.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Codigo de muestra</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_code" name="sample_code" type="text">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Cantidad total</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity" name="quantity" type="number" min="1">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Stock inicial</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_current_stock" name="current_stock" type="number" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select rounded-4 shadow-sm" id="edit_sample_status" name="status">
+                                {% for value, label in sample_form.fields.status.choices %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Estanteria</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_shelf" name="shelf" type="text">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Bandeja</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_tray" name="tray" type="text">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Contenedor</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_container" name="container" type="text">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Posicion fisica</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_physical_position" name="physical_position" type="text">
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 justify-content-end mt-4">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary rounded-pill">Guardar cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openSampleEditModal(sampleId, sampleCode, studyId, receptionId, labelTemplateId, quantity, currentStock, status, shelf, tray, container, physicalPosition) {
+    const form = document.getElementById('sampleEditForm');
+    form.action = `/app/samples/${sampleId}/edit/`;
+    document.getElementById('edit_sample_code').value = sampleCode || '';
+    document.getElementById('edit_sample_quantity').value = quantity || 1;
+    document.getElementById('edit_sample_current_stock').value = currentStock || 1;
+    document.getElementById('edit_sample_status').value = status || 'received';
+    document.getElementById('edit_sample_shelf').value = shelf || '';
+    document.getElementById('edit_sample_tray').value = tray || '';
+    document.getElementById('edit_sample_container').value = container || '';
+    document.getElementById('edit_sample_physical_position').value = physicalPosition || '';
+    document.getElementById('edit_sample_study').value = studyId || '';
+    document.getElementById('edit_sample_reception').value = receptionId || '';
+    document.getElementById('edit_sample_label_template').value = labelTemplateId || '';
+    const modal = new bootstrap.Modal(document.getElementById('sampleEditModal'));
+    modal.show();
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.sample-delete-form').forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            Swal.fire({
+                title: 'Eliminar muestra',
+                text: '¿Seguro que quieres eliminar esta muestra?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#d33'
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+    });
+});
+</script>
 {% endblock %}

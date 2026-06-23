@@ -17,7 +17,7 @@
 </div>
 
 <div class="row g-4">
-    <div class="col-xl-5">
+    <div class="col-12">
         <div class="card glass soft-card border-0 h-100">
             <div class="card-body p-4 p-lg-5">
                 <div class="app-section-title">Crear estudio</div>
@@ -39,7 +39,7 @@
         </div>
     </div>
 
-    <div class="col-xl-7">
+    <div class="col-12">
         <div class="card glass soft-card border-0 h-100">
             <div class="card-body p-4 p-lg-5">
                 <div class="app-section-title">Listado de estudios</div>
@@ -53,6 +53,7 @@
                             <th>Lote</th>
                             <th>Estado</th>
                             <th>Inicio</th>
+                            <th>Acciones</th>
                         </tr>
                         {% for study in studies %}
                         <tr>
@@ -62,10 +63,17 @@
                             <td>{{ study.batch_number }}</td>
                             <td><span class="badge text-bg-light">{{ study.get_status_display }}</span></td>
                             <td>{{ study.start_date }}</td>
+                            <td class="text-nowrap">
+                                <a class="btn btn-sm btn-outline-primary rounded-pill me-1" href="#" onclick="openStudyEditModal('{{ study.id }}', '{{ study.code|escapejs }}', '{{ study.title|escapejs }}', '{{ study.packaging_id|default:'' }}', '{{ study.product_name|escapejs }}', '{{ study.batch_number|escapejs }}', '{{ study.packaging_description|escapejs }}', '{{ study.status }}', '{{ study.start_date|date:"Y-m-d" }}', '{{ study.end_date|default:''|date:"Y-m-d" }}'); return false;">Editar</a>
+                                <form method="post" action="/app/studies/{{ study.id }}/delete/" class="d-inline study-delete-form">
+                                    {% csrf_token %}
+                                    <button class="btn btn-sm btn-outline-danger rounded-pill" type="submit">Eliminar</button>
+                                </form>
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-muted">No hay estudios todavia.</td>
+                            <td colspan="7" class="text-muted">No hay estudios todavia.</td>
                         </tr>
                         {% endfor %}
                     </table>
@@ -74,4 +82,101 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="studyEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar estudio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <form id="studyEditForm" method="post" action="">
+                    {% csrf_token %}
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Codigo</label>
+                            {{ study_form.code }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Titulo</label>
+                            {{ study_form.title }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Acondicionado</label>
+                            {{ study_form.packaging }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Estado</label>
+                            {{ study_form.status }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nombre del producto</label>
+                            {{ study_form.product_name }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Numero de lote</label>
+                            {{ study_form.batch_number }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Descripcion del acondicionado</label>
+                            {{ study_form.packaging_description }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha de inicio</label>
+                            {{ study_form.start_date }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha de fin</label>
+                            {{ study_form.end_date }}
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 justify-content-end mt-4">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary rounded-pill">Guardar cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openStudyEditModal(studyId, code, title, packagingId, productName, batchNumber, packagingDescription, status, startDate, endDate) {
+    const form = document.getElementById('studyEditForm');
+    form.action = `/app/studies/${studyId}/edit/`;
+    document.querySelector('#studyEditModal [name="code"]').value = code || '';
+    document.querySelector('#studyEditModal [name="title"]').value = title || '';
+    document.querySelector('#studyEditModal [name="packaging"]').value = packagingId || '';
+    document.querySelector('#studyEditModal [name="product_name"]').value = productName || '';
+    document.querySelector('#studyEditModal [name="batch_number"]').value = batchNumber || '';
+    document.querySelector('#studyEditModal [name="packaging_description"]').value = packagingDescription || '';
+    document.querySelector('#studyEditModal [name="status"]').value = status || 'draft';
+    document.querySelector('#studyEditModal [name="start_date"]').value = startDate || '';
+    document.querySelector('#studyEditModal [name="end_date"]').value = endDate || '';
+    const modal = new bootstrap.Modal(document.getElementById('studyEditModal'));
+    modal.show();
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.study-delete-form').forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            Swal.fire({
+                title: 'Eliminar estudio',
+                text: '¿Seguro que quieres eliminar este estudio?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#d33'
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+    });
+});
+</script>
 {% endblock %}
