@@ -62,6 +62,35 @@ def generate_reception_number():
     return RECEPTION_CODE_PATTERN.format(year=year, seq=seq)
 
 
+def _schedule_audit_changes(before_schedule, after_schedule):
+    return {
+        "planned_date": {
+            "before": str(before_schedule.planned_date) if before_schedule and before_schedule.planned_date else None,
+            "after": str(after_schedule.planned_date) if after_schedule.planned_date else None,
+        },
+        "chamber": {
+            "before": before_schedule.chamber.code if before_schedule and before_schedule.chamber else None,
+            "after": after_schedule.chamber.code if after_schedule.chamber else None,
+        },
+        "chamber_location": {
+            "before": before_schedule.chamber_location.code if before_schedule and before_schedule.chamber_location else None,
+            "after": after_schedule.chamber_location.code if after_schedule.chamber_location else None,
+        },
+        "quantity": {
+            "before": before_schedule.quantity if before_schedule else None,
+            "after": after_schedule.quantity,
+        },
+        "notes": {
+            "before": before_schedule.notes if before_schedule else None,
+            "after": after_schedule.notes,
+        },
+        "is_active": {
+            "before": before_schedule.is_active if before_schedule else None,
+            "after": after_schedule.is_active,
+        },
+    }
+
+
 def resolve_batch_from_code(batch_code):
     batch_code = (batch_code or "").strip()
     if not batch_code:
@@ -257,11 +286,12 @@ def samples_list(request):
 @login_required
 def sample_schedules_view(request, pk):
     sample = get_object_or_404(Sample.objects.select_related("study"), pk=pk)
-    schedules = sample.schedules.order_by("planned_date", "id")
+    schedules = sample.schedules.select_related("chamber", "chamber_location").order_by("planned_date", "id")
     context = {
         "sample": sample,
         "schedules": schedules,
         "schedule_form": SampleScheduleForm(),
+        "filter_active": True,
     }
     return render(request, "web/sample_schedules.html", context)
 
@@ -563,7 +593,7 @@ def create_sample_schedule_web(request, pk):
             schedule,
             "web_create_sample_schedule",
             payload={"sample_code": sample.sample_code, "planned_date": str(schedule.planned_date)},
-            changes={"is_active": {"before": None, "after": schedule.is_active}},
+            changes=_schedule_audit_changes(None, schedule),
         )
         messages.success(request, "Fecha de muestreo añadida correctamente.")
     else:
@@ -573,17 +603,21 @@ def create_sample_schedule_web(request, pk):
 
 @login_required
 def edit_sample_schedule_web(request, pk):
-    schedule = get_object_or_404(SampleSchedule.objects.select_related("sample"), pk=pk)
+    schedule = get_object_or_404(
+        SampleSchedule.objects.select_related("sample", "chamber", "chamber_location"),
+        pk=pk,
+    )
     if request.method != "POST":
         return redirect("web-sample-schedules", pk=schedule.sample_id)
     form = SampleScheduleEditForm(request.POST, instance=schedule)
     if form.is_valid():
-        form.save()
+        before_schedule = SampleSchedule.objects.select_related("chamber", "chamber_location").get(pk=schedule.pk)
+        schedule = form.save()
         register_audit_event(
             schedule,
             "web_update_sample_schedule",
             payload={"sample_code": schedule.sample.sample_code, "planned_date": str(schedule.planned_date)},
-            changes={"is_active": {"before": None, "after": schedule.is_active}},
+            changes=_schedule_audit_changes(before_schedule, schedule),
         )
         messages.success(request, "Fecha de muestreo actualizada correctamente.")
     else:

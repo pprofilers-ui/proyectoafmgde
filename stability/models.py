@@ -306,6 +306,20 @@ class SampleSchedule(TimeStampedModel):
     sample = models.ForeignKey(Sample, related_name="schedules", on_delete=models.CASCADE)
     planned_date = models.DateField()
     label = models.CharField(max_length=100, blank=True)
+    chamber = models.ForeignKey(
+        Chamber,
+        related_name="sample_schedules",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    chamber_location = models.ForeignKey(
+        ChamberLocation,
+        related_name="sample_schedules",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
     
     quantity = models.PositiveIntegerField(
             "Cantidad",

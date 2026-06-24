@@ -4,6 +4,7 @@ from django.utils import timezone
 from .models import (
     Chamber,
     ChamberDeviation,
+    ChamberLocation,
     Client,
     LabelTemplate,
     PackagingConfiguration,
@@ -391,7 +392,7 @@ class SampleExtractionForm(forms.Form):
 class SampleScheduleForm(forms.ModelForm):
     class Meta:
         model = SampleSchedule
-        fields = ["planned_date", "quantity", "notes", "is_active"]
+        fields = ["planned_date", "chamber", "chamber_location", "quantity", "notes", "is_active"]
         widgets = {
             "planned_date": forms.DateInput(attrs={"type": "date"}),
             "notes": forms.TextInput(),
@@ -400,9 +401,15 @@ class SampleScheduleForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["chamber"].queryset = Chamber.objects.filter(is_active=True).order_by("code")
+        self.fields["chamber_location"].queryset = ChamberLocation.objects.filter(is_active=True).order_by("code")
+        self.fields["chamber"].required = False
+        self.fields["chamber_location"].required = False
         labels = {
             "planned_date": "Fecha de muestreo",
             "label": "Código fecha de muestreo",
+            "chamber": "Camara",
+            "chamber_location": "Ubicacion",
             "quantity": "Cantidad",
             "notes": "Notas",
             "is_active": "Activa",
@@ -419,7 +426,7 @@ class SampleScheduleForm(forms.ModelForm):
 class SampleScheduleEditForm(forms.ModelForm):
     class Meta:
         model = SampleSchedule
-        fields = ["planned_date", "quantity", "notes", "is_active"]
+        fields = ["planned_date", "chamber", "chamber_location", "quantity", "notes", "is_active"]
         widgets = {
             "planned_date": forms.DateInput(attrs={"type": "date"}),
             "notes": forms.TextInput(),
@@ -428,9 +435,15 @@ class SampleScheduleEditForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["chamber"].queryset = Chamber.objects.filter(is_active=True).order_by("code")
+        self.fields["chamber_location"].queryset = ChamberLocation.objects.filter(is_active=True).order_by("code")
+        self.fields["chamber"].required = False
+        self.fields["chamber_location"].required = False
         labels = {
             "planned_date": "Fecha de muestreo",
             "label": "Código fecha de muestreo",
+            "chamber": "Camara",
+            "chamber_location": "Ubicacion",
             "quantity": "Cantidad",
             "notes": "Notas",
             "is_active": "Activa",

@@ -10,77 +10,216 @@
         <div class="col-lg-4">
             <div class="mini-kpi hero">
                 <div class="small text-uppercase text-muted">Muestra asociada</div>
-                <div class="fw-semibold mt-2">{{ sample.sample_code }}</div>
-                <div class="small text-muted mt-1">{{ sample.study.code }} - {{ sample.study.title }}</div>
+                <div class="fw-semibold mt-2">
+                    <span class="badge bg-success fs-6 px-3 py-2">
+                        {{ sample.sample_code }}
+                    </span>
+                </div>
+                <div class="mt-2">
+                    <span class="badge bg-primary fs-6 px-3 py-2">
+                        {{ sample.study.code }}
+                    </span>
+                </div>
+
+                <div class="small text-muted mt-2 fw-semibold">
+                    {{ sample.study.title }}
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row g-4">
-    <div class="col-xl-5">
-        <div class="card glass soft-card border-0 h-100">
-            <div class="card-body p-4 p-lg-5">
-                <div class="app-section-title">Añadir fecha</div>
-                <div class="app-section-copy">Registra cada fecha de muestreo de forma individual para esta muestra.</div>
-                <form method="post" action="/app/samples/{{ sample.id }}/schedules/create/" class="row g-4">
-                    {% csrf_token %}
-                    {% for field in schedule_form %}
-                    <div class="{% if field.name == 'notes' %}col-12{% else %}col-12{% endif %}">
-                        <label class="form-label">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors|striptags }}</div>{% endif %}
-                    </div>
-                    {% endfor %}
-                    <div class="col-12 pt-2">
-                        <button class="btn btn-primary btn-lg soft-pill" type="submit">Añadir fecha</button>
-                        <a class="btn btn-outline-secondary btn-lg soft-pill ms-2" href="/app/samples/">Volver</a>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+<div class="card glass soft-card border-0 mb-4">
+    <div class="card-body p-4">
 
-    <div class="col-xl-7">
-        <div class="card glass soft-card border-0 h-100">
-            <div class="card-body p-4 p-lg-5">
-                <div class="app-section-title">Listado de fechas</div>
-                <div class="app-section-copy">Cada linea representa una fecha de muestreo consultable y borrable.</div>
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Código fecha de muestreo</th>
-                            <th>Cantidad</th>
-                            <th>Notas</th>
-                            <th>Activa</th>
-                            <th>Acciones</th>
-                        </tr>
-                        {% for item in schedules %}
-                        <tr>
-                            <td class="fw-semibold">{{ item.planned_date }}</td>
-                            <td>{{ item.label|default:"-" }}</td>
-                            <td>{{ item.quantity }}</td>
-                            <td>{{ item.notes|default:"-" }}</td>
-                            <td><span class="badge text-bg-light">{{ item.is_active|yesno:"Si,No" }}</span></td>
-                            <td class="text-nowrap">
-                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill me-1" onclick="openScheduleEditModal('{{ item.id }}', '{{ item.planned_date|date:"Y-m-d" }}', '{{ item.label|escapejs }}', '{{ item.quantity }}', '{{ item.notes|escapejs }}', '{{ item.is_active|yesno:"true,false" }}')">Editar</button>
-                                <form method="post" action="/app/samples/schedules/{{ item.id }}/delete/" class="d-inline">
-                                    {% csrf_token %}
-                                    <button class="btn btn-sm btn-outline-danger rounded-pill" type="submit">Eliminar</button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="text-muted">Todavia no hay fechas de muestreo.</td>
-                        </tr>
-                        {% endfor %}
-                    </table>
+        <div class="d-flex justify-content-between align-items-center">
+
+            <div>
+                <div class="app-section-title">
+                    Listado de fechas
+                </div>
+
+                <div class="app-section-copy">
+                    Consulta y gestiona las fechas de muestreo asociadas a la muestra.
+                </div>
+                <div class="mt-3">
+
+                    <span class="badge bg-success fs-6">
+                        Filtro activo: {{ sample.sample_code }}
+                    </span>
+
                 </div>
             </div>
+
+            <button
+                class="btn btn-primary rounded-pill px-4"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#addScheduleCollapse">
+
+                + Añadir fecha
+
+            </button>
+
         </div>
+
     </div>
+</div>
+
+<div class="card glass soft-card border-0 mb-4">
+    <div class="card-body p-4 p-lg-5">
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+
+                <tr>
+                    <th>Fecha</th>
+                    <th>Código fecha de muestreo</th>
+                    <th>Cámara</th>
+                    <th>Ubicación</th>
+                    <th>Cantidad</th>
+                    <th>Notas</th>
+                    <th>Activa</th>
+                    <th>Acciones</th>
+                </tr>
+
+                {% for item in schedules %}
+                <tr>
+                    <td class="fw-semibold">{{ item.planned_date }}</td>
+                    <td>{{ item.label|default:"-" }}</td>
+                    <td>{{ item.chamber.code|default:"-" }}</td>
+                    <td>{{ item.chamber_location.code|default:"-" }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>{{ item.notes|default:"-" }}</td>
+
+                    <td>
+                        <span class="badge text-bg-light">
+                            {{ item.is_active|yesno:"Si,No" }}
+                        </span>
+                    </td>
+
+                    <td class="text-nowrap">
+
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-outline-primary rounded-pill me-1"
+                            onclick="openScheduleEditModal(
+                                '{{ item.id }}',
+                                '{{ item.planned_date|date:"Y-m-d" }}',
+                                '{{ item.label|escapejs }}',
+                                '{% if item.chamber_id %}{{ item.chamber_id }}{% endif %}',
+                                '{% if item.chamber_location_id %}{{ item.chamber_location_id }}{% endif %}',
+                                '{{ item.quantity }}',
+                                '{{ item.notes|escapejs }}',
+                                '{{ item.is_active|yesno:"true,false" }}'
+                            )">
+
+                            Editar
+
+                        </button>
+
+                        <form method="post"
+                              action="/app/samples/schedules/{{ item.id }}/delete/"
+                              class="d-inline">
+
+                            {% csrf_token %}
+
+                            <button
+                                class="btn btn-sm btn-outline-danger rounded-pill"
+                                type="submit">
+
+                                Eliminar
+
+                            </button>
+
+                        </form>
+
+                    </td>
+
+                </tr>
+
+                {% empty %}
+
+                <tr>
+                    <td colspan="8" class="text-muted">
+                        Todavía no hay fechas de muestreo.
+                    </td>
+                </tr>
+
+                {% endfor %}
+
+            </table>
+        </div>
+
+    </div>
+</div>
+
+<div class="collapse show" id="addScheduleCollapse">
+
+    <div class="card glass soft-card border-0">
+
+        <div class="card-body p-4 p-lg-5">
+
+            <div class="app-section-title">
+                Añadir fecha
+            </div>
+
+            <div class="app-section-copy">
+                Registra una nueva fecha de muestreo para esta muestra.
+            </div>
+
+            <form method="post"
+                  action="/app/samples/{{ sample.id }}/schedules/create/"
+                  class="row g-4">
+
+                {% csrf_token %}
+
+                {% for field in schedule_form %}
+
+                <div class="{% if field.name == 'planned_date' or field.name == 'chamber' or field.name == 'chamber_location' or field.name == 'quantity' %}col-md-6{% else %}col-12{% endif %}">
+
+                    <label class="form-label">
+                        {{ field.label }}
+                    </label>
+
+                    {{ field }}
+
+                    {% if field.errors %}
+                    <div class="text-danger small mt-1">
+                        {{ field.errors|striptags }}
+                    </div>
+                    {% endif %}
+
+                </div>
+
+                {% endfor %}
+
+                <div class="col-12 pt-2">
+
+                    <button
+                        class="btn btn-primary btn-lg soft-pill"
+                        type="submit">
+
+                        Guardar fecha
+
+                    </button>
+
+                    <a
+                        class="btn btn-outline-secondary btn-lg soft-pill ms-2"
+                        href="/app/samples/">
+
+                        Volver
+
+                    </a>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
 </div>
 
 <div class="modal fade" id="scheduleEditModal" tabindex="-1" aria-hidden="true">
@@ -101,6 +240,24 @@
                         <div class="col-md-4">
                             <label class="form-label">Código fecha de muestreo</label>
                             <input id="edit_schedule_label" name="label" type="text" class="form-control rounded-4 shadow-sm" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Camara</label>
+                            <select id="edit_schedule_chamber" name="chamber" class="form-select rounded-4 shadow-sm">
+                                <option value="">---------</option>
+                                {% for option in schedule_form.chamber.field.queryset %}
+                                <option value="{{ option.pk }}">{{ option }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Ubicacion</label>
+                            <select id="edit_schedule_chamber_location" name="chamber_location" class="form-select rounded-4 shadow-sm">
+                                <option value="">---------</option>
+                                {% for option in schedule_form.chamber_location.field.queryset %}
+                                <option value="{{ option.pk }}">{{ option }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Cantidad</label>
@@ -133,11 +290,13 @@
 </div>
 
 <script>
-function openScheduleEditModal(scheduleId, plannedDate, label, quantity, notes, isActive) {
+function openScheduleEditModal(scheduleId, plannedDate, label, chamberId, chamberLocationId, quantity, notes, isActive) {
     const form = document.getElementById('scheduleEditForm');
     form.action = `/app/samples/schedules/${scheduleId}/edit/`;
     document.getElementById('edit_schedule_planned_date').value = plannedDate || '';
     document.getElementById('edit_schedule_label').value = label || '';
+    document.getElementById('edit_schedule_chamber').value = chamberId || '';
+    document.getElementById('edit_schedule_chamber_location').value = chamberLocationId || '';
     document.getElementById('edit_schedule_quantity').value = quantity || 1;
     document.getElementById('edit_schedule_notes').value = notes || '';
     document.getElementById('edit_schedule_is_active').value = isActive === 'true' ? 'true' : 'false';

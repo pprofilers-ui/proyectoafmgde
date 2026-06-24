@@ -152,6 +152,8 @@ _apply_admin_field_labels(SampleSchedule, {
     "sample": "Muestra",
     "planned_date": "Fecha de muestreo",
     "label": "Código fecha de muestreo",
+    "chamber": "Cámara",
+    "chamber_location": "Ubicación",
     "quantity": "Cantidad",
     "notes": "Notas",
     "is_active": "Activo",
@@ -436,15 +438,17 @@ class SampleAdmin(admin.ModelAdmin):
 
 @admin.register(SampleSchedule)
 class SampleScheduleAdmin(admin.ModelAdmin):
-    list_display = ("sample", "planned_date", "codigo_fecha", "quantity", "is_active")
-    list_filter = ("is_active", "planned_date")
-    search_fields = ("sample__sample_code", "label", "notes")
+    list_display = ("sample", "planned_date", "codigo_fecha", "chamber", "chamber_location", "quantity", "is_active")
+    list_filter = ("is_active", "planned_date", "chamber", "chamber_location")
+    search_fields = ("sample__sample_code", "label", "notes", "chamber__code", "chamber_location__code")
     readonly_fields = ("label",)
     
     fields = (
             "sample",
             "planned_date",
             "label",
+            "chamber",
+            "chamber_location",
             "quantity",
             "notes",
             "is_active",
