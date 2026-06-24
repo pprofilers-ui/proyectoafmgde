@@ -306,6 +306,8 @@ class SampleSchedule(TimeStampedModel):
     sample = models.ForeignKey(Sample, related_name="schedules", on_delete=models.CASCADE)
     planned_date = models.DateField()
     label = models.CharField(max_length=100, blank=True)
+    schedule_qr_code = models.CharField(max_length=255, blank=True)
+    label_printed_at = models.DateTimeField(null=True, blank=True)
     chamber = models.ForeignKey(
         Chamber,
         related_name="sample_schedules",

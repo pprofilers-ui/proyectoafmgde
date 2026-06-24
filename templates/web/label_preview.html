@@ -18,7 +18,7 @@
             height: 12px;
             border-radius: 999px;
             margin-bottom: 16px;
-            background: {% if sample.label_template %}{{ sample.label_template.color_hex }}{% else %}#DCEBFF{% endif %};
+            background: #DCEBFF;
         }
         .qr {
             margin-top: 16px;
@@ -50,13 +50,14 @@
         <div class="meta"><strong>Presentacion:</strong> {{ sample.study.packaging_description|default:"-" }}</div>
         <div class="meta"><strong>Codigo interno:</strong> {{ sample.sample_code }}</div>
         <div class="meta"><strong>Lote interno:</strong> {{ sample.study.batch_number }}</div>
-        <div class="meta"><strong>Condicion climatica:</strong> {% if sample.chamber and sample.chamber.storage_condition %}{{ sample.chamber.storage_condition.name }}{% else %}-{% endif %}</div>
+        <div class="meta"><strong>Condicion climatica:</strong> {% if schedule and schedule.chamber and schedule.chamber.storage_condition %}{{ schedule.chamber.storage_condition.name }}{% elif sample.chamber and sample.chamber.storage_condition %}{{ sample.chamber.storage_condition.name }}{% else %}-{% endif %}</div>
         <div class="meta"><strong>Muestra:</strong> {{ sample.sample_code }}</div>
         <div class="meta"><strong>Estudio:</strong> {{ sample.study.code }}</div>
-        <div class="meta"><strong>Punto:</strong> {{ sample.sampling_point.label|default:"-" }}</div>
+        <div class="meta"><strong>Fecha de muestreo:</strong> {% if schedule %}{{ schedule.planned_date|date:"d/m/Y" }}{% else %}-{% endif %}</div>
+        <div class="meta"><strong>Codigo fecha de muestreo:</strong> {% if schedule %}{{ schedule.label|default:"-" }}{% else %}-{% endif %}</div>
         <div class="meta"><strong>Fecha de entrada en camara:</strong> {{ sample.placed_in_chamber_at|default:"-" }}</div>
-        <div class="meta"><strong>Camara / ubicacion:</strong> {{ sample.chamber.code|default:"-" }} - {{ sample.shelf|default:"-" }} / {{ sample.tray|default:"-" }} / {{ sample.physical_position|default:"-" }}</div>
-        <div class="meta"><strong>Plantilla:</strong> {% if sample.label_template %}{{ sample.label_template.name }}{% else %}-{% endif %}</div>
+        <div class="meta"><strong>Camara:</strong> {% if schedule and schedule.chamber %}{{ schedule.chamber.code }}{% else %}{{ sample.chamber.code|default:"-" }}{% endif %}</div>
+        <div class="meta"><strong>Ubicacion:</strong> {% if schedule and schedule.chamber_location %}{{ schedule.chamber_location.code }} - {{ schedule.chamber_location.name }}{% else %}-{% endif %}</div>
         <div class="meta"><strong>Estado:</strong> {{ sample.get_status_display }}</div>
         <div class="qr">
             <div class="qr-text">{{ qr_value }}</div>

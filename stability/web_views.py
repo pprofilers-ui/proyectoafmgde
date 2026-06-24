@@ -91,6 +91,10 @@ def _schedule_audit_changes(before_schedule, after_schedule):
     }
 
 
+def _build_schedule_qr_code(schedule):
+    return f"QR::{schedule.label}" if schedule.label else f"QR::SCHEDULE::{schedule.pk}"
+
+
 def resolve_batch_from_code(batch_code):
     batch_code = (batch_code or "").strip()
     if not batch_code:
@@ -776,8 +780,41 @@ def extract_sample_web(request):
 
 @login_required
 def sample_label_preview(request, pk):
-    sample = get_object_or_404(Sample.objects.select_related("study", "sampling_point", "chamber"), pk=pk)
-    qr_value = sample.qr_code or f"QR::{sample.sample_code}"
+    sample = get_object_or_404(
+        Sample.objects.select_related("study", "sampling_point", "chamber", "chamber__storage_condition"),
+        pk=pk,
+    )
+    schedule = None
+    schedule_id = request.GET.get("schedule")
+    if schedule_id:
+        schedule = get_object_or_404(
+            SampleSchedule.objects.select_related(
+                "chamber",
+                "chamber__storage_condition",
+                "chamber_location",
+            ),
+            pk=schedule_id,
+            sample=sample,
+        )
+        if not schedule.schedule_qr_code:
+            qr_before = schedule.schedule_qr_code or None
+            schedule.schedule_qr_code = _build_schedule_qr_code(schedule)
+            schedule.label_printed_at = timezone.now()
+            schedule.save(update_fields=["schedule_qr_code", "label_printed_at", "updated_at"])
+            register_audit_event(
+                schedule,
+                "web_generate_sample_schedule_label",
+                payload={
+                    "sample_code": sample.sample_code,
+                    "schedule_label": schedule.label,
+                    "planned_date": str(schedule.planned_date),
+                },
+                changes={
+                    "schedule_qr_code": {"before": qr_before, "after": schedule.schedule_qr_code},
+                    "label_printed_at": {"before": None, "after": schedule.label_printed_at.isoformat()},
+                },
+            )
+    qr_value = schedule.schedule_qr_code if schedule and schedule.schedule_qr_code else sample.qr_code or f"QR::{sample.sample_code}"
     qr = qrcode.QRCode(version=1, box_size=5, border=2)
     qr.add_data(qr_value)
     qr.make(fit=True)
@@ -787,6 +824,7 @@ def sample_label_preview(request, pk):
     qr_image_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
     context = {
         "sample": sample,
+        "schedule": schedule,
         "qr_value": qr_value,
         "qr_image_base64": qr_image_base64,
     }
