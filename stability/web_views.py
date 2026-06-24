@@ -88,6 +88,14 @@ def _schedule_audit_changes(before_schedule, after_schedule):
             "before": before_schedule.is_active if before_schedule else None,
             "after": after_schedule.is_active,
         },
+        "removed_at": {
+            "before": before_schedule.removed_at.isoformat() if before_schedule and before_schedule.removed_at else None,
+            "after": after_schedule.removed_at.isoformat() if after_schedule.removed_at else None,
+        },
+        "removed_by": {
+            "before": before_schedule.removed_by.username if before_schedule and before_schedule.removed_by else None,
+            "after": after_schedule.removed_by.username if after_schedule.removed_by else None,
+        },
     }
 
 
@@ -642,6 +650,49 @@ def delete_sample_schedule_web(request, pk):
         schedule.delete()
         messages.success(request, "Fecha de muestreo eliminada correctamente.")
     return redirect("web-sample-schedules", pk=sample_pk)
+
+
+@login_required
+def withdraw_sample_schedule_web(request, pk):
+    schedule = get_object_or_404(
+        SampleSchedule.objects.select_related("sample", "removed_by"),
+        pk=pk,
+    )
+    if request.method != "POST":
+        return redirect("web-sample-schedules", pk=schedule.sample_id)
+    if not schedule.is_active and schedule.removed_at:
+        messages.info(request, "La fecha de muestreo ya estaba retirada de camara.")
+        return redirect("web-sample-schedules", pk=schedule.sample_id)
+
+    before_schedule = SampleSchedule.objects.select_related("removed_by").get(pk=schedule.pk)
+    removed_at_raw = request.POST.get("removed_at") or ""
+    if removed_at_raw:
+        try:
+            removed_at = timezone.datetime.fromisoformat(removed_at_raw)
+            if timezone.is_naive(removed_at):
+                removed_at = timezone.make_aware(removed_at, timezone.get_current_timezone())
+        except ValueError:
+            messages.error(request, "La fecha de salida no tiene un formato valido.")
+            return redirect("web-sample-schedules", pk=schedule.sample_id)
+    else:
+        removed_at = timezone.now()
+
+    schedule.removed_at = removed_at
+    schedule.removed_by = request.user if request.user.is_authenticated else None
+    schedule.is_active = False
+    schedule.save(update_fields=["removed_at", "removed_by", "is_active", "updated_at"])
+    register_audit_event(
+        schedule,
+        "web_withdraw_sample_schedule",
+        payload={
+            "sample_code": schedule.sample.sample_code,
+            "schedule_label": schedule.label,
+            "planned_date": str(schedule.planned_date),
+        },
+        changes=_schedule_audit_changes(before_schedule, schedule),
+    )
+    messages.success(request, "Fecha de muestreo retirada de camara correctamente.")
+    return redirect("web-sample-schedules", pk=schedule.sample_id)
 
 
 @login_required

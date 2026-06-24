@@ -154,6 +154,8 @@ _apply_admin_field_labels(SampleSchedule, {
     "label": "Código fecha de muestreo",
     "schedule_qr_code": "Texto QR",
     "label_printed_at": "Etiqueta impresa en",
+    "removed_at": "Fecha salida",
+    "removed_by": "Retirada por",
     "chamber": "Cámara",
     "chamber_location": "Ubicación",
     "quantity": "Cantidad",
@@ -440,10 +442,10 @@ class SampleAdmin(admin.ModelAdmin):
 
 @admin.register(SampleSchedule)
 class SampleScheduleAdmin(admin.ModelAdmin):
-    list_display = ("sample", "planned_date", "codigo_fecha", "texto_qr", "chamber", "chamber_location", "quantity", "is_active")
+    list_display = ("sample", "planned_date", "codigo_fecha", "texto_qr", "chamber", "chamber_location", "quantity", "fecha_salida", "is_active")
     list_filter = ("is_active", "planned_date", "chamber", "chamber_location")
     search_fields = ("sample__sample_code", "label", "schedule_qr_code", "notes", "chamber__code", "chamber_location__code")
-    readonly_fields = ("label", "schedule_qr_code", "label_printed_at")
+    readonly_fields = ("label", "schedule_qr_code", "label_printed_at", "removed_at", "removed_by")
     
     fields = (
             "sample",
@@ -451,6 +453,8 @@ class SampleScheduleAdmin(admin.ModelAdmin):
             "label",
             "schedule_qr_code",
             "label_printed_at",
+            "removed_at",
+            "removed_by",
             "chamber",
             "chamber_location",
             "quantity",
@@ -466,6 +470,10 @@ class SampleScheduleAdmin(admin.ModelAdmin):
     @admin.display(description="Texto QR")
     def texto_qr(self, obj):
         return obj.schedule_qr_code or "-"
+
+    @admin.display(description="Fecha salida")
+    def fecha_salida(self, obj):
+        return obj.removed_at or "-"
 
 
 

@@ -22,6 +22,7 @@ ACTION_LABELS = {
     "web_update_sample_schedule": "Fecha de muestreo actualizada",
     "web_delete_sample_schedule": "Fecha de muestreo eliminada",
     "web_generate_sample_schedule_label": "Etiqueta de fecha de muestreo generada",
+    "web_withdraw_sample_schedule": "Fecha de muestreo retirada de camara",
     "web_create_chamber_deviation": "Desviacion de camara registrada",
     "web_recalculate_sampling_point": "Fecha de muestreo recalculada",
     "recalculate_date": "Recalculo de fecha registrado",

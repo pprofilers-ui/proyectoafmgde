@@ -32,6 +32,7 @@ from stability.web_views import (
     samples_list,
     studies_list,
     delete_sample_schedule_web,
+    withdraw_sample_schedule_web,
 )
 
 schema_view = get_schema_view(
@@ -60,6 +61,7 @@ urlpatterns = [
     path('app/samples/<int:pk>/schedules/create/', create_sample_schedule_web, name='web-create-sample-schedule'),
     path('app/samples/schedules/<int:pk>/edit/', edit_sample_schedule_web, name='web-edit-sample-schedule'),
     path('app/samples/schedules/<int:pk>/delete/', delete_sample_schedule_web, name='web-delete-sample-schedule'),
+    path('app/samples/schedules/<int:pk>/withdraw/', withdraw_sample_schedule_web, name='web-withdraw-sample-schedule'),
     path('app/alerts/', alerts_list, name='web-alerts'),
     path('app/annual-plan/', annual_plan_view, name='web-annual-plan'),
     path('app/reports/', reports_view, name='web-reports'),
