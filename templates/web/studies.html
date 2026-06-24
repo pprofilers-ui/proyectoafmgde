@@ -44,6 +44,7 @@
                         <tr>
                             <th>Código</th>
                             <th>Título</th>
+                            <th>Cliente</th>
                             <th>Producto</th>
                             <th>Lote</th>
                             <th>Estado</th>
@@ -55,6 +56,7 @@
                         <tr>
                             <td class="fw-semibold">{{ study.code }}</td>
                             <td>{{ study.title }}</td>
+                            <td>{{ study.client.description|default:"-" }}</td>
                             <td>{{ study.product_name }}</td>
                             <td>{{ study.batch_number }}</td>
                             <td>
@@ -65,9 +67,14 @@
                             <td>{{ study.start_date }}</td>
                             <td class="text-nowrap">
                                 <a
+                                    class="btn btn-sm btn-outline-success rounded-pill me-1"
+                                    href="/app/samples/?study={{ study.id }}&open=create">
+                                    Crear muestras
+                                </a>
+                                <a
                                     class="btn btn-sm btn-outline-primary rounded-pill me-1"
                                     href="#"
-                                    onclick="openStudyEditModal('{{ study.id }}', '{{ study.code|escapejs }}', '{{ study.title|escapejs }}', '{{ study.packaging_id|default:'' }}', '{{ study.product_name|escapejs }}', '{{ study.batch_number|escapejs }}', '{{ study.packaging_description|escapejs }}', '{{ study.status }}', '{{ study.start_date|date:'Y-m-d' }}', '{{ study.end_date|default:''|date:'Y-m-d' }}'); return false;">
+                                    onclick="openStudyEditModal('{{ study.id }}', '{{ study.code|escapejs }}', '{{ study.title|escapejs }}', '{{ study.client_id|default:'' }}', '{{ study.packaging_id|default:'' }}', '{{ study.product_name|escapejs }}', '{{ study.batch_number|escapejs }}', '{{ study.packaging_description|escapejs }}', '{{ study.status }}', '{{ study.start_date|date:'Y-m-d' }}', '{{ study.end_date|default:''|date:'Y-m-d' }}'); return false;">
                                     Editar
                                 </a>
 
@@ -86,7 +93,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-muted">
+                            <td colspan="8" class="text-muted">
                                 No hay estudios todavía.
                             </td>
                         </tr>
@@ -175,6 +182,10 @@
                             {{ study_form.title }}
                         </div>
                         <div class="col-md-6">
+                            <label class="form-label">Cliente</label>
+                            {{ study_form.client }}
+                        </div>
+                        <div class="col-md-6">
                             <label class="form-label">Acondicionado</label>
                             {{ study_form.packaging }}
                         </div>
@@ -214,11 +225,12 @@
 </div>
 
 <script>
-function openStudyEditModal(studyId, code, title, packagingId, productName, batchNumber, packagingDescription, status, startDate, endDate) {
+function openStudyEditModal(studyId, code, title, clientId, packagingId, productName, batchNumber, packagingDescription, status, startDate, endDate) {
     const form = document.getElementById('studyEditForm');
     form.action = `/app/studies/${studyId}/edit/`;
     document.querySelector('#studyEditModal [name="code"]').value = code || '';
     document.querySelector('#studyEditModal [name="title"]').value = title || '';
+    document.querySelector('#studyEditModal [name="client"]').value = clientId || '';
     document.querySelector('#studyEditModal [name="packaging"]').value = packagingId || '';
     document.querySelector('#studyEditModal [name="product_name"]').value = productName || '';
     document.querySelector('#studyEditModal [name="batch_number"]').value = batchNumber || '';

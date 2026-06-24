@@ -1,5 +1,6 @@
 from copy import deepcopy
 
+from django import forms
 from django.contrib import admin
 
 from audit.admin import AuditTrailAdmin
@@ -8,6 +9,7 @@ from .models import (
     Chamber,
     ChamberDeviation,
     ChamberLocation,
+    Client,
     PackagingConfiguration,
     Product,
     ProductBatch,
@@ -20,6 +22,7 @@ from .models import (
     StorageCondition,
     Study,
 )
+from .web_forms import SampleReceptionForm as WebSampleReceptionForm
 
 
 def _apply_admin_field_labels(model, labels):
@@ -45,6 +48,14 @@ _apply_admin_field_labels(PackagingConfiguration, {
     "material": "Material",
     "presentation": "Presentación",
     "is_active": "Activo",
+})
+_apply_admin_field_labels(Client, {
+    "code": "Código cliente",
+    "description": "Descripción",
+    "address": "Dirección",
+    "email": "Email",
+    "phone": "Teléfono",
+    "notes": "Notas",
 })
 _apply_admin_field_labels(ProductBatch, {
     "code": "Código",
@@ -74,6 +85,7 @@ _apply_admin_field_labels(ChamberLocation, {
 _apply_admin_field_labels(Study, {
     "code": "Código",
     "title": "Título",
+    "client": "Cliente",
     "packaging": "Acondicionado",
     "product_name": "Nombre del producto",
     "batch_number": "Número de lote",
@@ -139,7 +151,8 @@ _apply_admin_field_labels(Sample, {
 _apply_admin_field_labels(SampleSchedule, {
     "sample": "Muestra",
     "planned_date": "Fecha de muestreo",
-    "label": "Etiqueta",
+    "label": "Código fecha de muestreo",
+    "quantity": "Cantidad",
     "notes": "Notas",
     "is_active": "Activo",
 })
@@ -196,6 +209,25 @@ class PackagingConfigurationAdmin(admin.ModelAdmin):
     search_fields = ("code", "name", "material")
     
     # ==== PERMISOS PARA QUE PUEDA ASIGNAR LOS ACONDICIONAMIENTOS ====
+    def has_module_permission(self, request):
+        return request.user.is_staff
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_staff
+
+    def has_add_permission(self, request):
+        return request.user.is_staff
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_staff
+
+
+@admin.register(Client)
+class ClientAdmin(admin.ModelAdmin):
+    list_display = ("code", "description", "email", "phone")
+    search_fields = ("code", "description", "email", "phone")
+    readonly_fields = ("code",)
+
     def has_module_permission(self, request):
         return request.user.is_staff
 
@@ -288,9 +320,9 @@ class ChamberLocationAdmin(admin.ModelAdmin):
 
 @admin.register(Study)
 class StudyAdmin(admin.ModelAdmin):
-    list_display = ("code", "title", "product_name", "batch_number", "company_code", "status", "start_date", "end_date")
-    list_filter = ("status", "company_code")
-    search_fields = ("code", "title", "product_name", "batch_number")
+    list_display = ("code", "title", "client", "product_name", "batch_number", "company_code", "status", "start_date", "end_date")
+    list_filter = ("status", "company_code", "client")
+    search_fields = ("code", "title", "product_name", "batch_number", "client__code", "client__description")
 
 
 @admin.register(Chamber)
@@ -333,11 +365,66 @@ class SamplingPointAdmin(admin.ModelAdmin):
     search_fields = ("label", "study__code", "study__title")
 
 
+class SampleReceptionAdminForm(WebSampleReceptionForm):
+    sample_code = forms.CharField(label="Código de muestra", required=False, disabled=True)
+
+    class Meta(WebSampleReceptionForm.Meta):
+        exclude = ("reception_number",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        sample_code = ""
+        if self.instance and self.instance.pk:
+            first_sample = self.instance.samples.order_by("created_at").first()
+            if first_sample:
+                sample_code = first_sample.sample_code
+        self.fields["sample_code"].initial = sample_code
+        self.fields["sample_code"].widget.attrs["readonly"] = True
+        self.order_fields([
+            "study",
+            "sample_code",
+            "batch",
+            "received_from",
+            "received_by",
+            "received_at",
+            "quantity_received",
+            "quantity_expected",
+            "discrepancy_notes",
+            "quantity_assigned",
+            "quantity_reserved",
+            "quantity_contingency",
+            "status",
+            "notes",
+        ])
+
+
 @admin.register(SampleReception)
 class SampleReceptionAdmin(admin.ModelAdmin):
-    list_display = ("reception_number", "study", "batch", "received_from", "received_at", "quantity_received", "status")
+    list_display = ("codigo_muestra", "study", "batch", "received_from", "received_at", "quantity_received", "status")
     list_filter = ("status", "study")
-    search_fields = ("reception_number", "received_from")
+    search_fields = ("received_from", "study__code", "study__title")
+    form = SampleReceptionAdminForm
+    fields = (
+        "study",
+        "sample_code",
+        "batch",
+        "received_from",
+        "received_by",
+        "received_at",
+        "quantity_received",
+        "quantity_expected",
+        "discrepancy_notes",
+        "quantity_assigned",
+        "quantity_reserved",
+        "quantity_contingency",
+        "status",
+        "notes",
+    )
+
+    @admin.display(description="Código de muestra")
+    def codigo_muestra(self, obj):
+        first_sample = obj.samples.order_by("created_at").first()
+        return first_sample.sample_code if first_sample else "-"
 
 
 @admin.register(Sample)
@@ -349,9 +436,25 @@ class SampleAdmin(admin.ModelAdmin):
 
 @admin.register(SampleSchedule)
 class SampleScheduleAdmin(admin.ModelAdmin):
-    list_display = ("sample", "planned_date", "label", "is_active")
+    list_display = ("sample", "planned_date", "codigo_fecha", "quantity", "is_active")
     list_filter = ("is_active", "planned_date")
     search_fields = ("sample__sample_code", "label", "notes")
+    readonly_fields = ("label",)
+    
+    fields = (
+            "sample",
+            "planned_date",
+            "label",
+            "quantity",
+            "notes",
+            "is_active",
+        )
+
+    
+    @admin.display(description="Código fecha de muestreo")
+    def codigo_fecha(self, obj):
+        return obj.label
+
 
 
 @admin.register(StockMovement)
@@ -406,6 +509,7 @@ def _grouped_admin_app_list(request, app_label=None):
     grouped_apps = []
 
     maestros_order = [
+        "Client",
         "Chamber",
         "ChamberLocation",
         "StorageCondition",
@@ -414,14 +518,13 @@ def _grouped_admin_app_list(request, app_label=None):
     stability_order = [
         "Study",
         "SampleReception",
-        "Sample",
         "SamplingPoint",
         "SampleSchedule",
         "StockMovement",
         "ChamberDeviation",
         "StabilityAlert",
     ]
-    hidden_models = {"Product", "ProductBatch", "SamplingPoint"}
+    hidden_models = {"Product", "ProductBatch", "SamplingPoint", "Sample"}
 
     for app in app_list:
         if app.get("app_label") != "stability":
@@ -450,7 +553,7 @@ def _grouped_admin_app_list(request, app_label=None):
             maestros = deepcopy(app)
             maestros["name"] = "Maestros"
             maestros["app_label"] = "maestros"
-            maestros["models"] = maestros_models_list
+            maestros["models"] = maestros_models_list + ([model_map["Client"]] if "Client" in model_map else [])
             grouped_apps.append(maestros)
 
         if stability_models_list:

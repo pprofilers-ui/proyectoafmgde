@@ -13,8 +13,8 @@ import qrcode
 
 from audit.utils import register_audit_event
 
-from .models import Chamber, ChamberDeviation, LabelTemplate, Sample, SampleReception, SampleSchedule, SamplingPoint, StabilityAlert, StockMovement, Study
-from .web_forms import ChamberDeviationForm, ChamberPlacementForm, SampleCreateForm, SampleExtractionForm, SampleLabelForm, SampleReceptionForm, SampleScheduleEditForm, SampleScheduleForm, StudyCreateForm, StudyEditForm
+from .models import Chamber, ChamberDeviation, LabelTemplate, ProductBatch, Sample, SampleReception, SampleSchedule, SamplingPoint, StabilityAlert, StockMovement, Study
+from .web_forms import ChamberDeviationForm, ChamberPlacementForm, SampleCreateForm, SampleExtractionForm, SampleLabelForm, SampleRegistrationForm, SampleReceptionForm, SampleScheduleEditForm, SampleScheduleForm, StudyCreateForm, StudyEditForm
 
 
 DEFAULT_SAMPLING_SCHEDULE = [
@@ -26,6 +26,7 @@ DEFAULT_SAMPLING_SCHEDULE = [
 
 STUDY_CODE_PATTERN = "EST-{year}-{seq:03d}"
 SAMPLE_CODE_PATTERN = "{study_code}-M-{seq:04d}"
+RECEPTION_CODE_PATTERN = "REC-{year}-{seq:03d}"
 
 
 def _next_sequence(existing_values):
@@ -48,6 +49,24 @@ def generate_sample_code(study):
     existing = Sample.objects.filter(study=study).values_list("sample_code", flat=True)
     seq = _next_sequence(existing)
     return SAMPLE_CODE_PATTERN.format(study_code=study.code, seq=seq)
+
+
+def generate_reception_number():
+    year = timezone.localdate().year
+    prefix = f"REC-{year}-"
+    existing = SampleReception.objects.filter(reception_number__startswith=prefix).values_list(
+        "reception_number",
+        flat=True,
+    )
+    seq = _next_sequence(existing)
+    return RECEPTION_CODE_PATTERN.format(year=year, seq=seq)
+
+
+def resolve_batch_from_code(batch_code):
+    batch_code = (batch_code or "").strip()
+    if not batch_code:
+        return None
+    return ProductBatch.objects.filter(code=batch_code).first()
 
 
 def ensure_study_sampling_points(study):
@@ -189,8 +208,50 @@ def delete_study_web(request, pk):
 
 @login_required
 def samples_list(request):
-    samples = Sample.objects.select_related("study", "sampling_point", "chamber").order_by("-created_at")
-    return render(request, "web/samples.html", {"samples": samples, "sample_form": SampleCreateForm()})
+    study_id = request.GET.get("study")
+    auto_open_create = request.GET.get("open") == "create"
+    sample_initial = {}
+    study = None
+    reception = None
+    client_code = ""
+    if study_id:
+        study = get_object_or_404(Study, pk=study_id)
+        if study.client:
+            client_code = study.client.code
+
+        sample_initial["study"] = study
+        reception = (
+            SampleReception.objects.filter(study=study)
+            .order_by("-received_at", "-created_at")
+            .first()
+        )
+        if reception:
+            sample_initial["reception"] = reception
+            if reception.quantity_received:
+                sample_initial["quantity"] = reception.quantity_received
+                sample_initial["current_stock"] = reception.quantity_received
+    sample_code_preview = generate_sample_code(study) if study else ""
+    samples = Sample.objects.select_related("study", "sampling_point", "chamber")
+    
+    if study_id:
+        samples = samples.filter(study_id=study_id)
+
+    samples = samples.order_by("-created_at")
+
+    return render(
+        request,
+        "web/samples.html",
+        {
+            "samples": samples,
+            "sample_form": SampleRegistrationForm(initial=sample_initial),
+            "sample_edit_form": SampleRegistrationForm(),
+            "preselected_study": study,
+            "preselected_reception": reception,
+            "sample_code_preview": sample_code_preview,
+            "client_code": client_code,
+            "auto_open_create_sample": auto_open_create,
+        },
+    )
 
 
 @login_required
@@ -342,17 +403,37 @@ def create_deviation_web(request):
 def create_sample_web(request):
     if request.method != "POST":
         return redirect("web-samples")
-    form = SampleCreateForm(request.POST)
+    form = SampleRegistrationForm(request.POST)
     if form.is_valid():
-        sample = form.save(commit=False)
-        if not sample.sample_code:
-            sample.sample_code = generate_sample_code(sample.study)
-        if not sample.current_stock:
-            sample.current_stock = sample.quantity
-        if not sample.received_at:
-            sample.received_at = timezone.now()
-        if sample.label_template and not sample.qr_code:
-            sample.qr_code = f"QR::{sample.sample_code}"
+        data = form.cleaned_data
+        batch = resolve_batch_from_code(data["batch"])
+        reception_number = (data["reception_number"] or "").strip() or generate_reception_number()
+        reception = SampleReception.objects.create(
+            study=data["study"],
+            batch=batch,
+            reception_number=reception_number,
+            received_from=data["received_from"],
+            received_by=data["received_by"],
+            received_at=data["received_at"],
+            quantity_received=data["quantity_received"],
+            quantity_expected=data["quantity_expected"],
+            discrepancy_notes=data["discrepancy_notes"],
+            quantity_assigned=data["quantity_assigned"],
+            quantity_reserved=data["quantity_reserved"],
+            quantity_contingency=data["quantity_contingency"],
+            status=data["status"],
+            notes=data["notes"],
+        )
+        sample_code = generate_sample_code(data["study"])
+        sample = Sample(
+            study=data["study"],
+            reception=reception,
+            sample_code=sample_code,
+            quantity=data["quantity_received"] or 1,
+            current_stock=data["quantity_received"] or 1,
+            status=Sample.Status.RECEIVED,
+            received_at=data["received_at"],
+        )
         sample.save()
         StockMovement.objects.create(
             sample=sample,
@@ -377,30 +458,68 @@ def edit_sample_web(request, pk):
     sample = get_object_or_404(Sample, pk=pk)
     if request.method != "POST":
         return redirect("web-samples")
-    form = SampleCreateForm(request.POST, instance=sample)
+    form = SampleRegistrationForm(request.POST)
     if form.is_valid():
+        data = form.cleaned_data
         previous_status = sample.status
         previous_stock = sample.current_stock
-        updated_sample = form.save(commit=False)
-        if not updated_sample.sample_code:
-            updated_sample.sample_code = generate_sample_code(updated_sample.study)
-        if not updated_sample.current_stock:
-            updated_sample.current_stock = updated_sample.quantity
-        if not updated_sample.received_at:
-            updated_sample.received_at = timezone.now()
-        if updated_sample.label_template and not updated_sample.qr_code:
-            updated_sample.qr_code = f"QR::{updated_sample.sample_code}"
-        updated_sample.save()
+        reception = sample.reception
+        batch = resolve_batch_from_code(data["batch"])
+        if reception is None:
+            reception_number = (data["reception_number"] or "").strip() or generate_reception_number()
+            reception = SampleReception.objects.create(
+                study=data["study"],
+                batch=batch,
+                reception_number=reception_number,
+                received_from=data["received_from"],
+                received_by=data["received_by"],
+                received_at=data["received_at"],
+                quantity_received=data["quantity_received"],
+                quantity_expected=data["quantity_expected"],
+                discrepancy_notes=data["discrepancy_notes"],
+                quantity_assigned=data["quantity_assigned"],
+                quantity_reserved=data["quantity_reserved"],
+                quantity_contingency=data["quantity_contingency"],
+                status=data["status"],
+                notes=data["notes"],
+            )
+            sample.reception = reception
+        else:
+            reception.study = data["study"]
+            reception.batch = batch
+            reception.reception_number = data["reception_number"] or reception.reception_number
+            reception.received_from = data["received_from"]
+            reception.received_by = data["received_by"]
+            reception.received_at = data["received_at"]
+            reception.quantity_received = data["quantity_received"]
+            reception.quantity_expected = data["quantity_expected"]
+            reception.discrepancy_notes = data["discrepancy_notes"]
+            reception.quantity_assigned = data["quantity_assigned"]
+            reception.quantity_reserved = data["quantity_reserved"]
+            reception.quantity_contingency = data["quantity_contingency"]
+            reception.status = data["status"]
+            reception.notes = data["notes"]
+            reception.save()
+
+        sample.study = data["study"]
+        sample.quantity = data["quantity_received"] or sample.quantity or 1
+        sample.current_stock = data["quantity_received"] or sample.current_stock or 1
+        sample.status = Sample.Status.RECEIVED
+        if not sample.received_at:
+            sample.received_at = data["received_at"]
+        if not sample.sample_code:
+            sample.sample_code = generate_sample_code(data["study"])
+        sample.save()
         register_audit_event(
-            updated_sample,
+            sample,
             "web_update_sample",
-            payload={"sample_code": updated_sample.sample_code},
+            payload={"sample_code": sample.sample_code},
             changes={
-                "status": {"before": previous_status, "after": updated_sample.status},
-                "current_stock": {"before": previous_stock, "after": updated_sample.current_stock},
+                "status": {"before": previous_status, "after": sample.status},
+                "current_stock": {"before": previous_stock, "after": sample.current_stock},
             },
         )
-        messages.success(request, f"Muestra {updated_sample.sample_code} actualizada correctamente.")
+        messages.success(request, f"Muestra {sample.sample_code} actualizada correctamente.")
     else:
         messages.error(request, "No se pudo actualizar la muestra. Revisa los campos obligatorios.")
     return redirect("web-samples")
@@ -430,6 +549,15 @@ def create_sample_schedule_web(request, pk):
     if form.is_valid():
         schedule = form.save(commit=False)
         schedule.sample = sample
+        
+        existing_count = SampleSchedule.objects.filter(
+            sample=sample
+        ).count()
+
+        schedule.label = (
+            f"{sample.sample_code}-F{existing_count + 1:03d}"
+        )
+        
         schedule.save()
         register_audit_event(
             schedule,

@@ -1,10 +1,13 @@
 from django import forms
+from django.utils import timezone
 
 from .models import (
     Chamber,
     ChamberDeviation,
+    Client,
     LabelTemplate,
     PackagingConfiguration,
+    ProductBatch,
     Sample,
     SampleSchedule,
     SampleReception,
@@ -16,25 +19,52 @@ from .models import (
 def _apply_bootstrap(field, placeholder=None):
     widget = field.widget
     existing = widget.attrs.get("class", "")
+
     if isinstance(widget, forms.CheckboxInput):
         widget.attrs["class"] = f"{existing} form-check-input".strip()
         return
+
     css_class = "form-control"
-    if isinstance(widget, (forms.Select,)):
+
+    if isinstance(widget, forms.Select):
         css_class = "form-select"
-    if isinstance(widget, (forms.Textarea,)):
-        css_class = "form-control"
+
     widget.attrs["class"] = f"{existing} {css_class} rounded-4 shadow-sm".strip()
+
     if placeholder:
         widget.attrs["placeholder"] = placeholder
 
 
+def _next_reception_number():
+    from .models import SampleReception
+
+    year = timezone.localdate().year
+    prefix = f"REC-{year}-"
+
+    existing = SampleReception.objects.filter(
+        reception_number__startswith=prefix
+    ).values_list(
+        "reception_number",
+        flat=True,
+    )
+
+    max_seq = 0
+
+    for value in existing:
+        suffix = value.replace(prefix, "")
+        if suffix.isdigit():
+            max_seq = max(max_seq, int(suffix))
+
+    return f"{prefix}{max_seq + 1:03d}"
+
+
 class SampleReceptionForm(forms.ModelForm):
+    batch = forms.CharField(label="Lote", required=False)
+
     class Meta:
         model = SampleReception
         fields = [
             "study",
-            "batch",
             "reception_number",
             "received_from",
             "received_by",
@@ -57,7 +87,6 @@ class SampleReceptionForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["study"].queryset = Study.objects.order_by("code")
-        self.fields["batch"].required = False
         self.fields["received_at"].input_formats = ["%Y-%m-%dT%H:%M"]
         labels = {
             "study": "Estudio",
@@ -68,7 +97,7 @@ class SampleReceptionForm(forms.ModelForm):
             "received_at": "Fecha y hora de recepcion",
             "quantity_received": "Cantidad recibida",
             "quantity_expected": "Cantidad prevista",
-            "discrepancy_notes": "Discrepancias detectadas",
+            "discrepancy_notes": "Observaciones",
             "quantity_assigned": "Cantidad asignada",
             "quantity_reserved": "Cantidad reservada",
             "quantity_contingency": "Cantidad de contingencia",
@@ -76,7 +105,6 @@ class SampleReceptionForm(forms.ModelForm):
             "notes": "Notas",
         }
         placeholders = {
-            "reception_number": "Ej. REC-2026-001",
             "received_from": "Origen de la muestra",
             "received_by": "Usuario o tecnico receptor",
             "quantity_received": "Cantidad recibida",
@@ -90,6 +118,20 @@ class SampleReceptionForm(forms.ModelForm):
         for name, field in self.fields.items():
             field.label = labels.get(name, field.label)
             _apply_bootstrap(field, placeholders.get(name))
+        if self.instance and self.instance.pk and self.instance.batch:
+            self.fields["batch"].initial = self.instance.batch.code
+        self.fields["batch"].widget.attrs["placeholder"] = "Ej. LOT-328"
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        batch_code = (self.cleaned_data.get("batch") or "").strip()
+        if batch_code:
+            instance.batch = ProductBatch.objects.filter(code=batch_code).first()
+        else:
+            instance.batch = None
+        if commit:
+            instance.save()
+        return instance
 
 
 class StudyCreateForm(forms.ModelForm):
@@ -98,6 +140,7 @@ class StudyCreateForm(forms.ModelForm):
         fields = [
             "code",
             "title",
+            "client",
             "packaging",
             "product_name",
             "batch_number",
@@ -113,10 +156,12 @@ class StudyCreateForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["client"].queryset = Client.objects.order_by("code")
         self.fields["packaging"].queryset = PackagingConfiguration.objects.filter(is_active=True).order_by("code")
         labels = {
             "code": "Codigo",
             "title": "Titulo",
+            "client": "Cliente",
             "packaging": "Acondicionado",
             "product_name": "Nombre del producto",
             "batch_number": "Numero de lote",
@@ -128,6 +173,7 @@ class StudyCreateForm(forms.ModelForm):
         placeholders = {
             "code": "Ej. EST-2026-003",
             "title": "Titulo del estudio",
+            "client": "Cliente del estudio",
             "product_name": "Nombre visible del producto",
             "batch_number": "Codigo del lote",
             "packaging_description": "Comentarios",
@@ -148,6 +194,7 @@ class StudyEditForm(forms.ModelForm):
         fields = [
             "code",
             "title",
+            "client",
             "packaging",
             "product_name",
             "batch_number",
@@ -163,10 +210,12 @@ class StudyEditForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["client"].queryset = Client.objects.order_by("code")
         self.fields["packaging"].queryset = PackagingConfiguration.objects.filter(is_active=True).order_by("code")
         labels = {
             "code": "Codigo",
             "title": "Titulo",
+            "client": "Cliente",
             "packaging": "Acondicionado",
             "product_name": "Nombre del producto",
             "batch_number": "Numero de lote",
@@ -178,6 +227,7 @@ class StudyEditForm(forms.ModelForm):
         placeholders = {
             "code": "Ej. EST-2026-003",
             "title": "Titulo del estudio",
+            "client": "Cliente del estudio",
             "product_name": "Nombre visible del producto",
             "batch_number": "Codigo del lote",
             "packaging_description": "Comentarios",
@@ -255,6 +305,62 @@ class SampleCreateForm(forms.ModelForm):
         self.fields["reception"].required = False
 
 
+class SampleRegistrationForm(forms.Form):
+    study = forms.ModelChoiceField(queryset=Study.objects.none())
+    batch = forms.CharField(required=False)
+    reception_number = forms.CharField(max_length=50)
+    received_from = forms.CharField(max_length=255, required=False)
+    received_by = forms.CharField(max_length=255, required=False)
+    received_at = forms.DateTimeField(widget=forms.DateTimeInput(attrs={"type": "datetime-local"}))
+    quantity_received = forms.IntegerField(min_value=0, initial=1)
+    quantity_expected = forms.IntegerField(min_value=0, initial=1)
+    discrepancy_notes = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 3}))
+    quantity_assigned = forms.IntegerField(min_value=0, initial=0)
+    quantity_reserved = forms.IntegerField(min_value=0, initial=0)
+    quantity_contingency = forms.IntegerField(min_value=0, initial=0)
+    status = forms.ChoiceField(choices=SampleReception.Status.choices, initial=SampleReception.Status.PENDING)
+    notes = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 3}))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["study"].queryset = Study.objects.order_by("code")
+        self.fields["received_at"].input_formats = ["%Y-%m-%dT%H:%M"]
+        labels = {
+            "study": "Estudio",
+            "batch": "Lote",
+            "reception_number": "Numero de recepcion",
+            "received_from": "Recibido desde",
+            "received_by": "Recibido por",
+            "received_at": "Fecha y hora de recepcion",
+            "quantity_received": "Cantidad recibida",
+            "quantity_expected": "Cantidad prevista",
+            "discrepancy_notes": "Observaciones",
+            "quantity_assigned": "Cantidad asignada",
+            "quantity_reserved": "Cantidad reservada",
+            "quantity_contingency": "Cantidad de contingencia",
+            "status": "Estado",
+            "notes": "Notas",
+        }
+        placeholders = {
+            "batch": "Ej. LOT-328",
+            "reception_number": "Ej. REC-2026-001",
+            "received_from": "Origen de la muestra",
+            "received_by": "Usuario o tecnico receptor",
+            "quantity_received": "Cantidad recibida",
+            "quantity_expected": "Cantidad prevista en protocolo",
+            "quantity_assigned": "Cantidad asignada a condiciones",
+            "quantity_reserved": "Cantidad reservada",
+            "quantity_contingency": "Cantidad extra o contingencia",
+            "notes": "Observaciones de recepcion",
+            "discrepancy_notes": "Describe cualquier discrepancia detectada",
+        }
+        for name, field in self.fields.items():
+            field.label = labels.get(name, field.label)
+            _apply_bootstrap(field, placeholders.get(name))
+        self.fields["reception_number"].initial = _next_reception_number()
+        self.fields["reception_number"].widget.attrs["readonly"] = True
+
+
 class ChamberPlacementForm(forms.Form):
     sample = forms.ModelChoiceField(queryset=Sample.objects.none())
     chamber = forms.ModelChoiceField(queryset=Chamber.objects.none())
@@ -285,7 +391,7 @@ class SampleExtractionForm(forms.Form):
 class SampleScheduleForm(forms.ModelForm):
     class Meta:
         model = SampleSchedule
-        fields = ["planned_date", "label", "notes", "is_active"]
+        fields = ["planned_date", "quantity", "notes", "is_active"]
         widgets = {
             "planned_date": forms.DateInput(attrs={"type": "date"}),
             "notes": forms.TextInput(),
@@ -296,12 +402,13 @@ class SampleScheduleForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         labels = {
             "planned_date": "Fecha de muestreo",
-            "label": "Etiqueta",
+            "label": "Código fecha de muestreo",
+            "quantity": "Cantidad",
             "notes": "Notas",
             "is_active": "Activa",
         }
         placeholders = {
-            "label": "Ej. T0, T1, T2, T3",
+            "label": "Generado automáticamente",
             "notes": "Observaciones opcionales",
         }
         for name, field in self.fields.items():
@@ -312,7 +419,7 @@ class SampleScheduleForm(forms.ModelForm):
 class SampleScheduleEditForm(forms.ModelForm):
     class Meta:
         model = SampleSchedule
-        fields = ["planned_date", "label", "notes", "is_active"]
+        fields = ["planned_date", "quantity", "notes", "is_active"]
         widgets = {
             "planned_date": forms.DateInput(attrs={"type": "date"}),
             "notes": forms.TextInput(),
@@ -323,12 +430,13 @@ class SampleScheduleEditForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         labels = {
             "planned_date": "Fecha de muestreo",
-            "label": "Etiqueta",
+            "label": "Código fecha de muestreo",
+            "quantity": "Cantidad",
             "notes": "Notas",
             "is_active": "Activa",
         }
         placeholders = {
-            "label": "Ej. T0, T1, T2, T3",
+            "label": "Generado automáticamente",
             "notes": "Observaciones opcionales",
         }
         for name, field in self.fields.items():

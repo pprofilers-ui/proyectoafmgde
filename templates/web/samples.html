@@ -29,6 +29,16 @@
                         <div class="app-section-copy">
                             Consulta operativa con stock, estado y acceso rapido a la etiqueta.
                         </div>
+                        {% if preselected_study %}
+                        <div class="mt-2 small text-success fw-semibold">
+                            Estudio preseleccionado: {{ preselected_study.code }} - {{ preselected_study.title }}
+                        </div>
+                        {% endif %}
+                        {% if preselected_reception %}
+                        <div class="mt-1 small text-success fw-semibold">
+                            Recepcion base sugerida: {{ preselected_reception.reception_number }}
+                        </div>
+                        {% endif %}
                     </div>
 
                     <button
@@ -40,16 +50,25 @@
                 </div>
 
                 <div class="table-responsive">
+                    {% if preselected_study %}
+                    <div class="alert alert-success d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            Mostrando muestras del estudio:
+                            <strong>{{ preselected_study.code }}</strong>
+                        </div>
+
+                        <a href="/app/samples/" class="btn btn-sm btn-outline-secondary rounded-pill">
+                            Quitar filtro
+                        </a>
+                    </div>
+                    {% endif %}
                     <table class="table table-hover align-middle">
                         <tr>
                             <th>Codigo</th>
                             <th>Estudio</th>
-                            <th>Punto</th>
-                            <th>Camara</th>
                             <th>Stock</th>
                             <th>Estado</th>
                             <th>Ubicacion</th>
-                            <th>QR</th>
                             <th>Acciones</th>
                         </tr>
 
@@ -57,18 +76,10 @@
                         <tr>
                             <td class="fw-semibold">{{ sample.sample_code }}</td>
                             <td>{{ sample.study.code }}</td>
-                            <td>{{ sample.sampling_point.label|default:"-" }}</td>
-                            <td>{{ sample.chamber.code|default:"-" }}</td>
                             <td>{{ sample.current_stock }}</td>
                             <td><span class="badge text-bg-light">{{ sample.get_status_display }}</span></td>
                             <td>{{ sample.shelf|default:"-" }} / {{ sample.tray|default:"-" }} / {{ sample.physical_position|default:"-" }}</td>
-                            <td>{{ sample.qr_code|default:"-" }}</td>
                             <td class="text-nowrap">
-
-                                <a class="btn btn-sm btn-outline-secondary rounded-pill me-1"
-                                   href="/app/labels/{{ sample.id }}/">
-                                   Etiqueta
-                                </a>
 
                                 <a class="btn btn-sm btn-outline-success rounded-pill me-1"
                                    href="/app/samples/{{ sample.id }}/schedules/">
@@ -77,7 +88,7 @@
 
                                 <a class="btn btn-sm btn-outline-primary rounded-pill me-1"
                                    href="#"
-                                   onclick="openSampleEditModal('{{ sample.id }}', '{{ sample.sample_code|escapejs }}', '{{ sample.study.id }}', '{{ sample.reception_id|default:'' }}', '{{ sample.label_template_id|default:'' }}', '{{ sample.quantity }}', '{{ sample.current_stock }}', '{{ sample.status }}', '{{ sample.shelf|escapejs }}', '{{ sample.tray|escapejs }}', '{{ sample.container|escapejs }}', '{{ sample.physical_position|escapejs }}'); return false;">
+                                   onclick="openSampleEditModal('{{ sample.id }}', '{{ sample.sample_code|escapejs }}', '{{ sample.study.id }}', '{{ sample.study.client.code|default:''|escapejs }}', '{{ sample.reception.batch.code|default:''|escapejs }}', '{{ sample.reception.reception_number|default:''|escapejs }}', '{{ sample.reception.received_from|default:''|escapejs }}', '{{ sample.reception.received_by|default:''|escapejs }}', '{{ sample.reception.received_at|date:'Y-m-d\\TH:i'|default:'' }}', '{{ sample.reception.quantity_received|default:1 }}', '{{ sample.reception.quantity_expected|default:1 }}', '{{ sample.reception.discrepancy_notes|default:''|escapejs }}', '{{ sample.reception.quantity_assigned|default:0 }}', '{{ sample.reception.quantity_reserved|default:0 }}', '{{ sample.reception.quantity_contingency|default:0 }}', '{{ sample.reception.status|default:'received' }}', '{{ sample.reception.notes|default:''|escapejs }}'); return false;">
                                    Editar
                                 </a>
 
@@ -94,7 +105,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="9" class="text-muted">
+                            <td colspan="6" class="text-muted">
                                 No hay muestras todavia.
                             </td>
                         </tr>
@@ -116,8 +127,18 @@
                     <div>
                         <div class="app-section-title">Crear muestra</div>
                         <div class="app-section-copy">
-                            Alta manual de muestra vinculada a estudio, recepcion, plantilla de etiqueta y ubicacion fisica.
+                            Alta manual de muestra vinculada a estudio, recepcion y ubicacion fisica.
                         </div>
+                        {% if preselected_study %}
+                        <div class="mt-2 small text-success fw-semibold">
+                            Estudio fijado desde el listado: {{ preselected_study.code }} - {{ preselected_study.title }}
+                        </div>
+                        {% endif %}
+                        {% if preselected_reception %}
+                        <div class="mt-1 small text-success fw-semibold">
+                            Recepcion base sugerida: {{ preselected_reception.reception_number }}
+                        </div>
+                        {% endif %}
                     </div>
 
                     <button
@@ -131,19 +152,38 @@
 
                 <form method="post" action="/app/samples/create/" class="row g-4">
                     {% csrf_token %}
+                    {{ sample_form.reception_number.as_hidden }}
+                    <div class="col-md-6">
+                        <label class="form-label">Estudio</label>
+                        {{ sample_form.study }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Codigo de muestra</label>
+                        <input class="form-control rounded-4 shadow-sm" type="text" value="{% if sample_code_preview %}{{ sample_code_preview }}{% else %}Se generara automaticamente{% endif %}" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Código cliente</label>
+
+                        <input
+                            type="text"
+                            class="form-control rounded-4 shadow-sm"
+                            value="{{ client_code }}"
+                            readonly
+                        >
+                    </div>
 
                     {% for field in sample_form %}
-                    <div class="{% if field.name == 'sample_code' %}col-12{% else %}col-md-6{% endif %}">
+                    {% if field.name != 'study' and field.name != 'reception_number' %}
+                    <div class="{% if field.name in 'discrepancy_notes,notes' %}col-12{% elif field.name in 'quantity_assigned,quantity_reserved,quantity_contingency' %}col-md-4{% else %}col-md-6{% endif %}">
                         <label class="form-label">{{ field.label }}</label>
-
                         {{ field }}
-
                         {% if field.errors %}
                         <div class="text-danger small mt-1">
                             {{ field.errors|striptags }}
                         </div>
                         {% endif %}
                     </div>
+                    {% endif %}
                     {% endfor %}
 
                     <div class="col-12 pt-2">
@@ -170,68 +210,82 @@
             <div class="modal-body">
                 <form id="sampleEditForm" method="post" action="">
                     {% csrf_token %}
+                    <input type="hidden" id="edit_sample_reception_number" name="reception_number">
                     <div class="row g-4">
                         <div class="col-md-6">
                             <label class="form-label">Estudio</label>
                             <select class="form-select rounded-4 shadow-sm" id="edit_sample_study" name="study">
-                                {% for study in sample_form.fields.study.queryset %}
+                                {% for study in sample_edit_form.fields.study.queryset %}
                                 <option value="{{ study.id }}">{{ study.code }} - {{ study.title }}</option>
                                 {% endfor %}
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Recepcion</label>
-                            <select class="form-select rounded-4 shadow-sm" id="edit_sample_reception" name="reception">
-                                <option value="">---------</option>
-                                {% for reception in sample_form.fields.reception.queryset %}
-                                <option value="{{ reception.id }}">{{ reception.reception_number }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Plantilla de etiqueta</label>
-                            <select class="form-select rounded-4 shadow-sm" id="edit_sample_label_template" name="label_template">
-                                <option value="">---------</option>
-                                {% for template in sample_form.fields.label_template.queryset %}
-                                <option value="{{ template.id }}">{{ template.code }} - {{ template.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-6">
                             <label class="form-label">Codigo de muestra</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_code" name="sample_code" type="text">
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_code" name="sample_code" type="text" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Código cliente</label>
+
+                            <input
+                                type="text"
+                                class="form-control rounded-4 shadow-sm"
+                                id="edit_client_code"
+                                readonly
+                            >
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Lote</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_batch" name="batch" type="text" placeholder="Ej. LOT-328">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">Recibido desde</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_received_from" name="received_from" type="text">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Recibido por</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_received_by" name="received_by" type="text">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha y hora de recepcion</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_received_at" name="received_at" type="datetime-local">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Cantidad total</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity" name="quantity" type="number" min="1">
+                            <label class="form-label">Cantidad recibida</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity_received" name="quantity_received" type="number" min="0">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Stock inicial</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_current_stock" name="current_stock" type="number" min="0">
+                            <label class="form-label">Cantidad prevista</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity_expected" name="quantity_expected" type="number" min="0">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Estado</label>
                             <select class="form-select rounded-4 shadow-sm" id="edit_sample_status" name="status">
-                                {% for value, label in sample_form.fields.status.choices %}
+                                {% for value, label in sample_edit_form.fields.status.choices %}
                                 <option value="{{ value }}">{{ label }}</option>
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Estanteria</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_shelf" name="shelf" type="text">
+                        <div class="col-12">
+                            <label class="form-label">Observaciones</label>
+                            <textarea class="form-control rounded-4 shadow-sm" id="edit_sample_discrepancy_notes" name="discrepancy_notes" rows="3"></textarea>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Bandeja</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_tray" name="tray" type="text">
+                        <div class="col-md-4">
+                            <label class="form-label">Cantidad asignada</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity_assigned" name="quantity_assigned" type="number" min="0">
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Contenedor</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_container" name="container" type="text">
+                        <div class="col-md-4">
+                            <label class="form-label">Cantidad reservada</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity_reserved" name="quantity_reserved" type="number" min="0">
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Posicion fisica</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_physical_position" name="physical_position" type="text">
+                        <div class="col-md-4">
+                            <label class="form-label">Cantidad de contingencia</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity_contingency" name="quantity_contingency" type="number" min="0">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Notas</label>
+                            <textarea class="form-control rounded-4 shadow-sm" id="edit_sample_notes" name="notes" rows="3"></textarea>
                         </div>
                     </div>
                     <div class="d-flex gap-2 justify-content-end mt-4">
@@ -245,20 +299,25 @@
 </div>
 
 <script>
-function openSampleEditModal(sampleId, sampleCode, studyId, receptionId, labelTemplateId, quantity, currentStock, status, shelf, tray, container, physicalPosition) {
+function openSampleEditModal(sampleId, sampleCode, studyId, clientCode, batchCode, receptionNumber, receivedFrom, receivedBy, receivedAt, quantityReceived, quantityExpected, discrepancyNotes, quantityAssigned, quantityReserved, quantityContingency, status, notes) {
     const form = document.getElementById('sampleEditForm');
     form.action = `/app/samples/${sampleId}/edit/`;
     document.getElementById('edit_sample_code').value = sampleCode || '';
-    document.getElementById('edit_sample_quantity').value = quantity || 1;
-    document.getElementById('edit_sample_current_stock').value = currentStock || 1;
-    document.getElementById('edit_sample_status').value = status || 'received';
-    document.getElementById('edit_sample_shelf').value = shelf || '';
-    document.getElementById('edit_sample_tray').value = tray || '';
-    document.getElementById('edit_sample_container').value = container || '';
-    document.getElementById('edit_sample_physical_position').value = physicalPosition || '';
     document.getElementById('edit_sample_study').value = studyId || '';
-    document.getElementById('edit_sample_reception').value = receptionId || '';
-    document.getElementById('edit_sample_label_template').value = labelTemplateId || '';
+    document.getElementById('edit_client_code').value = clientCode || '';
+    document.getElementById('edit_sample_batch').value = batchCode || '';
+    document.getElementById('edit_sample_reception_number').value = receptionNumber || '';
+    document.getElementById('edit_sample_received_from').value = receivedFrom || '';
+    document.getElementById('edit_sample_received_by').value = receivedBy || '';
+    document.getElementById('edit_sample_received_at').value = receivedAt || '';
+    document.getElementById('edit_sample_quantity_received').value = quantityReceived || 1;
+    document.getElementById('edit_sample_quantity_expected').value = quantityExpected || 1;
+    document.getElementById('edit_sample_quantity_assigned').value = quantityAssigned || 0;
+    document.getElementById('edit_sample_quantity_reserved').value = quantityReserved || 0;
+    document.getElementById('edit_sample_quantity_contingency').value = quantityContingency || 0;
+    document.getElementById('edit_sample_status').value = status || 'received';
+    document.getElementById('edit_sample_discrepancy_notes').value = discrepancyNotes || '';
+    document.getElementById('edit_sample_notes').value = notes || '';
     const modal = new bootstrap.Modal(document.getElementById('sampleEditModal'));
     modal.show();
 }
@@ -282,6 +341,18 @@ function toggleSampleForm() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+    const shouldOpenCreate = {{ auto_open_create_sample|yesno:"true,false" }};
+    if (shouldOpenCreate) {
+        const section = document.getElementById('createSampleSection');
+        if (section) {
+            section.style.display = 'block';
+            section.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    }
+
     document.querySelectorAll('.sample-delete-form').forEach(function (form) {
         form.addEventListener('submit', function (event) {
             event.preventDefault();

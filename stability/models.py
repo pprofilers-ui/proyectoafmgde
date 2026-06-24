@@ -60,6 +60,35 @@ class LabelTemplate(TimeStampedModel):
         return f"{self.code} - {self.name}"
 
 
+class Client(TimeStampedModel):
+    code = models.CharField(max_length=50, unique=True, blank=True)
+    description = models.CharField(max_length=255)
+    address = models.CharField(max_length=255, blank=True)
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=50, blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "Cliente"
+        verbose_name_plural = "Clientes"
+
+    def __str__(self):
+        return f"{self.code} - {self.description}"
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            year = timezone.localdate().year
+            prefix = f"CLI-{year}-"
+            existing = Client.objects.filter(code__startswith=prefix).values_list("code", flat=True)
+            max_seq = 0
+            for value in existing:
+                suffix = value.replace(prefix, "")
+                if suffix.isdigit():
+                    max_seq = max(max_seq, int(suffix))
+            self.code = f"{prefix}{max_seq + 1:03d}"
+        super().save(*args, **kwargs)
+
+
 class ProductBatch(TimeStampedModel):
     code = models.CharField(max_length=100, unique=True)
     product = models.ForeignKey(Product, related_name="batches", on_delete=models.CASCADE)
@@ -123,6 +152,7 @@ class Study(TimeStampedModel):
 
     code = models.CharField(max_length=50, unique=True)
     title = models.CharField(max_length=255)
+    client = models.ForeignKey("Client", related_name="studies", on_delete=models.SET_NULL, null=True, blank=True)
     product = models.ForeignKey(Product, related_name="studies", on_delete=models.PROTECT, null=True, blank=True)
     batch = models.ForeignKey(ProductBatch, related_name="studies", on_delete=models.PROTECT, null=True, blank=True)
     packaging = models.ForeignKey(
@@ -276,6 +306,12 @@ class SampleSchedule(TimeStampedModel):
     sample = models.ForeignKey(Sample, related_name="schedules", on_delete=models.CASCADE)
     planned_date = models.DateField()
     label = models.CharField(max_length=100, blank=True)
+    
+    quantity = models.PositiveIntegerField(
+            "Cantidad",
+            default=1
+        )
+
     notes = models.CharField(max_length=255, blank=True)
     is_active = models.BooleanField(default=True)
 

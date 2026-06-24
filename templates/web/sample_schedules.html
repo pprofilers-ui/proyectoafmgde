@@ -50,7 +50,8 @@
                     <table class="table table-hover align-middle">
                         <tr>
                             <th>Fecha</th>
-                            <th>Etiqueta</th>
+                            <th>Código fecha de muestreo</th>
+                            <th>Cantidad</th>
                             <th>Notas</th>
                             <th>Activa</th>
                             <th>Acciones</th>
@@ -59,10 +60,11 @@
                         <tr>
                             <td class="fw-semibold">{{ item.planned_date }}</td>
                             <td>{{ item.label|default:"-" }}</td>
+                            <td>{{ item.quantity }}</td>
                             <td>{{ item.notes|default:"-" }}</td>
                             <td><span class="badge text-bg-light">{{ item.is_active|yesno:"Si,No" }}</span></td>
                             <td class="text-nowrap">
-                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill me-1" onclick="openScheduleEditModal('{{ item.id }}', '{{ item.planned_date|date:"Y-m-d" }}', '{{ item.label|escapejs }}', '{{ item.notes|escapejs }}', '{{ item.is_active|yesno:"true,false" }}')">Editar</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill me-1" onclick="openScheduleEditModal('{{ item.id }}', '{{ item.planned_date|date:"Y-m-d" }}', '{{ item.label|escapejs }}', '{{ item.quantity }}', '{{ item.notes|escapejs }}', '{{ item.is_active|yesno:"true,false" }}')">Editar</button>
                                 <form method="post" action="/app/samples/schedules/{{ item.id }}/delete/" class="d-inline">
                                     {% csrf_token %}
                                     <button class="btn btn-sm btn-outline-danger rounded-pill" type="submit">Eliminar</button>
@@ -71,7 +73,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="5" class="text-muted">Todavia no hay fechas de muestreo.</td>
+                            <td colspan="6" class="text-muted">Todavia no hay fechas de muestreo.</td>
                         </tr>
                         {% endfor %}
                     </table>
@@ -97,8 +99,16 @@
                             <input id="edit_schedule_planned_date" name="planned_date" type="date" class="form-control rounded-4 shadow-sm">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Etiqueta</label>
-                            <input id="edit_schedule_label" name="label" type="text" class="form-control rounded-4 shadow-sm">
+                            <label class="form-label">Código fecha de muestreo</label>
+                            <input id="edit_schedule_label" name="label" type="text" class="form-control rounded-4 shadow-sm" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Cantidad</label>
+                            <input id="edit_schedule_quantity"
+                                name="quantity"
+                                type="number"
+                                min="1"
+                                class="form-control rounded-4 shadow-sm">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Activa</label>
@@ -123,11 +133,12 @@
 </div>
 
 <script>
-function openScheduleEditModal(scheduleId, plannedDate, label, notes, isActive) {
+function openScheduleEditModal(scheduleId, plannedDate, label, quantity, notes, isActive) {
     const form = document.getElementById('scheduleEditForm');
     form.action = `/app/samples/schedules/${scheduleId}/edit/`;
     document.getElementById('edit_schedule_planned_date').value = plannedDate || '';
     document.getElementById('edit_schedule_label').value = label || '';
+    document.getElementById('edit_schedule_quantity').value = quantity || 1;
     document.getElementById('edit_schedule_notes').value = notes || '';
     document.getElementById('edit_schedule_is_active').value = isActive === 'true' ? 'true' : 'false';
     const modal = new bootstrap.Modal(document.getElementById('scheduleEditModal'));
