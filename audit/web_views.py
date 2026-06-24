@@ -45,7 +45,7 @@ ENTITY_LABELS = {
     "StorageCondition": "Condicion de conservacion",
     "Product": "Producto",
     "ProductBatch": "Lote",
-    "PackagingConfiguration": "Acondicionado",
+    "PackagingConfiguration": "Formato",
     "LabelTemplate": "Plantilla de etiqueta",
     "User": "Usuario",
 }

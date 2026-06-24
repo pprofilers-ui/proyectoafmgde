@@ -316,16 +316,36 @@ def alerts_list(request):
 
 @login_required
 def operations_hub(request):
+    selected_chamber = request.GET.get("chamber", "").strip()
+    selected_study = request.GET.get("study", "").strip()
+    show_history = request.GET.get("show") == "all"
+    chamber_contents = SampleSchedule.objects.select_related(
+        "sample",
+        "sample__study",
+        "chamber",
+        "chamber_location",
+        "removed_by",
+    ).filter(chamber__isnull=False)
+    if selected_chamber:
+        chamber_contents = chamber_contents.filter(chamber_id=selected_chamber)
+    if selected_study:
+        chamber_contents = chamber_contents.filter(sample__study_id=selected_study)
+    if not show_history:
+        chamber_contents = chamber_contents.filter(is_active=True)
+
+    chamber_summary = Chamber.objects.filter(is_active=True).annotate(
+        active_schedule_count=Count("sample_schedules", filter=Q(sample_schedules__is_active=True))
+    ).order_by("code")
     context = {
-        "reception_form": SampleReceptionForm(),
-        "sample_form": SampleCreateForm(),
-        "label_form": SampleLabelForm(),
-        "placement_form": ChamberPlacementForm(),
-        "extraction_form": SampleExtractionForm(),
-        "recent_receptions": SampleReception.objects.select_related("study").order_by("-received_at")[:8],
-        "label_pending_samples": Sample.objects.filter(status=Sample.Status.RECEIVED).order_by("sample_code")[:10],
-        "chamber_pending_samples": Sample.objects.filter(status=Sample.Status.LABELLED).order_by("sample_code")[:10],
-        "label_templates": LabelTemplate.objects.filter(is_active=True).order_by("code")[:10],
+        "chambers": Chamber.objects.filter(is_active=True).order_by("code"),
+        "studies": Study.objects.order_by("code"),
+        "selected_chamber": selected_chamber,
+        "selected_study": selected_study,
+        "show_history": show_history,
+        "chamber_contents": chamber_contents.order_by("chamber__code", "planned_date", "sample__sample_code", "id"),
+        "chamber_summary": chamber_summary,
+        "active_count": chamber_contents.filter(is_active=True).count() if show_history else chamber_contents.count(),
+        "retired_count": chamber_contents.filter(is_active=False).count() if show_history else 0,
     }
     return render(request, "web/operations.html", context)
 

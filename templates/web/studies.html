@@ -129,22 +129,65 @@
                 <form method="post" action="/app/studies/create/" class="row g-4">
                     {% csrf_token %}
 
-                    {% for field in study_form %}
-                    <div class="{% if field.name == 'title' or field.name == 'packaging_description' %}col-12{% elif field.name == 'packaging' or field.name == 'product_name' or field.name == 'batch_number' or field.name == 'status' or field.name == 'start_date' or field.name == 'end_date' %}col-md-4{% else %}col-md-6{% endif %}">
-                        
-                        <label class="form-label">
-                            {{ field.label }}
-                        </label>
-
-                        {{ field }}
-
-                        {% if field.errors %}
-                        <div class="text-danger small mt-1">
-                            {{ field.errors|striptags }}
-                        </div>
-                        {% endif %}
+                    <div class="col-md-6">
+                        <label class="form-label">{{ study_form.code.label }}</label>
+                        {{ study_form.code }}
+                        {% if study_form.code.errors %}<div class="text-danger small mt-1">{{ study_form.code.errors|striptags }}</div>{% endif %}
                     </div>
-                    {% endfor %}
+
+                    <div class="col-md-6">
+                        <label class="form-label">{{ study_form.title.label }}</label>
+                        {{ study_form.title }}
+                        {% if study_form.title.errors %}<div class="text-danger small mt-1">{{ study_form.title.errors|striptags }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">{{ study_form.client.label }}</label>
+                        {{ study_form.client }}
+                        {% if study_form.client.errors %}<div class="text-danger small mt-1">{{ study_form.client.errors|striptags }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">{{ study_form.product_name.label }}</label>
+                        {{ study_form.product_name }}
+                        {% if study_form.product_name.errors %}<div class="text-danger small mt-1">{{ study_form.product_name.errors|striptags }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">{{ study_form.packaging.label }}</label>
+                        {{ study_form.packaging }}
+                        {% if study_form.packaging.errors %}<div class="text-danger small mt-1">{{ study_form.packaging.errors|striptags }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">{{ study_form.batch_number.label }}</label>
+                        {{ study_form.batch_number }}
+                        {% if study_form.batch_number.errors %}<div class="text-danger small mt-1">{{ study_form.batch_number.errors|striptags }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">{{ study_form.packaging_description.label }}</label>
+                        {{ study_form.packaging_description }}
+                        {% if study_form.packaging_description.errors %}<div class="text-danger small mt-1">{{ study_form.packaging_description.errors|striptags }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">{{ study_form.status.label }}</label>
+                        {{ study_form.status }}
+                        {% if study_form.status.errors %}<div class="text-danger small mt-1">{{ study_form.status.errors|striptags }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">{{ study_form.start_date.label }}</label>
+                        {{ study_form.start_date }}
+                        {% if study_form.start_date.errors %}<div class="text-danger small mt-1">{{ study_form.start_date.errors|striptags }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">{{ study_form.end_date.label }}</label>
+                        {{ study_form.end_date }}
+                        {% if study_form.end_date.errors %}<div class="text-danger small mt-1">{{ study_form.end_date.errors|striptags }}</div>{% endif %}
+                    </div>
 
                     <div class="col-12 pt-2">
                         <button
@@ -181,23 +224,19 @@
                             <label class="form-label">Titulo</label>
                             {{ study_form.title }}
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-12">
                             <label class="form-label">Cliente</label>
                             {{ study_form.client }}
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Acondicionado</label>
-                            {{ study_form.packaging }}
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Estado</label>
-                            {{ study_form.status }}
-                        </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Nombre del producto</label>
                             {{ study_form.product_name }}
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label class="form-label">Formato</label>
+                            {{ study_form.packaging }}
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label">Numero de lote</label>
                             {{ study_form.batch_number }}
                         </div>
@@ -205,11 +244,15 @@
                             <label class="form-label">Comentarios</label>
                             {{ study_form.packaging_description }}
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label class="form-label">Estado</label>
+                            {{ study_form.status }}
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label">Fecha de inicio</label>
                             {{ study_form.start_date }}
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Fecha de fin</label>
                             {{ study_form.end_date }}
                         </div>

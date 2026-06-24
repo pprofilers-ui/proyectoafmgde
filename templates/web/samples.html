@@ -29,16 +29,6 @@
                         <div class="app-section-copy">
                             Consulta operativa con stock, estado y acceso rapido a la etiqueta.
                         </div>
-                        {% if preselected_study %}
-                        <div class="mt-2 small text-success fw-semibold">
-                            Estudio preseleccionado: {{ preselected_study.code }} - {{ preselected_study.title }}
-                        </div>
-                        {% endif %}
-                        {% if preselected_reception %}
-                        <div class="mt-1 small text-success fw-semibold">
-                            Recepcion base sugerida: {{ preselected_reception.reception_number }}
-                        </div>
-                        {% endif %}
                     </div>
 
                     <button
@@ -129,16 +119,6 @@
                         <div class="app-section-copy">
                             Alta manual de muestra vinculada a estudio, recepcion y ubicacion fisica.
                         </div>
-                        {% if preselected_study %}
-                        <div class="mt-2 small text-success fw-semibold">
-                            Estudio fijado desde el listado: {{ preselected_study.code }} - {{ preselected_study.title }}
-                        </div>
-                        {% endif %}
-                        {% if preselected_reception %}
-                        <div class="mt-1 small text-success fw-semibold">
-                            Recepcion base sugerida: {{ preselected_reception.reception_number }}
-                        </div>
-                        {% endif %}
                     </div>
 
                     <button
@@ -158,12 +138,7 @@
                         {{ sample_form.study }}
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Codigo de muestra</label>
-                        <input class="form-control rounded-4 shadow-sm" type="text" value="{% if sample_code_preview %}{{ sample_code_preview }}{% else %}Se generara automaticamente{% endif %}" readonly>
-                    </div>
-                    <div class="col-md-6">
                         <label class="form-label">Código cliente</label>
-
                         <input
                             type="text"
                             class="form-control rounded-4 shadow-sm"
@@ -171,20 +146,70 @@
                             readonly
                         >
                     </div>
-
-                    {% for field in sample_form %}
-                    {% if field.name != 'study' and field.name != 'reception_number' %}
-                    <div class="{% if field.name in 'discrepancy_notes,notes' %}col-12{% elif field.name in 'quantity_assigned,quantity_reserved,quantity_contingency' %}col-md-4{% else %}col-md-6{% endif %}">
-                        <label class="form-label">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.errors %}
-                        <div class="text-danger small mt-1">
-                            {{ field.errors|striptags }}
-                        </div>
-                        {% endif %}
+                    <div class="col-md-6">
+                        <label class="form-label">Codigo de muestra</label>
+                        <input class="form-control rounded-4 shadow-sm" type="text" value="{% if sample_code_preview %}{{ sample_code_preview }}{% else %}Se generara automaticamente{% endif %}" readonly>
                     </div>
-                    {% endif %}
-                    {% endfor %}
+                    <div class="col-md-6">
+                        <label class="form-label">{{ sample_form.batch.label }}</label>
+                        {{ sample_form.batch }}
+                        {% if sample_form.batch.errors %}<div class="text-danger small mt-1">{{ sample_form.batch.errors|striptags }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ sample_form.received_from.label }}</label>
+                        {{ sample_form.received_from }}
+                        {% if sample_form.received_from.errors %}<div class="text-danger small mt-1">{{ sample_form.received_from.errors|striptags }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ sample_form.received_by.label }}</label>
+                        {{ sample_form.received_by }}
+                        {% if sample_form.received_by.errors %}<div class="text-danger small mt-1">{{ sample_form.received_by.errors|striptags }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ sample_form.received_at.label }}</label>
+                        {{ sample_form.received_at }}
+                        {% if sample_form.received_at.errors %}<div class="text-danger small mt-1">{{ sample_form.received_at.errors|striptags }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ sample_form.quantity_expected.label }}</label>
+                        {{ sample_form.quantity_expected }}
+                        {% if sample_form.quantity_expected.errors %}<div class="text-danger small mt-1">{{ sample_form.quantity_expected.errors|striptags }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ sample_form.quantity_received.label }}</label>
+                        {{ sample_form.quantity_received }}
+                        {% if sample_form.quantity_received.errors %}<div class="text-danger small mt-1">{{ sample_form.quantity_received.errors|striptags }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ sample_form.status.label }}</label>
+                        {{ sample_form.status }}
+                        {% if sample_form.status.errors %}<div class="text-danger small mt-1">{{ sample_form.status.errors|striptags }}</div>{% endif %}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ sample_form.discrepancy_notes.label }}</label>
+                        {{ sample_form.discrepancy_notes }}
+                        {% if sample_form.discrepancy_notes.errors %}<div class="text-danger small mt-1">{{ sample_form.discrepancy_notes.errors|striptags }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ sample_form.quantity_assigned.label }}</label>
+                        {{ sample_form.quantity_assigned }}
+                        {% if sample_form.quantity_assigned.errors %}<div class="text-danger small mt-1">{{ sample_form.quantity_assigned.errors|striptags }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ sample_form.quantity_reserved.label }}</label>
+                        {{ sample_form.quantity_reserved }}
+                        {% if sample_form.quantity_reserved.errors %}<div class="text-danger small mt-1">{{ sample_form.quantity_reserved.errors|striptags }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ sample_form.quantity_contingency.label }}</label>
+                        {{ sample_form.quantity_contingency }}
+                        {% if sample_form.quantity_contingency.errors %}<div class="text-danger small mt-1">{{ sample_form.quantity_contingency.errors|striptags }}</div>{% endif %}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ sample_form.notes.label }}</label>
+                        {{ sample_form.notes }}
+                        {% if sample_form.notes.errors %}<div class="text-danger small mt-1">{{ sample_form.notes.errors|striptags }}</div>{% endif %}
+                    </div>
 
                     <div class="col-12 pt-2">
                         <button class="btn btn-primary btn-lg soft-pill" type="submit">
@@ -221,10 +246,6 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Codigo de muestra</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_code" name="sample_code" type="text" readonly>
-                        </div>
-                        <div class="col-md-6">
                             <label class="form-label">Código cliente</label>
 
                             <input
@@ -233,6 +254,10 @@
                                 id="edit_client_code"
                                 readonly
                             >
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Codigo de muestra</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_code" name="sample_code" type="text" readonly>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Lote</label>
@@ -247,17 +272,17 @@
                             <label class="form-label">Recibido por</label>
                             <input class="form-control rounded-4 shadow-sm" id="edit_sample_received_by" name="received_by" type="text">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Fecha y hora de recepcion</label>
                             <input class="form-control rounded-4 shadow-sm" id="edit_sample_received_at" name="received_at" type="datetime-local">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Cantidad recibida</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity_received" name="quantity_received" type="number" min="0">
-                        </div>
-                        <div class="col-md-4">
                             <label class="form-label">Cantidad prevista</label>
                             <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity_expected" name="quantity_expected" type="number" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Cantidad recibida</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity_received" name="quantity_received" type="number" min="0">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Estado</label>

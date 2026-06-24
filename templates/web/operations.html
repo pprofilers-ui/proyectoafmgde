@@ -4,162 +4,141 @@
 <div class="hero glass p-4 p-lg-5 mb-4">
     <div class="row align-items-center g-4">
         <div class="col-lg-8">
-            <h1 class="display-4 mb-2">Operaciones diarias</h1>
-            <p class="lead text-secondary mb-0">Recepciona muestras, emite etiquetas, asigna camara y registra extracciones desde una unica pantalla de trabajo.</p>
+            <h1 class="display-4 mb-2">Contenido de camaras</h1>
+            <p class="lead text-secondary mb-0">Consulta que submuestras siguen dentro de cada camara y revisa su historial de salida cuando haga falta.</p>
         </div>
         <div class="col-lg-4">
-            <div class="mini-kpi">
-                <div class="small text-uppercase text-muted">Flujo fase 1</div>
-                <div class="fw-semibold mt-2">Recepcion -> Etiquetado -> Camara -> Extraccion</div>
+            <div class="mini-kpi hero">
+                <div class="small text-uppercase text-muted">Circuito operativo</div>
+                <div class="fw-semibold mt-2">Fecha de muestreo = submuestra dentro de camara</div>
+                <div class="small text-muted mt-2">La retirada se gestiona desde la propia linea operativa.</div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row g-4">
-    <div class="col-12 col-xxl-7">
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
         <div class="card glass soft-card border-0 h-100">
-            <div class="card-body p-4 p-lg-5">
-                <div class="app-section-title">Registrar recepcion</div>
-                <div class="app-section-copy">Da entrada formal a una remesa, registra discrepancias y reparte cantidades asignadas, reservadas o de contingencia.</div>
-                <form method="post" action="/app/operations/reception/" class="row g-4">
-                    {% csrf_token %}
-                    {% for field in reception_form %}
-                    <div class="{% if field.name == 'notes' or field.name == 'discrepancy_notes' %}col-12{% else %}col-md-6{% endif %}">
-                        <label class="form-label">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-                        {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors|striptags }}</div>{% endif %}
+            <div class="card-body p-4">
+                <div class="app-section-title">Filtros</div>
+                <div class="app-section-copy">Selecciona una camara, un estudio o combina ambos para consultar el contenido operativo actual.</div>
+                <form method="get" action="/app/operations/" class="row g-3 align-items-end mt-1">
+                    <div class="col-md-4">
+                        <label class="form-label">Camara</label>
+                        <select name="chamber" class="form-select rounded-4 shadow-sm">
+                            <option value="">Todas las camaras</option>
+                            {% for chamber in chambers %}
+                            <option value="{{ chamber.id }}" {% if selected_chamber == chamber.id|stringformat:"s" %}selected{% endif %}>{{ chamber.code }} - {{ chamber.name }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
-                    {% endfor %}
-                    <div class="col-12 pt-2">
-                        <button class="btn btn-primary btn-lg soft-pill" type="submit">Guardar recepcion</button>
+                    <div class="col-md-4">
+                        <label class="form-label">Estudio</label>
+                        <select name="study" class="form-select rounded-4 shadow-sm">
+                            <option value="">Todos los estudios</option>
+                            {% for study in studies %}
+                            <option value="{{ study.id }}" {% if selected_study == study.id|stringformat:"s" %}selected{% endif %}>{{ study.code }} - {{ study.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Mostrar</label>
+                        <select name="show" class="form-select rounded-4 shadow-sm">
+                            <option value="active" {% if not show_history %}selected{% endif %}>Solo activas</option>
+                            <option value="all" {% if show_history %}selected{% endif %}>Activas e historico</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-primary w-100 soft-pill" type="submit">Aplicar filtro</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-
-    <div class="col-12 col-xxl-5">
-        <div class="d-grid gap-4">
-            <div class="card glass soft-card border-0">
-                <div class="card-body p-4">
-                    <div class="app-section-title">Etiquetar muestra</div>
-                    <div class="app-section-copy">Genera el identificador interno y deja la muestra preparada para imprimir la etiqueta.</div>
-                    <form method="post" action="/app/operations/label/" class="row g-3 align-items-end">
-                        {% csrf_token %}
-                        <div class="col-md-8">
-                            <label class="form-label">{{ label_form.sample.label }}</label>
-                            {{ label_form.sample }}
-                        </div>
-                        <div class="col-md-4">
-                            <button class="btn btn-success w-100 soft-pill" type="submit">Etiquetar</button>
-                        </div>
-                    </form>
+    <div class="col-lg-4">
+        <div class="card glass soft-card border-0 h-100">
+            <div class="card-body p-4">
+                <div class="app-section-title">Resumen</div>
+                <div class="d-flex gap-3 flex-wrap mt-3">
+                    <span class="badge bg-warning text-dark fs-6 px-3 py-2">En camara: {{ active_count }}</span>
+                    <span class="badge bg-success fs-6 px-3 py-2">Retiradas: {{ retired_count }}</span>
                 </div>
-            </div>
-
-            <div class="card glass soft-card border-0">
-                <div class="card-body p-4">
-                    <div class="app-section-title">Entrada en camara</div>
-                    <div class="app-section-copy">Asigna la camara de estabilidad y deja constancia del momento de entrada.</div>
-                    <form method="post" action="/app/operations/chamber/" class="row g-3">
-                        {% csrf_token %}
-                        <div class="col-md-6">
-                            <label class="form-label">{{ placement_form.sample.label }}</label>
-                            {{ placement_form.sample }}
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">{{ placement_form.chamber.label }}</label>
-                            {{ placement_form.chamber }}
-                        </div>
-                        <div class="col-12 pt-2">
-                            <button class="btn btn-info text-white soft-pill" type="submit">Registrar entrada</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <div class="card glass soft-card border-0">
-                <div class="card-body p-4">
-                    <div class="app-section-title">Extraccion</div>
-                    <div class="app-section-copy">Descuenta stock y documenta la salida de unidades para el punto de muestreo correspondiente.</div>
-                    <form method="post" action="/app/operations/extract/" class="row g-3">
-                        {% csrf_token %}
-                        <div class="col-md-8">
-                            <label class="form-label">{{ extraction_form.sample.label }}</label>
-                            {{ extraction_form.sample }}
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">{{ extraction_form.quantity.label }}</label>
-                            {{ extraction_form.quantity }}
-                        </div>
-                        <div class="col-12 pt-2">
-                            <button class="btn btn-warning soft-pill" type="submit">Registrar extraccion</button>
-                        </div>
-                    </form>
-                </div>
+                {% if selected_chamber and selected_study %}
+                <div class="small text-muted mt-3">Filtro activo sobre una camara y un estudio concretos.</div>
+                {% elif selected_chamber %}
+                <div class="small text-muted mt-3">Filtro activo sobre una camara concreta.</div>
+                {% elif selected_study %}
+                <div class="small text-muted mt-3">Filtro activo sobre un estudio concreto.</div>
+                {% else %}
+                <div class="small text-muted mt-3">Vista global de todas las camaras activas.</div>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
-<div class="row g-4 mt-1">
-    <div class="col-lg-4">
+<div class="row g-4 mb-4">
+    {% for chamber in chamber_summary %}
+    <div class="col-md-6 col-xl-3">
         <div class="card glass soft-card border-0 h-100">
             <div class="card-body p-4">
-                <div class="app-section-title">Pendientes de etiquetar</div>
-                <div class="app-section-copy">Muestras ya recepcionadas que aun no tienen etiqueta operativa.</div>
-                <ul class="list-group list-group-flush">
-                    {% for sample in label_pending_samples %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0 py-3">
-                        <div>
-                            <div class="fw-semibold">{{ sample.sample_code }}</div>
-                            <div class="text-muted small">{{ sample.study.code }}</div>
-                        </div>
-                        <a class="btn btn-sm btn-outline-secondary rounded-pill" href="/app/labels/{{ sample.id }}/">Ver etiqueta</a>
-                    </li>
-                    {% empty %}
-                    <li class="list-group-item bg-transparent px-0 py-3 text-muted">No hay muestras pendientes.</li>
-                    {% endfor %}
-                </ul>
+                <div class="small text-uppercase text-muted">{{ chamber.code }}</div>
+                <div class="fw-semibold mt-2">{{ chamber.name }}</div>
+                <div class="small text-muted mt-1">{{ chamber.location }}</div>
+                <div class="mt-3">
+                    <span class="badge bg-info text-dark fs-6 px-3 py-2">{{ chamber.active_schedule_count }} activas</span>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-lg-4">
-        <div class="card glass soft-card border-0 h-100">
-            <div class="card-body p-4">
-                <div class="app-section-title">Pendientes de entrada en camara</div>
-                <div class="app-section-copy">Muestras etiquetadas que todavia no estan ubicadas en una camara activa.</div>
-                <ul class="list-group list-group-flush">
-                    {% for sample in chamber_pending_samples %}
-                    <li class="list-group-item bg-transparent px-0 py-3">
-                        <div class="fw-semibold">{{ sample.sample_code }}</div>
-                        <div class="text-muted small">{{ sample.study.code }}</div>
-                    </li>
-                    {% empty %}
-                    <li class="list-group-item bg-transparent px-0 py-3 text-muted">No hay pendientes.</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-4">
-        <div class="card glass soft-card border-0 h-100">
-            <div class="card-body p-4">
-                <div class="app-section-title">Recepciones recientes</div>
-                <div class="app-section-copy">Ultimos movimientos de entrada para validar el trabajo reciente del equipo.</div>
-                <ul class="list-group list-group-flush">
-                    {% for reception in recent_receptions %}
-                    <li class="list-group-item bg-transparent px-0 py-3">
-                        <div class="fw-semibold">{{ reception.reception_number }}</div>
-                        <div class="text-muted small">{{ reception.study.code }} - {{ reception.quantity_received }} unidades</div>
-                    </li>
-                    {% empty %}
-                    <li class="list-group-item bg-transparent px-0 py-3 text-muted">No hay recepciones.</li>
-                    {% endfor %}
-                </ul>
-            </div>
+    {% endfor %}
+</div>
+
+<div class="card glass soft-card border-0">
+    <div class="card-body p-4 p-lg-5">
+        <div class="app-section-title">Submuestras en camara</div>
+        <div class="app-section-copy">Cada linea corresponde a una fecha de muestreo ubicada en una camara concreta.</div>
+        <div class="table-responsive mt-3">
+            <table class="table table-hover align-middle">
+                <tr>
+                    <th>Camara</th>
+                    <th>Ubicacion</th>
+                    <th>Estudio</th>
+                    <th>Muestra</th>
+                    <th>Codigo fecha</th>
+                    <th>Fecha muestreo</th>
+                    <th>Cantidad</th>
+                    <th>Estado</th>
+                    <th>Fecha salida</th>
+                    <th>Acciones</th>
+                </tr>
+                {% for item in chamber_contents %}
+                <tr class="{% if not item.is_active %}table-success{% endif %}">
+                    <td>{{ item.chamber.code|default:"-" }}</td>
+                    <td>{{ item.chamber_location.code|default:"-" }}</td>
+                    <td>{{ item.sample.study.code }}</td>
+                    <td>{{ item.sample.sample_code }}</td>
+                    <td>{{ item.label|default:"-" }}</td>
+                    <td>{{ item.planned_date }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>
+                        <span class="badge {% if item.is_active %}text-bg-warning{% else %}text-bg-success{% endif %}">
+                            {% if item.is_active %}En camara{% else %}Retirada{% endif %}
+                        </span>
+                    </td>
+                    <td>{{ item.removed_at|date:"d/m/Y H:i"|default:"-" }}</td>
+                    <td class="text-nowrap">
+                        <a class="btn btn-sm rounded-pill me-1" href="/app/labels/{{ item.sample.id }}/?schedule={{ item.id }}" style="background-color:#f59e0b; border-color:#f59e0b; color:#fff;">Etiqueta</a>
+                        <a class="btn btn-sm btn-outline-primary rounded-pill" href="/app/samples/{{ item.sample.id }}/schedules/">Ver linea</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" class="text-muted">No hay submuestras para los filtros seleccionados.</td>
+                </tr>
+                {% endfor %}
+            </table>
         </div>
     </div>
 </div>

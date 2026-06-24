@@ -60,7 +60,7 @@ _apply_admin_field_labels(Client, {
 _apply_admin_field_labels(ProductBatch, {
     "code": "Código",
     "product": "Producto",
-    "packaging": "Acondicionado",
+    "packaging": "Formato",
     "manufactured_at": "Fecha de fabricación",
     "expiry_date": "Fecha de caducidad",
     "quantity_released": "Cantidad liberada",
@@ -86,7 +86,7 @@ _apply_admin_field_labels(Study, {
     "code": "Código",
     "title": "Título",
     "client": "Cliente",
-    "packaging": "Acondicionado",
+    "packaging": "Formato",
     "product_name": "Nombre del producto",
     "batch_number": "Número de lote",
     "packaging_description": "Comentarios",
