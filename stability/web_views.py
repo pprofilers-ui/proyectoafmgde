@@ -491,6 +491,7 @@ def create_sample_web(request):
         reception = SampleReception.objects.create(
             study=data["study"],
             batch=batch,
+            batch_number_text=(data["batch"] or "").strip(),
             packaging=data["packaging"],
             reception_number=reception_number,
             presentation=data["presentation"],
@@ -557,6 +558,7 @@ def edit_sample_web(request, pk):
             reception = SampleReception.objects.create(
                 study=data["study"],
                 batch=batch,
+                batch_number_text=(data["batch"] or "").strip(),
                 packaging=data["packaging"],
                 reception_number=reception_number,
                 presentation=data["presentation"],
@@ -581,6 +583,7 @@ def edit_sample_web(request, pk):
         else:
             reception.study = data["study"]
             reception.batch = batch
+            reception.batch_number_text = (data["batch"] or "").strip()
             reception.packaging = data["packaging"]
             reception.reception_number = data["reception_number"] or reception.reception_number
             reception.presentation = data["presentation"]

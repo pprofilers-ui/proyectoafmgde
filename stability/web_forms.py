@@ -139,11 +139,14 @@ class SampleReceptionForm(forms.ModelForm):
             _apply_bootstrap(field, placeholders.get(name))
         if self.instance and self.instance.pk and self.instance.batch:
             self.fields["batch"].initial = self.instance.batch.code
+        elif self.instance and self.instance.pk and self.instance.batch_number_text:
+            self.fields["batch"].initial = self.instance.batch_number_text
         self.fields["batch"].widget.attrs["placeholder"] = "Ej. LOT-328"
 
     def save(self, commit=True):
         instance = super().save(commit=False)
         batch_code = (self.cleaned_data.get("batch") or "").strip()
+        instance.batch_number_text = batch_code
         if batch_code:
             instance.batch = ProductBatch.objects.filter(code=batch_code).first()
         else:

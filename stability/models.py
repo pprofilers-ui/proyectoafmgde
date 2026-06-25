@@ -259,6 +259,7 @@ class SampleReception(TimeStampedModel):
 
     study = models.ForeignKey(Study, related_name="receptions", on_delete=models.CASCADE)
     batch = models.ForeignKey(ProductBatch, related_name="receptions", on_delete=models.SET_NULL, null=True, blank=True)
+    batch_number_text = models.CharField(max_length=100, blank=True)
     packaging = models.ForeignKey(
         PackagingConfiguration,
         related_name="receptions",

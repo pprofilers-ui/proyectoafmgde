@@ -55,7 +55,7 @@
                             <td>{{ sample.study.code }}</td>
                             <td>{{ sample.reception.presentation|default:"-" }}</td>
                             <td>{% if sample.reception.packaging %}{{ sample.reception.packaging.name }}{% else %}-{% endif %}</td>
-                            <td>{% if sample.reception.batch %}{{ sample.reception.batch.code }}{% else %}-{% endif %}</td>
+                            <td>{% if sample.reception.batch_number_text %}{{ sample.reception.batch_number_text }}{% elif sample.reception.batch %}{{ sample.reception.batch.code }}{% else %}-{% endif %}</td>
                             <td>{{ sample.current_stock }}</td>
                             <td>{{ sample.shelf|default:"-" }} / {{ sample.tray|default:"-" }} / {{ sample.physical_position|default:"-" }}</td>
                             <td class="text-nowrap">
@@ -70,7 +70,7 @@
                                         '{{ sample.study.client.code|default:''|escapejs }}',
                                         '{{ sample.reception.presentation|default:''|escapejs }}',
                                         '{{ sample.reception.packaging_id|default:'' }}',
-                                        '{{ sample.reception.batch.code|default:''|escapejs }}',
+                                        '{% if sample.reception.batch_number_text %}{{ sample.reception.batch_number_text|escapejs }}{% elif sample.reception.batch %}{{ sample.reception.batch.code|escapejs }}{% endif %}',
                                         '{{ sample.reception.batch_size|default:0 }}',
                                         '{{ sample.reception.bulk_code|default:''|escapejs }}',
                                         '{{ sample.reception.api_batch|default:''|escapejs }}',

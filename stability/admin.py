@@ -116,6 +116,7 @@ _apply_admin_field_labels(SamplingPoint, {
 _apply_admin_field_labels(SampleReception, {
     "study": "Estudio",
     "batch": "Lote",
+    "batch_number_text": "Lote",
     "reception_number": "Número de recepción",
     "received_from": "Recibido desde",
     "received_by": "Recibido por",
@@ -447,9 +448,9 @@ class SampleReceptionAdminForm(WebSampleReceptionForm):
 
 @admin.register(SampleReception)
 class SampleReceptionAdmin(admin.ModelAdmin):
-    list_display = ("codigo_muestra", "study", "presentation", "packaging", "batch", "received_at", "quantity_received")
+    list_display = ("codigo_muestra", "study", "presentation", "packaging", "lote_visible", "received_at", "quantity_received")
     list_filter = ("study", "packaging")
-    search_fields = ("presentation", "bulk_code", "api_batch", "api_code", "study__code", "study__title")
+    search_fields = ("presentation", "bulk_code", "api_batch", "api_code", "batch_number_text", "study__code", "study__title")
     form = SampleReceptionAdminForm
     fields = (
         "study",
@@ -477,6 +478,14 @@ class SampleReceptionAdmin(admin.ModelAdmin):
     def codigo_muestra(self, obj):
         first_sample = obj.samples.order_by("created_at").first()
         return first_sample.sample_code if first_sample else "-"
+
+    @admin.display(description="Lote")
+    def lote_visible(self, obj):
+        if obj.batch_number_text:
+            return obj.batch_number_text
+        if obj.batch:
+            return obj.batch.code
+        return "-"
 
 
 @admin.register(Sample)
