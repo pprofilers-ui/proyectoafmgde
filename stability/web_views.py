@@ -223,6 +223,11 @@ def create_study_web(request):
             for field_errors in form.errors.values():
                 errors.extend(field_errors)
             return JsonResponse({"ok": False, "errors": errors}, status=400)
+        if wants_print and is_ajax:
+            errors = []
+            for field_errors in form.errors.values():
+                errors.extend(field_errors)
+            return JsonResponse({"ok": False, "errors": errors}, status=400)
         messages.error(request, "No se pudo crear el estudio. Revisa los campos obligatorios.")
     return redirect("web-studies")
 
@@ -323,6 +328,7 @@ def samples_list(request):
 @login_required
 def sample_schedules_view(request, pk):
     sample = get_object_or_404(Sample.objects.select_related("study"), pk=pk)
+    sample.assigned_quantity_live = recalculate_reception_assigned_quantity(sample)
     schedules = sample.schedules.select_related("chamber", "chamber_location").order_by("planned_date", "id")
     context = {
         "sample": sample,
@@ -670,7 +676,7 @@ def create_sample_schedule_web(request, pk):
     sample = get_object_or_404(Sample, pk=pk)
     if request.method != "POST":
         return redirect("web-sample-schedules", pk=sample.pk)
-    form = SampleScheduleForm(request.POST)
+    form = SampleScheduleForm(request.POST, sample=sample)
     wants_print = request.POST.get("submit_action") == "save_and_print"
     is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     if form.is_valid():

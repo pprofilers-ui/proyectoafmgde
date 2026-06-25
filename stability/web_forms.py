@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Sum
 from django.utils import timezone
 
 from .models import (
@@ -49,6 +50,28 @@ def _location_matches_chamber(chamber, chamber_location):
     chamber_key = _chamber_key_from_code(getattr(chamber, "code", ""))
     location_code = (getattr(chamber_location, "code", "") or "").strip().upper()
     return location_code.startswith(f"{chamber_key}-")
+
+
+def _validate_assigned_quantity_limit(form, cleaned_data, sample, current_instance=None):
+    if not sample or not getattr(sample, "reception", None):
+        return
+
+    received_quantity = sample.reception.quantity_received or 0
+    current_quantity = cleaned_data.get("quantity") or 0
+    is_active = cleaned_data.get("is_active")
+
+    active_schedules = sample.schedules.filter(is_active=True)
+    if current_instance and current_instance.pk:
+        active_schedules = active_schedules.exclude(pk=current_instance.pk)
+
+    already_assigned = active_schedules.aggregate(total=Sum("quantity")).get("total") or 0
+    new_total = already_assigned + (current_quantity if is_active else 0)
+
+    if new_total > received_quantity:
+        form.add_error(
+            "quantity",
+            f"La cantidad asignada total seria {new_total} y no puede superar la cantidad recibida ({received_quantity}).",
+        )
 
 
 def _next_reception_number():
@@ -470,6 +493,7 @@ class SampleScheduleForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        self.sample = kwargs.pop("sample", None)
         super().__init__(*args, **kwargs)
         self.fields["chamber"].queryset = Chamber.objects.filter(is_active=True).order_by("code")
         self.fields["chamber_location"].queryset = ChamberLocation.objects.filter(is_active=True).order_by("code")
@@ -498,6 +522,7 @@ class SampleScheduleForm(forms.ModelForm):
         chamber_location = cleaned_data.get("chamber_location")
         if chamber and chamber_location and not _location_matches_chamber(chamber, chamber_location):
             self.add_error("chamber_location", "La ubicacion seleccionada no pertenece a la camara indicada.")
+        _validate_assigned_quantity_limit(self, cleaned_data, self.sample)
         return cleaned_data
 
 
@@ -540,6 +565,7 @@ class SampleScheduleEditForm(forms.ModelForm):
         chamber_location = cleaned_data.get("chamber_location")
         if chamber and chamber_location and not _location_matches_chamber(chamber, chamber_location):
             self.add_error("chamber_location", "La ubicacion seleccionada no pertenece a la camara indicada.")
+        _validate_assigned_quantity_limit(self, cleaned_data, getattr(self.instance, "sample", None), self.instance)
         return cleaned_data
 
 

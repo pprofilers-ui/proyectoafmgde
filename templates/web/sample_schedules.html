@@ -199,7 +199,9 @@
             <form method="post"
                   action="/app/samples/{{ sample.id }}/schedules/create/"
                   class="row g-4"
-                  id="add-schedule-form">
+                  id="add-schedule-form"
+                  data-received-quantity="{{ sample.reception.quantity_received|default:0 }}"
+                  data-assigned-quantity="{{ sample.assigned_quantity_live|default:0 }}">
 
                 {% csrf_token %}
 
@@ -451,6 +453,8 @@ async function saveAndPrintScheduleLabel(button) {
     const chamber = document.getElementById('id_chamber');
     const chamberLocation = document.getElementById('id_chamber_location');
     const quantity = document.getElementById('id_quantity');
+    const receivedQuantity = Number(form.dataset.receivedQuantity || '0');
+    const assignedQuantity = Number(form.dataset.assignedQuantity || '0');
 
     const missingFields = [];
     if (!plannedDate || !plannedDate.value) {
@@ -471,6 +475,17 @@ async function saveAndPrintScheduleLabel(button) {
             icon: 'warning',
             title: 'Completa los datos primero',
             text: `Antes de guardar e imprimir, revisa estos campos: ${missingFields.join(', ')}.`,
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
+    const requestedQuantity = Number(quantity.value || '0');
+    if ((assignedQuantity + requestedQuantity) > receivedQuantity) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Cantidad no valida',
+            text: `La suma asignada seria ${assignedQuantity + requestedQuantity} y no puede superar la cantidad recibida (${receivedQuantity}).`,
             confirmButtonText: 'Entendido'
         });
         return;
