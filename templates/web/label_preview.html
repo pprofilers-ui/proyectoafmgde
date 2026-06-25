@@ -282,9 +282,7 @@
         </div>
 
         <div class="footer">
-            <div class="footer-note">
-                {% if sample.reception.batch %}Lote: {{ sample.reception.batch.code }}{% else %}Lote: -{% endif %}
-            </div>
+            <div class="footer-note"></div>
             <div class="actions">
                 <a href="/app/samples/{{ sample.id }}/schedules/">Volver a fechas</a>
                 <button onclick="window.print()">Imprimir / Guardar PDF</button>
