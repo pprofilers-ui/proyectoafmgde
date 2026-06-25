@@ -69,54 +69,70 @@ class SampleReceptionForm(forms.ModelForm):
         fields = [
             "study",
             "reception_number",
-            "received_from",
+            "presentation",
+            "packaging",
+            "batch",
+            "batch_size",
+            "bulk_code",
+            "api_batch",
+            "api_code",
+            "primary_packing_material",
+            "manufacture_date",
             "received_by",
             "received_at",
             "quantity_received",
             "quantity_expected",
-            "discrepancy_notes",
             "quantity_assigned",
             "quantity_reserved",
             "quantity_contingency",
-            "status",
             "notes",
         ]
         widgets = {
             "received_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "manufacture_date": forms.DateInput(attrs={"type": "date"}),
             "notes": forms.Textarea(attrs={"rows": 3}),
-            "discrepancy_notes": forms.Textarea(attrs={"rows": 3}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["study"].queryset = Study.objects.order_by("code")
+        self.fields["packaging"].queryset = PackagingConfiguration.objects.filter(is_active=True).order_by("code")
         self.fields["received_at"].input_formats = ["%Y-%m-%dT%H:%M"]
         labels = {
             "study": "Estudio",
+            "presentation": "Presentacion",
+            "packaging": "Formato",
             "batch": "Lote",
+            "batch_size": "Batch Size",
+            "bulk_code": "Code Bulk",
+            "api_batch": "API Batch",
+            "api_code": "API Code",
+            "primary_packing_material": "Primary Packing Material",
+            "manufacture_date": "Manufacture Date",
             "reception_number": "Numero de recepcion",
-            "received_from": "Recibido desde",
             "received_by": "Recibido por",
             "received_at": "Fecha y hora de recepcion",
             "quantity_received": "Cantidad recibida",
             "quantity_expected": "Cantidad prevista",
-            "discrepancy_notes": "Observaciones",
             "quantity_assigned": "Cantidad asignada",
             "quantity_reserved": "Cantidad reservada",
             "quantity_contingency": "Cantidad de contingencia",
-            "status": "Estado",
-            "notes": "Notas",
+            "notes": "Observaciones",
         }
         placeholders = {
-            "received_from": "Origen de la muestra",
+            "presentation": "Presentacion del producto",
             "received_by": "Usuario o tecnico receptor",
+            "batch_size": "Tamano del batch",
+            "bulk_code": "Codigo bulk",
+            "api_batch": "Lote API",
+            "api_code": "Codigo API",
+            "primary_packing_material": "Material de acondicionamiento primario",
             "quantity_received": "Cantidad recibida",
             "quantity_expected": "Cantidad prevista en protocolo",
             "quantity_assigned": "Cantidad asignada a condiciones",
             "quantity_reserved": "Cantidad reservada",
             "quantity_contingency": "Cantidad extra o contingencia",
             "notes": "Observaciones de recepcion",
-            "discrepancy_notes": "Describe cualquier discrepancia detectada",
         }
         for name, field in self.fields.items():
             field.label = labels.get(name, field.label)
@@ -330,44 +346,60 @@ class SampleCreateForm(forms.ModelForm):
 
 class SampleRegistrationForm(forms.Form):
     study = forms.ModelChoiceField(queryset=Study.objects.none())
+    presentation = forms.CharField(required=False)
+    packaging = forms.ModelChoiceField(queryset=PackagingConfiguration.objects.none(), required=False)
     batch = forms.CharField(required=False)
+    batch_size = forms.IntegerField(min_value=0, initial=0, required=False)
+    bulk_code = forms.CharField(required=False)
+    api_batch = forms.CharField(required=False)
+    api_code = forms.CharField(required=False)
+    primary_packing_material = forms.CharField(required=False)
+    manufacture_date = forms.DateField(required=False, widget=forms.DateInput(attrs={"type": "date"}))
     reception_number = forms.CharField(max_length=50)
-    received_from = forms.CharField(max_length=255, required=False)
     received_by = forms.CharField(max_length=255, required=False)
     received_at = forms.DateTimeField(widget=forms.DateTimeInput(attrs={"type": "datetime-local"}))
     quantity_received = forms.IntegerField(min_value=0, initial=1)
     quantity_expected = forms.IntegerField(min_value=0, initial=1)
-    discrepancy_notes = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 3}))
     quantity_assigned = forms.IntegerField(min_value=0, initial=0)
     quantity_reserved = forms.IntegerField(min_value=0, initial=0)
     quantity_contingency = forms.IntegerField(min_value=0, initial=0)
-    status = forms.ChoiceField(choices=SampleReception.Status.choices, initial=SampleReception.Status.PENDING)
     notes = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 3}))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["study"].queryset = Study.objects.order_by("code")
+        self.fields["packaging"].queryset = PackagingConfiguration.objects.filter(is_active=True).order_by("code")
         self.fields["received_at"].input_formats = ["%Y-%m-%dT%H:%M"]
         labels = {
             "study": "Estudio",
+            "presentation": "Presentacion",
+            "packaging": "Formato",
             "batch": "Lote",
+            "batch_size": "Batch Size",
+            "bulk_code": "Code Bulk",
+            "api_batch": "API Batch",
+            "api_code": "API Code",
+            "primary_packing_material": "Primary Packing Material",
+            "manufacture_date": "Manufacture Date",
             "reception_number": "Numero de recepcion",
-            "received_from": "Recibido desde",
             "received_by": "Recibido por",
             "received_at": "Fecha y hora de recepcion",
             "quantity_received": "Cantidad recibida",
             "quantity_expected": "Cantidad prevista",
-            "discrepancy_notes": "Observaciones",
             "quantity_assigned": "Cantidad asignada",
             "quantity_reserved": "Cantidad reservada",
             "quantity_contingency": "Cantidad de contingencia",
-            "status": "Estado",
-            "notes": "Notas",
+            "notes": "Observaciones",
         }
         placeholders = {
+            "presentation": "Presentacion del producto",
             "batch": "Ej. LOT-328",
+            "batch_size": "Tamano del batch",
+            "bulk_code": "Codigo bulk",
+            "api_batch": "Lote API",
+            "api_code": "Codigo API",
+            "primary_packing_material": "Material de acondicionamiento primario",
             "reception_number": "Ej. REC-2026-001",
-            "received_from": "Origen de la muestra",
             "received_by": "Usuario o tecnico receptor",
             "quantity_received": "Cantidad recibida",
             "quantity_expected": "Cantidad prevista en protocolo",
@@ -375,7 +407,6 @@ class SampleRegistrationForm(forms.Form):
             "quantity_reserved": "Cantidad reservada",
             "quantity_contingency": "Cantidad extra o contingencia",
             "notes": "Observaciones de recepcion",
-            "discrepancy_notes": "Describe cualquier discrepancia detectada",
         }
         for name, field in self.fields.items():
             field.label = labels.get(name, field.label)

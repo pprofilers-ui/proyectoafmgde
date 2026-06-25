@@ -425,41 +425,51 @@ class SampleReceptionAdminForm(WebSampleReceptionForm):
         self.order_fields([
             "study",
             "sample_code",
+            "presentation",
+            "packaging",
             "batch",
-            "received_from",
+            "batch_size",
+            "bulk_code",
+            "api_batch",
+            "api_code",
+            "primary_packing_material",
+            "manufacture_date",
             "received_by",
             "received_at",
             "quantity_received",
             "quantity_expected",
-            "discrepancy_notes",
             "quantity_assigned",
             "quantity_reserved",
             "quantity_contingency",
-            "status",
             "notes",
         ])
 
 
 @admin.register(SampleReception)
 class SampleReceptionAdmin(admin.ModelAdmin):
-    list_display = ("codigo_muestra", "study", "batch", "received_from", "received_at", "quantity_received", "status")
-    list_filter = ("status", "study")
-    search_fields = ("received_from", "study__code", "study__title")
+    list_display = ("codigo_muestra", "study", "presentation", "packaging", "batch", "received_at", "quantity_received")
+    list_filter = ("study", "packaging")
+    search_fields = ("presentation", "bulk_code", "api_batch", "api_code", "study__code", "study__title")
     form = SampleReceptionAdminForm
     fields = (
         "study",
         "sample_code",
+        "presentation",
+        "packaging",
         "batch",
-        "received_from",
+        "batch_size",
+        "bulk_code",
+        "api_batch",
+        "api_code",
+        "primary_packing_material",
+        "manufacture_date",
         "received_by",
         "received_at",
         "quantity_received",
         "quantity_expected",
-        "discrepancy_notes",
         "quantity_assigned",
         "quantity_reserved",
         "quantity_contingency",
-        "status",
         "notes",
     )
 

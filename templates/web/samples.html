@@ -5,7 +5,7 @@
     <div class="row align-items-center g-4">
         <div class="col-lg-8">
             <h1 class="display-4 mb-2">Muestras</h1>
-            <p class="lead text-secondary mb-0">Aqui puedes dar de alta muestras nuevas y controlar su estado, stock y etiqueta.</p>
+            <p class="lead text-secondary mb-0">Aqui puedes dar de alta muestras nuevas y controlar su recepcion, stock y etiqueta.</p>
         </div>
         <div class="col-lg-4">
             <div class="mini-kpi">
@@ -17,24 +17,16 @@
 </div>
 
 <div class="row g-4">
-
-    <!-- LISTADO ARRIBA -->
     <div class="col-12">
         <div class="card glass soft-card border-0 h-100">
             <div class="card-body p-4 p-lg-5">
-
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div>
                         <div class="app-section-title">Listado de muestras</div>
-                        <div class="app-section-copy">
-                            Consulta operativa con stock, estado y acceso rapido a la etiqueta.
-                        </div>
+                        <div class="app-section-copy">Consulta operativa con stock, recepcion y acceso rapido a la etiqueta.</div>
                     </div>
 
-                    <button
-                        class="btn btn-primary rounded-pill"
-                        type="button"
-                        onclick="toggleSampleForm()">
+                    <button class="btn btn-primary rounded-pill" type="button" onclick="toggleSampleForm()">
                         Nueva muestra
                     </button>
                 </div>
@@ -42,187 +34,185 @@
                 <div class="table-responsive">
                     {% if preselected_study %}
                     <div class="alert alert-success d-flex justify-content-between align-items-center mb-3">
-                        <div>
-                            Mostrando muestras del estudio:
-                            <strong>{{ preselected_study.code }}</strong>
-                        </div>
-
-                        <a href="/app/samples/" class="btn btn-sm btn-outline-secondary rounded-pill">
-                            Quitar filtro
-                        </a>
+                        <div>Mostrando muestras del estudio: <strong>{{ preselected_study.code }}</strong></div>
+                        <a href="/app/samples/" class="btn btn-sm btn-outline-secondary rounded-pill">Quitar filtro</a>
                     </div>
                     {% endif %}
                     <table class="table table-hover align-middle">
                         <tr>
                             <th>Codigo</th>
                             <th>Estudio</th>
+                            <th>Presentacion</th>
+                            <th>Formato</th>
+                            <th>Lote</th>
                             <th>Stock</th>
-                            <th>Estado</th>
                             <th>Ubicacion</th>
                             <th>Acciones</th>
                         </tr>
-
                         {% for sample in samples %}
                         <tr>
                             <td class="fw-semibold">{{ sample.sample_code }}</td>
                             <td>{{ sample.study.code }}</td>
+                            <td>{{ sample.reception.presentation|default:"-" }}</td>
+                            <td>{% if sample.reception.packaging %}{{ sample.reception.packaging.name }}{% else %}-{% endif %}</td>
+                            <td>{% if sample.reception.batch %}{{ sample.reception.batch.code }}{% else %}-{% endif %}</td>
                             <td>{{ sample.current_stock }}</td>
-                            <td><span class="badge text-bg-light">{{ sample.get_status_display }}</span></td>
                             <td>{{ sample.shelf|default:"-" }} / {{ sample.tray|default:"-" }} / {{ sample.physical_position|default:"-" }}</td>
                             <td class="text-nowrap">
-
-                                <a class="btn btn-sm btn-outline-success rounded-pill me-1"
-                                   href="/app/samples/{{ sample.id }}/schedules/">
-                                   Fechas de muestreo
+                                <a class="btn btn-sm btn-outline-success rounded-pill me-1" href="/app/samples/{{ sample.id }}/schedules/">Fechas de muestreo</a>
+                                <a
+                                    class="btn btn-sm btn-outline-primary rounded-pill me-1"
+                                    href="#"
+                                    onclick="openSampleEditModal(
+                                        '{{ sample.id }}',
+                                        '{{ sample.sample_code|escapejs }}',
+                                        '{{ sample.study.id }}',
+                                        '{{ sample.study.client.code|default:''|escapejs }}',
+                                        '{{ sample.reception.presentation|default:''|escapejs }}',
+                                        '{{ sample.reception.packaging_id|default:'' }}',
+                                        '{{ sample.reception.batch.code|default:''|escapejs }}',
+                                        '{{ sample.reception.batch_size|default:0 }}',
+                                        '{{ sample.reception.bulk_code|default:''|escapejs }}',
+                                        '{{ sample.reception.api_batch|default:''|escapejs }}',
+                                        '{{ sample.reception.api_code|default:''|escapejs }}',
+                                        '{{ sample.reception.primary_packing_material|default:''|escapejs }}',
+                                        '{{ sample.reception.manufacture_date|date:'Y-m-d'|default:'' }}',
+                                        '{{ sample.reception.reception_number|default:''|escapejs }}',
+                                        '{{ sample.reception.received_by|default:''|escapejs }}',
+                                        '{{ sample.reception.received_at|date:'Y-m-d\\TH:i'|default:'' }}',
+                                        '{{ sample.reception.quantity_received|default:1 }}',
+                                        '{{ sample.reception.quantity_expected|default:1 }}',
+                                        '{{ sample.reception.quantity_assigned|default:0 }}',
+                                        '{{ sample.reception.quantity_reserved|default:0 }}',
+                                        '{{ sample.reception.quantity_contingency|default:0 }}',
+                                        '{{ sample.reception.notes|default:''|escapejs }}'
+                                    ); return false;">
+                                    Editar
                                 </a>
-
-                                <a class="btn btn-sm btn-outline-primary rounded-pill me-1"
-                                   href="#"
-                                   onclick="openSampleEditModal('{{ sample.id }}', '{{ sample.sample_code|escapejs }}', '{{ sample.study.id }}', '{{ sample.study.client.code|default:''|escapejs }}', '{{ sample.reception.batch.code|default:''|escapejs }}', '{{ sample.reception.reception_number|default:''|escapejs }}', '{{ sample.reception.received_from|default:''|escapejs }}', '{{ sample.reception.received_by|default:''|escapejs }}', '{{ sample.reception.received_at|date:'Y-m-d\\TH:i'|default:'' }}', '{{ sample.reception.quantity_received|default:1 }}', '{{ sample.reception.quantity_expected|default:1 }}', '{{ sample.reception.discrepancy_notes|default:''|escapejs }}', '{{ sample.reception.quantity_assigned|default:0 }}', '{{ sample.reception.quantity_reserved|default:0 }}', '{{ sample.reception.quantity_contingency|default:0 }}', '{{ sample.reception.status|default:'received' }}', '{{ sample.reception.notes|default:''|escapejs }}'); return false;">
-                                   Editar
-                                </a>
-
-                                <form method="post"
-                                      action="/app/samples/{{ sample.id }}/delete/"
-                                      class="d-inline sample-delete-form">
+                                <form method="post" action="/app/samples/{{ sample.id }}/delete/" class="d-inline sample-delete-form">
                                     {% csrf_token %}
-                                    <button class="btn btn-sm btn-outline-danger rounded-pill" type="submit">
-                                        Eliminar
-                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger rounded-pill" type="submit">Eliminar</button>
                                 </form>
-
                             </td>
                         </tr>
                         {% empty %}
-                        <tr>
-                            <td colspan="6" class="text-muted">
-                                No hay muestras todavia.
-                            </td>
-                        </tr>
+                        <tr><td colspan="8" class="text-muted">No hay muestras todavia.</td></tr>
                         {% endfor %}
                     </table>
                 </div>
-
             </div>
         </div>
     </div>
 
-    <!-- FORMULARIO ABAJO OCULTO -->
     <div class="col-12" id="createSampleSection" style="display:none;">
         <div class="card glass soft-card border-0 h-100">
             <div class="card-body p-4 p-lg-5">
-
                 <div class="d-flex justify-content-between align-items-center mb-3">
-
                     <div>
                         <div class="app-section-title">Crear muestra</div>
-                        <div class="app-section-copy">
-                            Alta manual de muestra vinculada a estudio, recepcion y ubicacion fisica.
-                        </div>
+                        <div class="app-section-copy">Alta operativa desde recepcion de muestras sin salir del flujo actual.</div>
                     </div>
-
-                    <button
-                        type="button"
-                        class="btn btn-outline-secondary rounded-pill"
-                        onclick="toggleSampleForm()">
-                        Cerrar
-                    </button>
-
+                    <button type="button" class="btn btn-outline-secondary rounded-pill" onclick="toggleSampleForm()">Cerrar</button>
                 </div>
 
                 <form method="post" action="/app/samples/create/" class="row g-4">
                     {% csrf_token %}
                     {{ sample_form.reception_number.as_hidden }}
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="form-label">Estudio</label>
                         {{ sample_form.study }}
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Código cliente</label>
-                        <input
-                            type="text"
-                            class="form-control rounded-4 shadow-sm"
-                            value="{{ client_code }}"
-                            readonly
-                        >
+                    <div class="col-md-4">
+                        <label class="form-label">Codigo cliente</label>
+                        <input type="text" class="form-control rounded-4 shadow-sm" value="{{ client_code }}" readonly>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="form-label">Codigo de muestra</label>
                         <input class="form-control rounded-4 shadow-sm" type="text" value="{% if sample_code_preview %}{{ sample_code_preview }}{% else %}Se generara automaticamente{% endif %}" readonly>
                     </div>
+
                     <div class="col-md-6">
+                        <label class="form-label">{{ sample_form.presentation.label }}</label>
+                        {{ sample_form.presentation }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ sample_form.packaging.label }}</label>
+                        {{ sample_form.packaging }}
+                    </div>
+
+                    <div class="col-md-4">
                         <label class="form-label">{{ sample_form.batch.label }}</label>
                         {{ sample_form.batch }}
-                        {% if sample_form.batch.errors %}<div class="text-danger small mt-1">{{ sample_form.batch.errors|striptags }}</div>{% endif %}
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label">{{ sample_form.received_from.label }}</label>
-                        {{ sample_form.received_from }}
-                        {% if sample_form.received_from.errors %}<div class="text-danger small mt-1">{{ sample_form.received_from.errors|striptags }}</div>{% endif %}
+                    <div class="col-md-4">
+                        <label class="form-label">{{ sample_form.batch_size.label }}</label>
+                        {{ sample_form.batch_size }}
                     </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ sample_form.bulk_code.label }}</label>
+                        {{ sample_form.bulk_code }}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">{{ sample_form.api_batch.label }}</label>
+                        {{ sample_form.api_batch }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ sample_form.api_code.label }}</label>
+                        {{ sample_form.api_code }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ sample_form.manufacture_date.label }}</label>
+                        {{ sample_form.manufacture_date }}
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">{{ sample_form.primary_packing_material.label }}</label>
+                        {{ sample_form.primary_packing_material }}
+                    </div>
+
                     <div class="col-md-6">
                         <label class="form-label">{{ sample_form.received_by.label }}</label>
                         {{ sample_form.received_by }}
-                        {% if sample_form.received_by.errors %}<div class="text-danger small mt-1">{{ sample_form.received_by.errors|striptags }}</div>{% endif %}
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label class="form-label">{{ sample_form.received_at.label }}</label>
                         {{ sample_form.received_at }}
-                        {% if sample_form.received_at.errors %}<div class="text-danger small mt-1">{{ sample_form.received_at.errors|striptags }}</div>{% endif %}
                     </div>
-                    <div class="col-md-4">
+
+                    <div class="col-md-3">
                         <label class="form-label">{{ sample_form.quantity_expected.label }}</label>
                         {{ sample_form.quantity_expected }}
-                        {% if sample_form.quantity_expected.errors %}<div class="text-danger small mt-1">{{ sample_form.quantity_expected.errors|striptags }}</div>{% endif %}
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label">{{ sample_form.quantity_received.label }}</label>
                         {{ sample_form.quantity_received }}
-                        {% if sample_form.quantity_received.errors %}<div class="text-danger small mt-1">{{ sample_form.quantity_received.errors|striptags }}</div>{% endif %}
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">{{ sample_form.status.label }}</label>
-                        {{ sample_form.status }}
-                        {% if sample_form.status.errors %}<div class="text-danger small mt-1">{{ sample_form.status.errors|striptags }}</div>{% endif %}
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label">{{ sample_form.discrepancy_notes.label }}</label>
-                        {{ sample_form.discrepancy_notes }}
-                        {% if sample_form.discrepancy_notes.errors %}<div class="text-danger small mt-1">{{ sample_form.discrepancy_notes.errors|striptags }}</div>{% endif %}
-                    </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label">{{ sample_form.quantity_assigned.label }}</label>
                         {{ sample_form.quantity_assigned }}
-                        {% if sample_form.quantity_assigned.errors %}<div class="text-danger small mt-1">{{ sample_form.quantity_assigned.errors|striptags }}</div>{% endif %}
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label">{{ sample_form.quantity_reserved.label }}</label>
                         {{ sample_form.quantity_reserved }}
-                        {% if sample_form.quantity_reserved.errors %}<div class="text-danger small mt-1">{{ sample_form.quantity_reserved.errors|striptags }}</div>{% endif %}
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label">{{ sample_form.quantity_contingency.label }}</label>
                         {{ sample_form.quantity_contingency }}
-                        {% if sample_form.quantity_contingency.errors %}<div class="text-danger small mt-1">{{ sample_form.quantity_contingency.errors|striptags }}</div>{% endif %}
                     </div>
+
                     <div class="col-12">
                         <label class="form-label">{{ sample_form.notes.label }}</label>
                         {{ sample_form.notes }}
-                        {% if sample_form.notes.errors %}<div class="text-danger small mt-1">{{ sample_form.notes.errors|striptags }}</div>{% endif %}
                     </div>
 
                     <div class="col-12 pt-2">
-                        <button class="btn btn-primary btn-lg soft-pill" type="submit">
-                            Crear muestra
-                        </button>
+                        <button class="btn btn-primary btn-lg soft-pill" type="submit">Crear muestra</button>
                     </div>
-
                 </form>
-
             </div>
         </div>
     </div>
-
 </div>
 
 <div class="modal fade" id="sampleEditModal" tabindex="-1" aria-hidden="true">
@@ -237,7 +227,7 @@
                     {% csrf_token %}
                     <input type="hidden" id="edit_sample_reception_number" name="reception_number">
                     <div class="row g-4">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Estudio</label>
                             <select class="form-select rounded-4 shadow-sm" id="edit_sample_study" name="study">
                                 {% for study in sample_edit_form.fields.study.queryset %}
@@ -245,71 +235,92 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Código cliente</label>
-
-                            <input
-                                type="text"
-                                class="form-control rounded-4 shadow-sm"
-                                id="edit_client_code"
-                                readonly
-                            >
+                        <div class="col-md-4">
+                            <label class="form-label">Codigo cliente</label>
+                            <input type="text" class="form-control rounded-4 shadow-sm" id="edit_client_code" readonly>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Codigo de muestra</label>
                             <input class="form-control rounded-4 shadow-sm" id="edit_sample_code" name="sample_code" type="text" readonly>
                         </div>
+
                         <div class="col-md-6">
+                            <label class="form-label">Presentacion</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_presentation" name="presentation" type="text">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Formato</label>
+                            <select class="form-select rounded-4 shadow-sm" id="edit_sample_packaging" name="packaging">
+                                <option value="">---------</option>
+                                {% for option in sample_edit_form.fields.packaging.queryset %}
+                                <option value="{{ option.id }}">{{ option.code }} - {{ option.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
                             <label class="form-label">Lote</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_batch" name="batch" type="text" placeholder="Ej. LOT-328">
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_batch" name="batch" type="text">
                         </div>
-                        
-                        <div class="col-md-6">
-                            <label class="form-label">Recibido desde</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_received_from" name="received_from" type="text">
+                        <div class="col-md-4">
+                            <label class="form-label">Batch Size</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_batch_size" name="batch_size" type="number" min="0">
                         </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Code Bulk</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_bulk_code" name="bulk_code" type="text">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">API Batch</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_api_batch" name="api_batch" type="text">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">API Code</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_api_code" name="api_code" type="text">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Manufacture Date</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_manufacture_date" name="manufacture_date" type="date">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Primary Packing Material</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_primary_packing_material" name="primary_packing_material" type="text">
+                        </div>
+
                         <div class="col-md-6">
                             <label class="form-label">Recibido por</label>
                             <input class="form-control rounded-4 shadow-sm" id="edit_sample_received_by" name="received_by" type="text">
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label">Fecha y hora de recepcion</label>
                             <input class="form-control rounded-4 shadow-sm" id="edit_sample_received_at" name="received_at" type="datetime-local">
                         </div>
-                        <div class="col-md-4">
+
+                        <div class="col-md-3">
                             <label class="form-label">Cantidad prevista</label>
                             <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity_expected" name="quantity_expected" type="number" min="0">
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">Cantidad recibida</label>
                             <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity_received" name="quantity_received" type="number" min="0">
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Estado</label>
-                            <select class="form-select rounded-4 shadow-sm" id="edit_sample_status" name="status">
-                                {% for value, label in sample_edit_form.fields.status.choices %}
-                                <option value="{{ value }}">{{ label }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Observaciones</label>
-                            <textarea class="form-control rounded-4 shadow-sm" id="edit_sample_discrepancy_notes" name="discrepancy_notes" rows="3"></textarea>
-                        </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">Cantidad asignada</label>
                             <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity_assigned" name="quantity_assigned" type="number" min="0">
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">Cantidad reservada</label>
                             <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity_reserved" name="quantity_reserved" type="number" min="0">
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">Cantidad de contingencia</label>
                             <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity_contingency" name="quantity_contingency" type="number" min="0">
                         </div>
+
                         <div class="col-12">
-                            <label class="form-label">Notas</label>
+                            <label class="form-label">Observaciones</label>
                             <textarea class="form-control rounded-4 shadow-sm" id="edit_sample_notes" name="notes" rows="3"></textarea>
                         </div>
                     </div>
@@ -324,15 +335,22 @@
 </div>
 
 <script>
-function openSampleEditModal(sampleId, sampleCode, studyId, clientCode, batchCode, receptionNumber, receivedFrom, receivedBy, receivedAt, quantityReceived, quantityExpected, discrepancyNotes, quantityAssigned, quantityReserved, quantityContingency, status, notes) {
+function openSampleEditModal(sampleId, sampleCode, studyId, clientCode, presentation, packagingId, batchCode, batchSize, bulkCode, apiBatch, apiCode, primaryPackingMaterial, manufactureDate, receptionNumber, receivedBy, receivedAt, quantityReceived, quantityExpected, quantityAssigned, quantityReserved, quantityContingency, notes) {
     const form = document.getElementById('sampleEditForm');
     form.action = `/app/samples/${sampleId}/edit/`;
     document.getElementById('edit_sample_code').value = sampleCode || '';
     document.getElementById('edit_sample_study').value = studyId || '';
     document.getElementById('edit_client_code').value = clientCode || '';
+    document.getElementById('edit_sample_presentation').value = presentation || '';
+    document.getElementById('edit_sample_packaging').value = packagingId || '';
     document.getElementById('edit_sample_batch').value = batchCode || '';
+    document.getElementById('edit_sample_batch_size').value = batchSize || 0;
+    document.getElementById('edit_sample_bulk_code').value = bulkCode || '';
+    document.getElementById('edit_sample_api_batch').value = apiBatch || '';
+    document.getElementById('edit_sample_api_code').value = apiCode || '';
+    document.getElementById('edit_sample_primary_packing_material').value = primaryPackingMaterial || '';
+    document.getElementById('edit_sample_manufacture_date').value = manufactureDate || '';
     document.getElementById('edit_sample_reception_number').value = receptionNumber || '';
-    document.getElementById('edit_sample_received_from').value = receivedFrom || '';
     document.getElementById('edit_sample_received_by').value = receivedBy || '';
     document.getElementById('edit_sample_received_at').value = receivedAt || '';
     document.getElementById('edit_sample_quantity_received').value = quantityReceived || 1;
@@ -340,8 +358,6 @@ function openSampleEditModal(sampleId, sampleCode, studyId, clientCode, batchCod
     document.getElementById('edit_sample_quantity_assigned').value = quantityAssigned || 0;
     document.getElementById('edit_sample_quantity_reserved').value = quantityReserved || 0;
     document.getElementById('edit_sample_quantity_contingency').value = quantityContingency || 0;
-    document.getElementById('edit_sample_status').value = status || 'received';
-    document.getElementById('edit_sample_discrepancy_notes').value = discrepancyNotes || '';
     document.getElementById('edit_sample_notes').value = notes || '';
     const modal = new bootstrap.Modal(document.getElementById('sampleEditModal'));
     modal.show();
@@ -349,17 +365,11 @@ function openSampleEditModal(sampleId, sampleCode, studyId, clientCode, batchCod
 
 function toggleSampleForm() {
     const section = document.getElementById('createSampleSection');
-
     if (section.style.display === 'none' || section.style.display === '') {
         section.style.display = 'block';
-
         setTimeout(() => {
-            section.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);
-
     } else {
         section.style.display = 'none';
     }
@@ -371,10 +381,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const section = document.getElementById('createSampleSection');
         if (section) {
             section.style.display = 'block';
-            section.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }
 
@@ -383,10 +390,10 @@ document.addEventListener('DOMContentLoaded', function () {
             event.preventDefault();
             Swal.fire({
                 title: 'Eliminar muestra',
-                text: '¿Seguro que quieres eliminar esta muestra?',
+                text: 'Seguro que quieres eliminar esta muestra?',
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonText: 'Sí, eliminar',
+                confirmButtonText: 'Si, eliminar',
                 cancelButtonText: 'Cancelar',
                 confirmButtonColor: '#d33'
             }).then(function (result) {

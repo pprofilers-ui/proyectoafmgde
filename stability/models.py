@@ -259,7 +259,21 @@ class SampleReception(TimeStampedModel):
 
     study = models.ForeignKey(Study, related_name="receptions", on_delete=models.CASCADE)
     batch = models.ForeignKey(ProductBatch, related_name="receptions", on_delete=models.SET_NULL, null=True, blank=True)
+    packaging = models.ForeignKey(
+        PackagingConfiguration,
+        related_name="receptions",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
     reception_number = models.CharField(max_length=50, unique=True)
+    presentation = models.CharField(max_length=255, blank=True)
+    batch_size = models.PositiveIntegerField(default=0)
+    bulk_code = models.CharField(max_length=100, blank=True)
+    api_batch = models.CharField(max_length=100, blank=True)
+    api_code = models.CharField(max_length=100, blank=True)
+    primary_packing_material = models.CharField(max_length=255, blank=True)
+    manufacture_date = models.DateField(null=True, blank=True)
     received_from = models.CharField(max_length=255, blank=True)
     received_by = models.CharField(max_length=255, blank=True)
     received_at = models.DateTimeField(default=timezone.now)

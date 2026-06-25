@@ -276,7 +276,7 @@ def samples_list(request):
                 sample_initial["quantity"] = reception.quantity_received
                 sample_initial["current_stock"] = reception.quantity_received
     sample_code_preview = generate_sample_code(study) if study else ""
-    samples = Sample.objects.select_related("study", "sampling_point", "chamber")
+    samples = Sample.objects.select_related("study", "sampling_point", "chamber", "reception", "reception__packaging", "reception__batch")
     
     if study_id:
         samples = samples.filter(study_id=study_id)
@@ -477,17 +477,24 @@ def create_sample_web(request):
         reception = SampleReception.objects.create(
             study=data["study"],
             batch=batch,
+            packaging=data["packaging"],
             reception_number=reception_number,
-            received_from=data["received_from"],
+            presentation=data["presentation"],
+            batch_size=data["batch_size"] or 0,
+            bulk_code=data["bulk_code"],
+            api_batch=data["api_batch"],
+            api_code=data["api_code"],
+            primary_packing_material=data["primary_packing_material"],
+            manufacture_date=data["manufacture_date"],
             received_by=data["received_by"],
             received_at=data["received_at"],
             quantity_received=data["quantity_received"],
             quantity_expected=data["quantity_expected"],
-            discrepancy_notes=data["discrepancy_notes"],
             quantity_assigned=data["quantity_assigned"],
             quantity_reserved=data["quantity_reserved"],
             quantity_contingency=data["quantity_contingency"],
-            status=data["status"],
+            discrepancy_notes=data["notes"],
+            status=SampleReception.Status.RECEIVED,
             notes=data["notes"],
         )
         sample_code = generate_sample_code(data["study"])
@@ -536,34 +543,48 @@ def edit_sample_web(request, pk):
             reception = SampleReception.objects.create(
                 study=data["study"],
                 batch=batch,
+                packaging=data["packaging"],
                 reception_number=reception_number,
-                received_from=data["received_from"],
+                presentation=data["presentation"],
+                batch_size=data["batch_size"] or 0,
+                bulk_code=data["bulk_code"],
+                api_batch=data["api_batch"],
+                api_code=data["api_code"],
+                primary_packing_material=data["primary_packing_material"],
+                manufacture_date=data["manufacture_date"],
                 received_by=data["received_by"],
                 received_at=data["received_at"],
                 quantity_received=data["quantity_received"],
                 quantity_expected=data["quantity_expected"],
-                discrepancy_notes=data["discrepancy_notes"],
                 quantity_assigned=data["quantity_assigned"],
                 quantity_reserved=data["quantity_reserved"],
                 quantity_contingency=data["quantity_contingency"],
-                status=data["status"],
+                discrepancy_notes=data["notes"],
+                status=SampleReception.Status.RECEIVED,
                 notes=data["notes"],
             )
             sample.reception = reception
         else:
             reception.study = data["study"]
             reception.batch = batch
+            reception.packaging = data["packaging"]
             reception.reception_number = data["reception_number"] or reception.reception_number
-            reception.received_from = data["received_from"]
+            reception.presentation = data["presentation"]
+            reception.batch_size = data["batch_size"] or 0
+            reception.bulk_code = data["bulk_code"]
+            reception.api_batch = data["api_batch"]
+            reception.api_code = data["api_code"]
+            reception.primary_packing_material = data["primary_packing_material"]
+            reception.manufacture_date = data["manufacture_date"]
             reception.received_by = data["received_by"]
             reception.received_at = data["received_at"]
             reception.quantity_received = data["quantity_received"]
             reception.quantity_expected = data["quantity_expected"]
-            reception.discrepancy_notes = data["discrepancy_notes"]
             reception.quantity_assigned = data["quantity_assigned"]
             reception.quantity_reserved = data["quantity_reserved"]
             reception.quantity_contingency = data["quantity_contingency"]
-            reception.status = data["status"]
+            reception.discrepancy_notes = data["notes"]
+            reception.status = SampleReception.Status.RECEIVED
             reception.notes = data["notes"]
             reception.save()
 

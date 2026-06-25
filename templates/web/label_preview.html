@@ -47,9 +47,9 @@
         <div class="condition-band"></div>
         <h2>Etiqueta de muestra</h2>
         <div class="meta"><strong>Producto:</strong> {{ sample.study.product_name }}</div>
-        <div class="meta"><strong>Presentacion:</strong> {{ sample.study.packaging_description|default:"-" }}</div>
+        <div class="meta"><strong>Presentacion:</strong> {{ sample.reception.presentation|default:"-" }}</div>
         <div class="meta"><strong>Codigo interno:</strong> {{ sample.sample_code }}</div>
-        <div class="meta"><strong>Lote interno:</strong> {{ sample.study.batch_number }}</div>
+        <div class="meta"><strong>Lote interno:</strong> {% if sample.reception.batch %}{{ sample.reception.batch.code }}{% else %}-{% endif %}</div>
         <div class="meta"><strong>Condicion climatica:</strong> {% if schedule and schedule.chamber and schedule.chamber.storage_condition %}{{ schedule.chamber.storage_condition.name }}{% elif sample.chamber and sample.chamber.storage_condition %}{{ sample.chamber.storage_condition.name }}{% else %}-{% endif %}</div>
         <div class="meta"><strong>Muestra:</strong> {{ sample.sample_code }}</div>
         <div class="meta"><strong>Estudio:</strong> {{ sample.study.code }}</div>
