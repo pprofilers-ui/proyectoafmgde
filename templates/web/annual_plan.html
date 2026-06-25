@@ -18,7 +18,7 @@
                         <div class="text-muted small">{{ study.title }} | Inicio {{ study.start_date }}</div>
                     </li>
                     {% empty %}
-                    <li class="list-group-item bg-transparent px-0 text-muted">No hay estudios en borrador.</li>
+                    <li class="list-group-item bg-transparent px-0 text-muted">No hay estudios en elaboracion.</li>
                     {% endfor %}
                 </ul>
             </div>
@@ -32,7 +32,7 @@
                     {% for study in active_studies %}
                     <li class="list-group-item bg-transparent px-0">
                         <div class="fw-semibold">{{ study.code }}</div>
-                        <div class="text-muted small">{{ study.title }} | Lote {{ study.batch_number }}</div>
+                        <div class="text-muted small">{{ study.title }} | {% if study.product %}{{ study.product.name }}{% else %}{{ study.product_name|default:"-" }}{% endif %}</div>
                     </li>
                     {% empty %}
                     <li class="list-group-item bg-transparent px-0 text-muted">No hay estudios activos.</li>
@@ -52,7 +52,7 @@
                         <div class="text-muted small">{{ study.title }} | Fin {{ study.end_date|default:"-" }}</div>
                     </li>
                     {% empty %}
-                    <li class="list-group-item bg-transparent px-0 text-muted">No hay estudios cerrados.</li>
+                    <li class="list-group-item bg-transparent px-0 text-muted">No hay estudios finalizados.</li>
                     {% endfor %}
                 </ul>
             </div>

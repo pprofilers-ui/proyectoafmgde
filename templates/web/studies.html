@@ -17,24 +17,16 @@
 </div>
 
 <div class="row g-4">
-
-    <!-- LISTADO ARRIBA -->
     <div class="col-12">
         <div class="card glass soft-card border-0 h-100">
             <div class="card-body p-4 p-lg-5">
-
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div>
                         <div class="app-section-title">Listado de estudios</div>
-                        <div class="app-section-copy">
-                            Consulta rápida del estado de estudios dados de alta.
-                        </div>
+                        <div class="app-section-copy">Consulta rapida del estado de estudios dados de alta.</div>
                     </div>
 
-                    <button
-                        class="btn btn-primary rounded-pill"
-                        type="button"
-                        onclick="toggleStudyForm()">
+                    <button class="btn btn-primary rounded-pill" type="button" onclick="toggleStudyForm()">
                         <i class="bi bi-plus-lg"></i> Nuevo estudio
                     </button>
                 </div>
@@ -42,13 +34,17 @@
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
                         <tr>
-                            <th>Código</th>
-                            <th>Título</th>
+                            <th>Codigo</th>
+                            <th>Titulo</th>
+                            <th>Tipo</th>
                             <th>Cliente</th>
                             <th>Producto</th>
-                            <th>Lote</th>
+                            <th>Codigo producto</th>
+                            <th>Protocolo</th>
+                            <th>Especificacion</th>
                             <th>Estado</th>
                             <th>Inicio</th>
+                            <th>Fecha Fin</th>
                             <th>Acciones</th>
                         </tr>
 
@@ -56,74 +52,52 @@
                         <tr>
                             <td class="fw-semibold">{{ study.code }}</td>
                             <td>{{ study.title }}</td>
+                            <td>{{ study.study_type.name|default:"-" }}</td>
                             <td>{{ study.client.description|default:"-" }}</td>
-                            <td>{{ study.product_name }}</td>
-                            <td>{{ study.batch_number }}</td>
-                            <td>
-                                <span class="badge text-bg-light">
-                                    {{ study.get_status_display }}
-                                </span>
-                            </td>
-                            <td>{{ study.start_date }}</td>
+                            <td>{% if study.product %}{{ study.product.name }}{% else %}{{ study.product_name|default:"-" }}{% endif %}</td>
+                            <td>{{ study.product_code|default:"-" }}</td>
+                            <td>{{ study.protocol|default:"-" }}</td>
+                            <td>{{ study.specification|default:"-" }}</td>
+                            <td><span class="badge text-bg-light">{{ study.get_status_display }}</span></td>
+                            <td>{{ study.start_date|date:"d/m/Y" }}</td>
+                            <td>{{ study.end_date|date:"d/m/Y"|default:"-" }}</td>
                             <td class="text-nowrap">
-                                <a
-                                    class="btn btn-sm btn-outline-success rounded-pill me-1"
-                                    href="/app/samples/?study={{ study.id }}&open=create">
+                                <a class="btn btn-sm btn-outline-success rounded-pill me-1" href="/app/samples/?study={{ study.id }}&open=create">
                                     Crear muestras
                                 </a>
                                 <a
                                     class="btn btn-sm btn-outline-primary rounded-pill me-1"
                                     href="#"
-                                    onclick="openStudyEditModal('{{ study.id }}', '{{ study.code|escapejs }}', '{{ study.title|escapejs }}', '{{ study.client_id|default:'' }}', '{{ study.packaging_id|default:'' }}', '{{ study.product_name|escapejs }}', '{{ study.batch_number|escapejs }}', '{{ study.packaging_description|escapejs }}', '{{ study.status }}', '{{ study.start_date|date:'Y-m-d' }}', '{{ study.end_date|default:''|date:'Y-m-d' }}'); return false;">
+                                    onclick="openStudyEditModal('{{ study.id }}', '{{ study.code|escapejs }}', '{{ study.title|escapejs }}', '{{ study.study_type_id|default:'' }}', '{{ study.client_id|default:'' }}', '{{ study.product_id|default:'' }}', '{{ study.product_code|escapejs }}', '{{ study.protocol|escapejs }}', '{{ study.specification|escapejs }}', '{{ study.product_name|escapejs }}', '{{ study.comments|escapejs }}', '{{ study.status }}', '{{ study.start_date|date:'Y-m-d' }}', '{{ study.end_date|default:''|date:'Y-m-d' }}'); return false;">
                                     Editar
                                 </a>
-
-                                <form
-                                    method="post"
-                                    action="/app/studies/{{ study.id }}/delete/"
-                                    class="d-inline study-delete-form">
+                                <form method="post" action="/app/studies/{{ study.id }}/delete/" class="d-inline study-delete-form">
                                     {% csrf_token %}
-                                    <button
-                                        class="btn btn-sm btn-outline-danger rounded-pill"
-                                        type="submit">
-                                        Eliminar
-                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger rounded-pill" type="submit">Eliminar</button>
                                 </form>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="text-muted">
-                                No hay estudios todavía.
-                            </td>
+                            <td colspan="12" class="text-muted">No hay estudios todavia.</td>
                         </tr>
                         {% endfor %}
                     </table>
                 </div>
-
             </div>
         </div>
     </div>
 
-    <!-- FORMULARIO ABAJO OCULTO -->
     <div class="col-12" id="createStudySection" style="display:none;">
         <div class="card glass soft-card border-0 h-100">
             <div class="card-body p-4 p-lg-5">
-
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div>
                         <div class="app-section-title">Crear estudio</div>
-                        <div class="app-section-copy">
-                            Alta funcional para usuarios normales sin pasar por el panel admin.
-                        </div>
+                        <div class="app-section-copy">Alta funcional para usuarios normales sin pasar por el panel admin.</div>
                     </div>
 
-                    <button
-                        type="button"
-                        class="btn btn-outline-secondary rounded-pill"
-                        onclick="toggleStudyForm()">
-                        Cerrar
-                    </button>
+                    <button type="button" class="btn btn-outline-secondary rounded-pill" onclick="toggleStudyForm()">Cerrar</button>
                 </div>
 
                 <form method="post" action="/app/studies/create/" class="row g-4">
@@ -132,77 +106,62 @@
                     <div class="col-md-6">
                         <label class="form-label">{{ study_form.code.label }}</label>
                         {{ study_form.code }}
-                        {% if study_form.code.errors %}<div class="text-danger small mt-1">{{ study_form.code.errors|striptags }}</div>{% endif %}
                     </div>
-
                     <div class="col-md-6">
                         <label class="form-label">{{ study_form.title.label }}</label>
                         {{ study_form.title }}
-                        {% if study_form.title.errors %}<div class="text-danger small mt-1">{{ study_form.title.errors|striptags }}</div>{% endif %}
                     </div>
-
-                    <div class="col-12">
+                    <div class="col-md-6">
+                        <label class="form-label">{{ study_form.study_type.label }}</label>
+                        {{ study_form.study_type }}
+                    </div>
+                    <div class="col-md-6">
                         <label class="form-label">{{ study_form.client.label }}</label>
                         {{ study_form.client }}
-                        {% if study_form.client.errors %}<div class="text-danger small mt-1">{{ study_form.client.errors|striptags }}</div>{% endif %}
                     </div>
-
+                    <div class="col-md-4">
+                        <label class="form-label">{{ study_form.product.label }}</label>
+                        {{ study_form.product }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ study_form.product_code.label }}</label>
+                        {{ study_form.product_code }}
+                    </div>
                     <div class="col-md-4">
                         <label class="form-label">{{ study_form.product_name.label }}</label>
                         {{ study_form.product_name }}
-                        {% if study_form.product_name.errors %}<div class="text-danger small mt-1">{{ study_form.product_name.errors|striptags }}</div>{% endif %}
                     </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label">{{ study_form.packaging.label }}</label>
-                        {{ study_form.packaging }}
-                        {% if study_form.packaging.errors %}<div class="text-danger small mt-1">{{ study_form.packaging.errors|striptags }}</div>{% endif %}
+                    <div class="col-md-6">
+                        <label class="form-label">{{ study_form.protocol.label }}</label>
+                        {{ study_form.protocol }}
                     </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label">{{ study_form.batch_number.label }}</label>
-                        {{ study_form.batch_number }}
-                        {% if study_form.batch_number.errors %}<div class="text-danger small mt-1">{{ study_form.batch_number.errors|striptags }}</div>{% endif %}
+                    <div class="col-md-6">
+                        <label class="form-label">{{ study_form.specification.label }}</label>
+                        {{ study_form.specification }}
                     </div>
-
-                    <div class="col-12">
-                        <label class="form-label">{{ study_form.packaging_description.label }}</label>
-                        {{ study_form.packaging_description }}
-                        {% if study_form.packaging_description.errors %}<div class="text-danger small mt-1">{{ study_form.packaging_description.errors|striptags }}</div>{% endif %}
-                    </div>
-
                     <div class="col-md-4">
                         <label class="form-label">{{ study_form.status.label }}</label>
                         {{ study_form.status }}
-                        {% if study_form.status.errors %}<div class="text-danger small mt-1">{{ study_form.status.errors|striptags }}</div>{% endif %}
                     </div>
-
                     <div class="col-md-4">
                         <label class="form-label">{{ study_form.start_date.label }}</label>
                         {{ study_form.start_date }}
-                        {% if study_form.start_date.errors %}<div class="text-danger small mt-1">{{ study_form.start_date.errors|striptags }}</div>{% endif %}
                     </div>
-
                     <div class="col-md-4">
                         <label class="form-label">{{ study_form.end_date.label }}</label>
                         {{ study_form.end_date }}
-                        {% if study_form.end_date.errors %}<div class="text-danger small mt-1">{{ study_form.end_date.errors|striptags }}</div>{% endif %}
                     </div>
-
+                    <div class="col-12">
+                        <label class="form-label">{{ study_form.comments.label }}</label>
+                        {{ study_form.comments }}
+                    </div>
                     <div class="col-12 pt-2">
-                        <button
-                            class="btn btn-primary btn-lg soft-pill"
-                            type="submit">
-                            Crear estudio
-                        </button>
+                        <button class="btn btn-primary btn-lg soft-pill" type="submit">Crear estudio</button>
                     </div>
-
                 </form>
-
             </div>
         </div>
     </div>
-
 </div>
 
 <div class="modal fade" id="studyEditModal" tabindex="-1" aria-hidden="true">
@@ -224,25 +183,33 @@
                             <label class="form-label">Titulo</label>
                             {{ study_form.title }}
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo de estudio</label>
+                            {{ study_form.study_type }}
+                        </div>
+                        <div class="col-md-6">
                             <label class="form-label">Cliente</label>
                             {{ study_form.client }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Producto</label>
+                            {{ study_form.product }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Codigo producto</label>
+                            {{ study_form.product_code }}
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Nombre del producto</label>
                             {{ study_form.product_name }}
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Formato</label>
-                            {{ study_form.packaging }}
+                        <div class="col-md-6">
+                            <label class="form-label">Protocolo</label>
+                            {{ study_form.protocol }}
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Numero de lote</label>
-                            {{ study_form.batch_number }}
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Comentarios</label>
-                            {{ study_form.packaging_description }}
+                        <div class="col-md-6">
+                            <label class="form-label">Especificacion</label>
+                            {{ study_form.specification }}
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Estado</label>
@@ -256,6 +223,10 @@
                             <label class="form-label">Fecha de fin</label>
                             {{ study_form.end_date }}
                         </div>
+                        <div class="col-12">
+                            <label class="form-label">Comentarios</label>
+                            {{ study_form.comments }}
+                        </div>
                     </div>
                     <div class="d-flex gap-2 justify-content-end mt-4">
                         <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancelar</button>
@@ -268,16 +239,19 @@
 </div>
 
 <script>
-function openStudyEditModal(studyId, code, title, clientId, packagingId, productName, batchNumber, packagingDescription, status, startDate, endDate) {
+function openStudyEditModal(studyId, code, title, studyTypeId, clientId, productId, productCode, protocol, specification, productName, comments, status, startDate, endDate) {
     const form = document.getElementById('studyEditForm');
     form.action = `/app/studies/${studyId}/edit/`;
     document.querySelector('#studyEditModal [name="code"]').value = code || '';
     document.querySelector('#studyEditModal [name="title"]').value = title || '';
+    document.querySelector('#studyEditModal [name="study_type"]').value = studyTypeId || '';
     document.querySelector('#studyEditModal [name="client"]').value = clientId || '';
-    document.querySelector('#studyEditModal [name="packaging"]').value = packagingId || '';
+    document.querySelector('#studyEditModal [name="product"]').value = productId || '';
+    document.querySelector('#studyEditModal [name="product_code"]').value = productCode || '';
+    document.querySelector('#studyEditModal [name="protocol"]').value = protocol || '';
+    document.querySelector('#studyEditModal [name="specification"]').value = specification || '';
     document.querySelector('#studyEditModal [name="product_name"]').value = productName || '';
-    document.querySelector('#studyEditModal [name="batch_number"]').value = batchNumber || '';
-    document.querySelector('#studyEditModal [name="packaging_description"]').value = packagingDescription || '';
+    document.querySelector('#studyEditModal [name="comments"]').value = comments || '';
     document.querySelector('#studyEditModal [name="status"]').value = status || 'draft';
     document.querySelector('#studyEditModal [name="start_date"]').value = startDate || '';
     document.querySelector('#studyEditModal [name="end_date"]').value = endDate || '';
@@ -285,24 +259,17 @@ function openStudyEditModal(studyId, code, title, clientId, packagingId, product
     modal.show();
 }
 
-
 function toggleStudyForm() {
     const section = document.getElementById('createStudySection');
-
     if (section.style.display === 'none' || section.style.display === '') {
         section.style.display = 'block';
-
         setTimeout(() => {
-            section.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);
     } else {
         section.style.display = 'none';
     }
 }
-
 
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.study-delete-form').forEach(function (form) {
@@ -310,10 +277,10 @@ document.addEventListener('DOMContentLoaded', function () {
             event.preventDefault();
             Swal.fire({
                 title: 'Eliminar estudio',
-                text: '¿Seguro que quieres eliminar este estudio?',
+                text: 'Seguro que quieres eliminar este estudio?',
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonText: 'Sí, eliminar',
+                confirmButtonText: 'Si, eliminar',
                 cancelButtonText: 'Cancelar',
                 confirmButtonColor: '#d33'
             }).then(function (result) {

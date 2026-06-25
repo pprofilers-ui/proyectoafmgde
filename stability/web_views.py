@@ -169,7 +169,7 @@ def dashboard(request):
 
 @login_required
 def studies_list(request):
-    studies = Study.objects.order_by("-created_at")
+    studies = Study.objects.select_related("study_type", "client", "product").order_by("-created_at")
     return render(request, "web/studies.html", {"studies": studies, "study_form": StudyCreateForm()})
 
 
@@ -183,8 +183,10 @@ def create_study_web(request):
         if not study.code:
             study.code = generate_study_code()
         study.company_code = getattr(request, "company_code", "") or getattr(request.user, "company_code", "") or "AGQ"
-        if study.packaging and not study.packaging_description:
-            study.packaging_description = study.packaging.name
+        if study.product and not study.product_code:
+            study.product_code = study.product.code
+        if study.product and not study.product_name:
+            study.product_name = study.product.name
         study.save()
         created_points = ensure_study_sampling_points(study)
         register_audit_event(
@@ -217,8 +219,10 @@ def edit_study_web(request, pk):
         updated_study = form.save(commit=False)
         if not updated_study.code:
             updated_study.code = study.code
-        if updated_study.packaging and not updated_study.packaging_description:
-            updated_study.packaging_description = updated_study.packaging.name
+        if updated_study.product and not updated_study.product_code:
+            updated_study.product_code = updated_study.product.code
+        if updated_study.product and not updated_study.product_name:
+            updated_study.product_name = updated_study.product.name
         updated_study.save()
         register_audit_event(
             updated_study,

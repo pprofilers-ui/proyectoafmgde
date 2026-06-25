@@ -8,12 +8,14 @@ from .models import (
     Client,
     LabelTemplate,
     PackagingConfiguration,
+    Product,
     ProductBatch,
     Sample,
     SampleSchedule,
     SampleReception,
     SamplingPoint,
     Study,
+    StudyType,
 )
 
 
@@ -141,43 +143,54 @@ class StudyCreateForm(forms.ModelForm):
         fields = [
             "code",
             "title",
+            "study_type",
             "client",
-            "packaging",
+            "product",
+            "product_code",
+            "protocol",
+            "specification",
             "product_name",
-            "batch_number",
-            "packaging_description",
             "status",
             "start_date",
             "end_date",
+            "comments",
         ]
         widgets = {
             "start_date": forms.DateInput(attrs={"type": "date"}),
             "end_date": forms.DateInput(attrs={"type": "date"}),
+            "comments": forms.Textarea(attrs={"rows": 3}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["study_type"].queryset = StudyType.objects.filter(is_active=True).order_by("name")
         self.fields["client"].queryset = Client.objects.order_by("code")
-        self.fields["packaging"].queryset = PackagingConfiguration.objects.filter(is_active=True).order_by("code")
+        self.fields["product"].queryset = Product.objects.filter(is_active=True).order_by("code")
         labels = {
             "code": "Codigo",
             "title": "Titulo",
+            "study_type": "Tipo de estudio",
             "client": "Cliente",
-            "packaging": "Formato",
+            "product": "Producto",
+            "product_code": "Codigo Producto",
+            "protocol": "Protocolo",
+            "specification": "Especificacion",
             "product_name": "Nombre del producto",
-            "batch_number": "Numero de lote",
-            "packaging_description": "Comentarios",
             "status": "Estado",
             "start_date": "Fecha de inicio",
             "end_date": "Fecha de fin",
+            "comments": "Comentarios",
         }
         placeholders = {
             "code": "Ej. EST-2026-003",
             "title": "Titulo del estudio",
+            "study_type": "Selecciona el tipo de estudio",
             "client": "Cliente del estudio",
+            "product_code": "Codigo interno del producto",
+            "protocol": "Codigo de protocolo",
+            "specification": "Referencia de especificacion",
             "product_name": "Nombre visible del producto",
-            "batch_number": "Codigo del lote",
-            "packaging_description": "Comentarios",
+            "comments": "Comentarios",
         }
         for name, field in self.fields.items():
             field.label = labels.get(name, field.label)
@@ -185,7 +198,6 @@ class StudyCreateForm(forms.ModelForm):
         self.fields["code"].required = False
         self.fields["code"].widget.attrs["readonly"] = True
         self.fields["code"].widget.attrs["tabindex"] = "-1"
-        self.fields["packaging"].required = False
         self.fields["end_date"].required = False
 
 
@@ -195,43 +207,54 @@ class StudyEditForm(forms.ModelForm):
         fields = [
             "code",
             "title",
+            "study_type",
             "client",
-            "packaging",
+            "product",
+            "product_code",
+            "protocol",
+            "specification",
             "product_name",
-            "batch_number",
-            "packaging_description",
             "status",
             "start_date",
             "end_date",
+            "comments",
         ]
         widgets = {
             "start_date": forms.DateInput(attrs={"type": "date"}),
             "end_date": forms.DateInput(attrs={"type": "date"}),
+            "comments": forms.Textarea(attrs={"rows": 3}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["study_type"].queryset = StudyType.objects.filter(is_active=True).order_by("name")
         self.fields["client"].queryset = Client.objects.order_by("code")
-        self.fields["packaging"].queryset = PackagingConfiguration.objects.filter(is_active=True).order_by("code")
+        self.fields["product"].queryset = Product.objects.filter(is_active=True).order_by("code")
         labels = {
             "code": "Codigo",
             "title": "Titulo",
+            "study_type": "Tipo de estudio",
             "client": "Cliente",
-            "packaging": "Formato",
+            "product": "Producto",
+            "product_code": "Codigo Producto",
+            "protocol": "Protocolo",
+            "specification": "Especificacion",
             "product_name": "Nombre del producto",
-            "batch_number": "Numero de lote",
-            "packaging_description": "Comentarios",
             "status": "Estado",
             "start_date": "Fecha de inicio",
             "end_date": "Fecha de fin",
+            "comments": "Comentarios",
         }
         placeholders = {
             "code": "Ej. EST-2026-003",
             "title": "Titulo del estudio",
+            "study_type": "Selecciona el tipo de estudio",
             "client": "Cliente del estudio",
+            "product_code": "Codigo interno del producto",
+            "protocol": "Codigo de protocolo",
+            "specification": "Referencia de especificacion",
             "product_name": "Nombre visible del producto",
-            "batch_number": "Codigo del lote",
-            "packaging_description": "Comentarios",
+            "comments": "Comentarios",
         }
         for name, field in self.fields.items():
             field.label = labels.get(name, field.label)
@@ -239,7 +262,6 @@ class StudyEditForm(forms.ModelForm):
         self.fields["code"].required = False
         self.fields["code"].widget.attrs["readonly"] = True
         self.fields["code"].widget.attrs["tabindex"] = "-1"
-        self.fields["packaging"].required = False
         self.fields["end_date"].required = False
 
 

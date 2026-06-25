@@ -14,6 +14,7 @@ from .models import (
     StockMovement,
     StorageCondition,
     Study,
+    StudyType,
 )
 
 
@@ -50,6 +51,12 @@ class ChamberLocationSerializer(serializers.ModelSerializer):
 class StudySerializer(serializers.ModelSerializer):
     class Meta:
         model = Study
+        fields = "__all__"
+
+
+class StudyTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudyType
         fields = "__all__"
 
 

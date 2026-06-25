@@ -22,6 +22,7 @@ from .models import (
     StockMovement,
     StorageCondition,
     Study,
+    StudyType,
 )
 from .serializers import (
     ChamberDeviationSerializer,
@@ -37,6 +38,7 @@ from .serializers import (
     StockMovementSerializer,
     StorageConditionSerializer,
     StudySerializer,
+    StudyTypeSerializer,
 )
 
 
@@ -105,11 +107,18 @@ class ChamberLocationViewSet(viewsets.ModelViewSet):
     search_fields = ["code", "name", "room", "shelf", "position"]
 
 
+class StudyTypeViewSet(viewsets.ModelViewSet):
+    queryset = StudyType.objects.all()
+    serializer_class = StudyTypeSerializer
+    filterset_fields = ["is_active"]
+    search_fields = ["code", "name"]
+
+
 class StudyViewSet(CompanyScopedViewSet):
-    queryset = Study.objects.select_related("product", "batch", "packaging").all()
+    queryset = Study.objects.select_related("study_type", "client", "product", "batch", "packaging").all()
     serializer_class = StudySerializer
-    filterset_fields = ["status", "company_code", "product", "batch"]
-    search_fields = ["code", "title", "product_name", "batch_number"]
+    filterset_fields = ["status", "company_code", "product", "study_type", "client", "batch"]
+    search_fields = ["code", "title", "product_name", "product_code", "protocol", "specification"]
     ordering_fields = ["start_date", "created_at", "code"]
 
     def perform_create(self, serializer):

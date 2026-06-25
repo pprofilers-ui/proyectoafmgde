@@ -21,6 +21,7 @@ from .models import (
     StockMovement,
     StorageCondition,
     Study,
+    StudyType,
 )
 from .web_forms import SampleReceptionForm as WebSampleReceptionForm
 
@@ -247,6 +248,25 @@ class ClientAdmin(admin.ModelAdmin):
         return request.user.is_staff
 
 
+@admin.register(StudyType)
+class StudyTypeAdmin(admin.ModelAdmin):
+    list_display = ("code", "name", "is_active")
+    list_filter = ("is_active",)
+    search_fields = ("code", "name")
+
+    def has_module_permission(self, request):
+        return request.user.is_staff
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_staff
+
+    def has_add_permission(self, request):
+        return request.user.is_staff
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_staff
+
+
 @admin.register(ProductBatch)
 class ProductBatchAdmin(admin.ModelAdmin):
     list_display = ("code", "product", "packaging", "manufactured_at", "expiry_date", "quantity_released")
@@ -326,9 +346,25 @@ class ChamberLocationAdmin(admin.ModelAdmin):
 
 @admin.register(Study)
 class StudyAdmin(admin.ModelAdmin):
-    list_display = ("code", "title", "client", "product_name", "batch_number", "company_code", "status", "start_date", "end_date")
-    list_filter = ("status", "company_code", "client")
-    search_fields = ("code", "title", "product_name", "batch_number", "client__code", "client__description")
+    list_display = ("code", "title", "study_type", "client", "product", "product_code", "status", "start_date", "end_date")
+    list_filter = ("status", "company_code", "client", "study_type", "product")
+    search_fields = ("code", "title", "product_name", "product_code", "protocol", "specification", "client__code", "client__description")
+    fields = (
+        "code",
+        "title",
+        "study_type",
+        "client",
+        "product",
+        "product_code",
+        "protocol",
+        "specification",
+        "product_name",
+        "status",
+        "start_date",
+        "end_date",
+        "comments",
+        "company_code",
+    )
 
 
 @admin.register(Chamber)
@@ -530,6 +566,7 @@ def _grouped_admin_app_list(request, app_label=None):
 
     maestros_order = [
         "Client",
+        "StudyType",
         "Chamber",
         "ChamberLocation",
         "StorageCondition",

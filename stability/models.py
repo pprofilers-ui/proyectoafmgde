@@ -90,6 +90,20 @@ class Client(TimeStampedModel):
         super().save(*args, **kwargs)
 
 
+class StudyType(TimeStampedModel):
+    code = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=100, unique=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Tipo de Estudio"
+        verbose_name_plural = "Tipos de Estudio"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class ProductBatch(TimeStampedModel):
     code = models.CharField(max_length=100, unique=True)
     product = models.ForeignKey(Product, related_name="batches", on_delete=models.CASCADE)
@@ -147,14 +161,19 @@ class ChamberLocation(TimeStampedModel):
 
 class Study(TimeStampedModel):
     class Status(models.TextChoices):
-        DRAFT = "draft", "Borrador"
-        ACTIVE = "active", "Activo"
-        CLOSED = "closed", "Cerrado"
+        DRAFT = "draft", "En Elaboración"
+        ACTIVE = "active", "Aprobado"
+        SUSPENDED = "suspended", "Suspendido"
+        CLOSED = "closed", "Finalizado"
 
     code = models.CharField(max_length=50, unique=True)
     title = models.CharField(max_length=255)
+    study_type = models.ForeignKey("StudyType", related_name="studies", on_delete=models.SET_NULL, null=True, blank=True)
     client = models.ForeignKey("Client", related_name="studies", on_delete=models.SET_NULL, null=True, blank=True)
     product = models.ForeignKey(Product, related_name="studies", on_delete=models.PROTECT, null=True, blank=True)
+    product_code = models.CharField(max_length=100, blank=True)
+    protocol = models.CharField(max_length=100, blank=True)
+    specification = models.CharField(max_length=255, blank=True)
     batch = models.ForeignKey(ProductBatch, related_name="studies", on_delete=models.PROTECT, null=True, blank=True)
     packaging = models.ForeignKey(
         PackagingConfiguration,
@@ -166,6 +185,7 @@ class Study(TimeStampedModel):
     product_name = models.CharField(max_length=255)
     batch_number = models.CharField(max_length=100)
     packaging_description = models.CharField(max_length=255, blank=True)
+    comments = models.TextField(blank=True)
     company_code = models.CharField(max_length=50)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     start_date = models.DateField()

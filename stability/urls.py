@@ -14,6 +14,7 @@ from .views import (
     StockMovementViewSet,
     StorageConditionViewSet,
     StudyViewSet,
+    StudyTypeViewSet,
 )
 
 router = DefaultRouter()
@@ -22,6 +23,7 @@ router.register(r"stability/packaging", PackagingConfigurationViewSet, basename=
 router.register(r"stability/batches", ProductBatchViewSet, basename="stability-batch")
 router.register(r"stability/storage-conditions", StorageConditionViewSet, basename="stability-storage-condition")
 router.register(r"stability/chamber-locations", ChamberLocationViewSet, basename="stability-chamber-location")
+router.register(r"stability/study-types", StudyTypeViewSet, basename="stability-study-type")
 router.register(r"stability/studies", StudyViewSet, basename="stability-study")
 router.register(r"stability/chambers", ChamberViewSet, basename="stability-chamber")
 router.register(r"stability/sampling-points", SamplingPointViewSet, basename="stability-sampling-point")
