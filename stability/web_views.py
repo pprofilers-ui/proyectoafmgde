@@ -110,6 +110,19 @@ def resolve_batch_from_code(batch_code):
     return ProductBatch.objects.filter(code=batch_code).first()
 
 
+def recalculate_reception_assigned_quantity(sample):
+    reception = getattr(sample, "reception", None)
+    if not reception:
+        return 0
+    assigned_total = (
+        sample.schedules.filter(is_active=True).aggregate(total=Sum("quantity")).get("total") or 0
+    )
+    if reception.quantity_assigned != assigned_total:
+        reception.quantity_assigned = assigned_total
+        reception.save(update_fields=["quantity_assigned", "updated_at"])
+    return assigned_total
+
+
 def ensure_study_sampling_points(study):
     created_points = []
     if study.sampling_points.exists():
@@ -281,7 +294,9 @@ def samples_list(request):
     if study_id:
         samples = samples.filter(study_id=study_id)
 
-    samples = samples.order_by("-created_at")
+    samples = list(samples.order_by("-created_at"))
+    for sample in samples:
+        sample.assigned_quantity_live = recalculate_reception_assigned_quantity(sample)
 
     return render(
         request,
@@ -505,7 +520,7 @@ def create_sample_web(request):
             received_at=data["received_at"],
             quantity_received=data["quantity_received"],
             quantity_expected=data["quantity_expected"],
-            quantity_assigned=data["quantity_assigned"],
+            quantity_assigned=0,
             quantity_reserved=data["quantity_reserved"],
             quantity_contingency=data["quantity_contingency"],
             discrepancy_notes=data["notes"],
@@ -572,7 +587,7 @@ def edit_sample_web(request, pk):
                 received_at=data["received_at"],
                 quantity_received=data["quantity_received"],
                 quantity_expected=data["quantity_expected"],
-                quantity_assigned=data["quantity_assigned"],
+                quantity_assigned=0,
                 quantity_reserved=data["quantity_reserved"],
                 quantity_contingency=data["quantity_contingency"],
                 discrepancy_notes=data["notes"],
@@ -597,7 +612,6 @@ def edit_sample_web(request, pk):
             reception.received_at = data["received_at"]
             reception.quantity_received = data["quantity_received"]
             reception.quantity_expected = data["quantity_expected"]
-            reception.quantity_assigned = data["quantity_assigned"]
             reception.quantity_reserved = data["quantity_reserved"]
             reception.quantity_contingency = data["quantity_contingency"]
             reception.discrepancy_notes = data["notes"]
@@ -614,6 +628,7 @@ def edit_sample_web(request, pk):
         if not sample.sample_code:
             sample.sample_code = generate_sample_code(data["study"])
         sample.save()
+        recalculate_reception_assigned_quantity(sample)
         register_audit_event(
             sample,
             "web_update_sample",
@@ -663,6 +678,7 @@ def create_sample_schedule_web(request, pk):
         )
         
         schedule.save()
+        recalculate_reception_assigned_quantity(sample)
         register_audit_event(
             schedule,
             "web_create_sample_schedule",
@@ -687,6 +703,7 @@ def edit_sample_schedule_web(request, pk):
     if form.is_valid():
         before_schedule = SampleSchedule.objects.select_related("chamber", "chamber_location").get(pk=schedule.pk)
         schedule = form.save()
+        recalculate_reception_assigned_quantity(schedule.sample)
         register_audit_event(
             schedule,
             "web_update_sample_schedule",
@@ -703,6 +720,7 @@ def edit_sample_schedule_web(request, pk):
 def delete_sample_schedule_web(request, pk):
     schedule = get_object_or_404(SampleSchedule.objects.select_related("sample"), pk=pk)
     sample_pk = schedule.sample_id
+    sample = schedule.sample
     if request.method == "POST":
         register_audit_event(
             schedule,
@@ -710,6 +728,7 @@ def delete_sample_schedule_web(request, pk):
             payload={"sample_code": schedule.sample.sample_code, "planned_date": str(schedule.planned_date)},
         )
         schedule.delete()
+        recalculate_reception_assigned_quantity(sample)
         messages.success(request, "Fecha de muestreo eliminada correctamente.")
     return redirect("web-sample-schedules", pk=sample_pk)
 
@@ -743,6 +762,7 @@ def withdraw_sample_schedule_web(request, pk):
     schedule.removed_by = request.user if request.user.is_authenticated else None
     schedule.is_active = False
     schedule.save(update_fields=["removed_at", "removed_by", "is_active", "updated_at"])
+    recalculate_reception_assigned_quantity(schedule.sample)
     register_audit_event(
         schedule,
         "web_withdraw_sample_schedule",

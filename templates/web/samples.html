@@ -82,7 +82,7 @@
                                         '{{ sample.reception.received_at|date:'Y-m-d\\TH:i'|default:'' }}',
                                         '{{ sample.reception.quantity_received|default:1 }}',
                                         '{{ sample.reception.quantity_expected|default:1 }}',
-                                        '{{ sample.reception.quantity_assigned|default:0 }}',
+                                        '{{ sample.assigned_quantity_live|default:0 }}',
                                         '{{ sample.reception.quantity_reserved|default:0 }}',
                                         '{{ sample.reception.quantity_contingency|default:0 }}',
                                         '{{ sample.reception.notes|default:''|escapejs }}'
@@ -308,7 +308,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Cantidad asignada</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity_assigned" name="quantity_assigned" type="number" min="0">
+                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity_assigned" name="quantity_assigned" type="number" min="0" readonly>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Cantidad reservada</label>

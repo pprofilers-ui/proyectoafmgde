@@ -429,6 +429,7 @@ class SampleRegistrationForm(forms.Form):
             _apply_bootstrap(field, placeholders.get(name))
         self.fields["reception_number"].initial = _next_reception_number()
         self.fields["reception_number"].widget.attrs["readonly"] = True
+        self.fields["quantity_assigned"].widget.attrs["readonly"] = True
 
 
 class ChamberPlacementForm(forms.Form):
