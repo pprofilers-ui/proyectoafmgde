@@ -532,9 +532,9 @@ class StockMovementAdmin(admin.ModelAdmin):
 
 @admin.register(ChamberDeviation)
 class ChamberDeviationAdmin(admin.ModelAdmin):
-    list_display = ("chamber", "study", "detected_at", "requires_recalculation")
+    list_display = ("deviation_code", "chamber", "detected_at", "ended_at", "requires_recalculation")
     list_filter = ("requires_recalculation", "chamber")
-    search_fields = ("chamber__code", "study__code", "description")
+    search_fields = ("deviation_code", "chamber__code", "description")
 
 
 @admin.register(StabilityAlert)

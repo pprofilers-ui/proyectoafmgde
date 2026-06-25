@@ -161,7 +161,9 @@
         }
 
         .actions {
-            text-align: center;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
         }
 
         .actions button {
@@ -171,6 +173,19 @@
             padding: 8px 14px;
             font-size: 12px;
             cursor: pointer;
+        }
+
+        .actions a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #8897be;
+            background: white;
+            border-radius: 999px;
+            padding: 8px 14px;
+            font-size: 12px;
+            text-decoration: none;
+            color: var(--ink);
         }
 
         @page {
@@ -271,6 +286,7 @@
                 {% if sample.reception.batch %}Lote: {{ sample.reception.batch.code }}{% else %}Lote: -{% endif %}
             </div>
             <div class="actions">
+                <a href="/app/samples/{{ sample.id }}/schedules/">Volver a fechas</a>
                 <button onclick="window.print()">Imprimir / Guardar PDF</button>
             </div>
         </div>

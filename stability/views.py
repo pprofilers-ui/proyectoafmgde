@@ -301,9 +301,9 @@ class StockMovementViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class ChamberDeviationViewSet(viewsets.ModelViewSet):
-    queryset = ChamberDeviation.objects.select_related("chamber", "study").all()
+    queryset = ChamberDeviation.objects.select_related("chamber").all()
     serializer_class = ChamberDeviationSerializer
-    filterset_fields = ["chamber", "study", "requires_recalculation"]
+    filterset_fields = ["chamber", "requires_recalculation"]
     ordering_fields = ["detected_at", "created_at"]
     permission_classes = [permissions.IsAuthenticated]
 

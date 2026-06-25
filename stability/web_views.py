@@ -415,10 +415,15 @@ def reports_view(request):
 
 @login_required
 def deviations_view(request):
-    deviations = ChamberDeviation.objects.select_related("chamber", "study").order_by("-detected_at")
+    selected_chamber = request.GET.get("chamber", "").strip()
+    deviations = ChamberDeviation.objects.select_related("chamber").order_by("-detected_at")
+    if selected_chamber:
+        deviations = deviations.filter(chamber_id=selected_chamber)
     context = {
         "deviation_form": ChamberDeviationForm(),
         "deviations": deviations,
+        "chambers": Chamber.objects.filter(is_active=True).order_by("code"),
+        "selected_chamber": selected_chamber,
     }
     return render(request, "web/deviations.html", context)
 
@@ -431,14 +436,23 @@ def create_deviation_web(request):
     if form.is_valid():
         deviation = form.save()
         recalculated_points = []
-        if deviation.requires_recalculation and deviation.study_id:
-            ensure_study_sampling_points(deviation.study)
-            for point in deviation.study.sampling_points.all().order_by("target_date"):
+        if deviation.requires_recalculation:
+            affected_points = (
+                SamplingPoint.objects.filter(
+                    samples__schedules__chamber=deviation.chamber,
+                    samples__schedules__is_active=True,
+                )
+                .select_related("study")
+                .distinct()
+                .order_by("study__code", "target_date", "label")
+            )
+            for point in affected_points:
                 previous_date = point.recalculated_date or point.target_date
                 point.recalculated_date = point.target_date + timedelta(days=point.tolerance_days)
                 point.save(update_fields=["recalculated_date", "updated_at"])
                 recalculated_points.append(
                     {
+                        "study": point.study.code,
                         "point": point.label,
                         "before": str(previous_date),
                         "after": str(point.recalculated_date),
@@ -447,17 +461,17 @@ def create_deviation_web(request):
                 register_audit_event(
                     point,
                     "web_recalculate_sampling_point",
-                    payload={"deviation_id": deviation.id, "point": point.label},
+                    payload={"deviation_id": deviation.id, "point": point.label, "chamber": deviation.chamber.code},
                     changes={"recalculated_date": {"before": str(previous_date), "after": str(point.recalculated_date)}},
                 )
         register_audit_event(
             deviation,
             "web_create_chamber_deviation",
-            payload={"chamber": deviation.chamber.code, "study": deviation.study.code if deviation.study else ""},
+            payload={"chamber": deviation.chamber.code, "deviation_code": deviation.deviation_code},
             changes={"requires_recalculation": {"before": None, "after": deviation.requires_recalculation}},
         )
         if recalculated_points:
-            messages.success(request, f"Desviacion registrada y {len(recalculated_points)} puntos recalculados con auditoria.")
+            messages.success(request, f"Desviacion registrada y {len(recalculated_points)} puntos recalculados para la camara {deviation.chamber.code}.")
         else:
             messages.success(request, "Desviacion registrada correctamente.")
     else:

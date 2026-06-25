@@ -1,0 +1,188 @@
+He leído el Word y ya tenemos una lista bastante clara de cambios pedidos. Hay una discrepancia importante que conviene dejar marcada desde ya: el documento del `25/06/2026` habla de `4 cámaras`, pero el Excel real que acabamos de cargar tenía `5 cámaras`, y la base ahora mismo ya está alineada con esas `5`.
+
+Lo que pide el documento, resumido por bloques, es esto:
+
+- `Maestros`
+  - Nuevo maestro `Tipos de estudio` con 4 opciones: `On Going`, `In Use`, `Acelerada`, `Industrial ICH`.
+  - Ajustar `Estado` del estudio a 4 opciones: `En Elaboración`, `Aprobado`, `Suspendido`, `Finalizado`.
+  - Cámaras, condiciones y ubicaciones quedan como maestros reales.
+
+- `Estudios`
+  - Mantener: `Código del estudio`, `Cliente`, `Producto`.
+  - Añadir: `Código Producto`, `Protocolo`, `Especificación`.
+  - Quitar del estudio: `Formato` y `Número de lote`.
+  - Mover `Comentarios` al final, después de fechas.
+  - Cambios de tabla/textos: quitar la frase que menciona `Lote`, poner `Fecha fin` y acortar formato de fecha.
+
+- `Muestras`
+  - Reorganizar el formulario en líneas.
+  - Añadir a muestra: `Presentación`, `Formato`, `Lote`, `Batch Size`, `Code Bulk`, `API Batch`, `API Code`, `Primary Packing Material`, `Manufacture Date`.
+  - Quitar: `Recibido desde`.
+  - Quitar `Estado` de muestra, porque quedaría solo en estudio.
+  - Dejar solo un campo entre `observaciones/notas`.
+  - Ordenar mejor los campos de cantidades.
+
+- `Etiquetas`
+  - Rediseñar a tamaño `6 x 3,5`.
+  - Deben mostrar: información, producto/presentación, código interno, condición climática/cámara, ubicación, punto de muestreo, fecha de entrada en cámaras, `QR o DataMatrix`.
+
+- `Desviaciones de cámara`
+  - Quitar el campo `Estudio`.
+  - Añadir `Código Desviación`.
+  - Añadir `Fecha y hora de fin`.
+  - Si se recalculan fechas, aplicar a todas las muestras de todos los estudios de esa cámara.
+  - Añadir filtro por cámara en el histórico.
+
+Mi recomendación para hacerlo sin romper lo que hoy funciona bien es este orden:
+1. `Maestros + modelo de Estudios`
+2. `Modelo y formularios de Muestras`
+3. `Etiquetas`
+4. `Desviaciones de cámara`
+5. Revisión final de tablas/textos
+
+El mejor primer paso es `Estudios`, porque ahí nacen varios cambios que luego impactan en `Muestras`. Si quieres, en el siguiente turno empiezo con un análisis técnico exacto de `Estudios`: qué campos existen hoy, cuáles faltan, cuáles hay que mover y qué migración haríamos con cuidado.
+
+
+
+
+
+
+
+Sí, seguimos.
+
+He revisado `Muestras` y aquí ya se ve claramente el impacto del Word. El bloque actual mezcla datos de `Sample` y `SampleReception`, así que este cambio hay que hacerlo con bastante mimo porque toca web, admin, lógica y luego también etiquetas.
+
+Lo que hay hoy:
+- `Sample` guarda sobre todo código, stock, estado y ubicación física.
+- `SampleReception` guarda lote, recibido desde, cantidades, observaciones y estado de recepción.
+- La pantalla [templates/web/samples.html](/C:/desarollo/proyecto_afmgde/templates/web/samples.html:1) usa ambos a la vez.
+- El alta/edición real está bastante apoyada en [stability/web_views.py](/C:/desarollo/proyecto_afmgde/stability/web_views.py:470).
+
+Lo que pide el Word para `Muestras`:
+- mover aquí `Formato` y `Lote`
+- añadir `Presentación`, `Batch Size`, `Code Bulk`, `API Batch`, `API Code`, `Primary Packing Material`, `Manufacture Date`
+- quitar `Recibido desde`
+- quitar `Estado` de muestra del formulario funcional
+- dejar un solo campo de notas/observaciones
+- juntar mejor las cantidades
+
+Mi recomendación de implementación, para no romper nada, es esta:
+1. Añadir primero los nuevos campos al modelo `Sample`
+2. Adaptar formularios y pantalla web de `Muestras`
+3. Ajustar admin de `Sample` y `SampleReception`
+4. Revisar después etiquetas, porque varias piezas nuevas vivirán ya en `Sample`
+
+El siguiente paso bueno es entrar directamente en el punto 1 y 2 juntos: modelo + migración + formulario/pantalla de `Muestras`, pero todavía sin rediseñar etiquetas. Si quieres, hago eso ahora.
+
+
+
+
+
+
+
+He dejado este siguiente paso aplicado con mucho cuidado y respetando tu regla principal: el usuario sigue trabajando desde `Recepciones de Muestras`, tanto en web como en admin.
+
+Qué he hecho:
+- Amplié `SampleReception` con los nuevos campos operativos del documento:
+  - `presentation`
+  - `packaging`
+  - `batch_size`
+  - `bulk_code`
+  - `api_batch`
+  - `api_code`
+  - `primary_packing_material`
+  - `manufacture_date`
+- Actualicé el formulario visible de `Muestras` en [templates/web/samples.html](/C:/desarollo/proyecto_afmgde/templates/web/samples.html:1) para que todo siga entrando por un único flujo.
+- Actualicé el admin de `Recepciones de Muestras` en [stability/admin.py](/C:/desarollo/proyecto_afmgde/stability/admin.py:410) para que también sea el punto único de edición visible.
+- Mantengo `Sample` como soporte interno, pero ya no te obligo a trabajar “en dos modelos”.
+- Ajusté la lógica de guardado en [stability/web_views.py](/C:/desarollo/proyecto_afmgde/stability/web_views.py:470) para que al guardar la recepción se siga creando/actualizando `Sample` por detrás sin romper el sistema.
+- Toqué mínimamente la etiqueta para que ya lea `Presentacion` y `Lote` desde la recepción en [templates/web/label_preview.html](/C:/desarollo/proyecto_afmgde/templates/web/label_preview.html:49).
+
+Migración aplicada:
+- [0012_samplereception_operational_fields.py](/C:/desarollo/proyecto_afmgde/stability/migrations/0012_samplereception_operational_fields.py:1)
+
+Verificación:
+- `manage.py migrate` correcto
+- `manage.py check` correcto
+- tests de `stability` pasando
+
+Importante:
+- No he eliminado todavía campos viejos como `received_from`, `status` o la estructura interna antigua; simplemente los he sacado del flujo visible nuevo para no romper nada.
+- Tampoco he rediseñado aún la etiqueta a `6 x 3,5`; solo la he dejado apuntando a los nuevos datos donde tenía sentido.
+
+El mejor siguiente paso ahora es una revisión funcional contigo de esta pantalla de `Recepciones/Muestras` para ver si el orden exacto de campos te cuadra, y después entrar a `Etiquetas` o a rematar detalles de `Muestras`.
+
+
+
+
+
+
+
+Sí, exactamente.
+
+El botón `Fechas de muestreo` ya está bien enfocado porque te lleva al flujo de [sample_schedules](/C:/desarollo/proyecto_afmgde/templates/web/sample_schedules.html:1), que es donde se gestionan las fechas, la cámara, la ubicación y desde donde nace cada etiqueta concreta.
+
+El que ahora toca adaptar al Word es `Generar etiqueta`, que termina renderizando [templates/web/label_preview.html](/C:/desarollo/proyecto_afmgde/templates/web/label_preview.html:1).
+
+Porque el Word realmente está describiendo la etiqueta final de cada fecha de muestreo:
+- tamaño `6 x 3,5`
+- `Producto y presentación`
+- `Código interno`
+- `Condición climática / Cámara`
+- `Ubicación`
+- `Punto de muestreo`
+- `Fecha de entrada en cámaras`
+- `QR / DataMatrix`
+
+Y eso encaja justo con el botón `Generar etiqueta` dentro de `Fechas de muestreo`, no con el botón de navegación a las fechas.
+
+Así que el siguiente paso correcto es:
+1. rediseñar `label_preview.html` al tamaño del Word
+2. alimentar la etiqueta con datos de `Study`, `SampleReception`, `Sample` y `SampleSchedule`
+3. mantener el botón `Generar etiqueta` en el mismo sitio, pero haciendo que la salida final ya cumpla el documento
+
+Si quieres, entro ya con esa adaptación de etiqueta.
+
+
+
+
+
+
+
+Ya está aplicada la fase de `Desviaciones de cámara` con el criterio del Word y sin romper el resto.
+
+Qué ha quedado hecho:
+- Añadido `Codigo Desviacion` y `Fecha y hora de fin` en el modelo [ChamberDeviation](/C:/desarollo/proyecto_afmgde/stability/models.py:410).
+- El formulario web ya no trabaja con `Estudio`; ahora se centra en `Camara`, como pide el documento.
+- El histórico web ahora tiene filtro por cámara en [templates/web/deviations.html](/C:/desarollo/proyecto_afmgde/templates/web/deviations.html:1).
+- La tabla de histórico muestra:
+  - `Codigo`
+  - `Camara`
+  - `Inicio`
+  - `Fin`
+  - `Recalculo`
+  - `Descripcion`
+- El admin también quedó alineado en [stability/admin.py](/C:/desarollo/proyecto_afmgde/stability/admin.py:528).
+- La API de desviaciones también deja de filtrar por `study` en [stability/views.py](/C:/desarollo/proyecto_afmgde/stability/views.py:303).
+
+Sobre el recálculo:
+- Ya no depende del estudio seleccionado en el formulario.
+- Ahora, si se activa `Requiere recalculo`, el sistema busca los `SamplingPoint` de estudios que tienen muestras activas programadas en esa cámara y recalcula esos puntos dentro del alcance de esa cámara.
+- Es una adaptación prudente del comportamiento previo al criterio nuevo del Word.
+
+Migración aplicada:
+- [0013_chamberdeviation_word_updates.py](/C:/desarollo/proyecto_afmgde/stability/migrations/0013_chamberdeviation_word_updates.py:1)
+
+Verificación:
+- `manage.py migrate` correcto
+- `manage.py check` correcto
+- tests de `stability` pasando
+
+Punto importante:
+- No he eliminado todavía el campo `study` físicamente de la base para no hacer un corte brusco e innecesario, pero ya ha salido del flujo visible y funcional.
+- El cambio fuerte de comportamiento ya está en web y admin, que era lo importante para no romper nada.
+
+Si quieres, el siguiente paso ya sería una pasada de remate para revisar textos, columnas y pequeñas incoherencias residuales del Word en pantallas secundarias.
+
+
+

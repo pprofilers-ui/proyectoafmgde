@@ -514,15 +514,17 @@ class ChamberDeviationForm(forms.ModelForm):
     class Meta:
         model = ChamberDeviation
         fields = [
+            "deviation_code",
             "chamber",
-            "study",
             "detected_at",
+            "ended_at",
             "description",
             "impact_assessment",
             "requires_recalculation",
         ]
         widgets = {
             "detected_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "ended_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
             "description": forms.Textarea(attrs={"rows": 3}),
             "impact_assessment": forms.Textarea(attrs={"rows": 3}),
             "requires_recalculation": forms.CheckboxInput(),
@@ -531,22 +533,26 @@ class ChamberDeviationForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["chamber"].queryset = Chamber.objects.filter(is_active=True).order_by("code")
-        self.fields["study"].queryset = Study.objects.order_by("code")
-        self.fields["study"].required = False
         self.fields["detected_at"].input_formats = ["%Y-%m-%dT%H:%M"]
+        self.fields["ended_at"].input_formats = ["%Y-%m-%dT%H:%M"]
+        self.fields["deviation_code"].required = False
+        self.fields["deviation_code"].widget.attrs["readonly"] = True
+        self.fields["deviation_code"].widget.attrs["tabindex"] = "-1"
         labels = {
+            "deviation_code": "Codigo Desviacion",
             "chamber": "Camara",
-            "study": "Estudio",
-            "detected_at": "Fecha y hora de deteccion",
+            "detected_at": "Fecha y hora de inicio",
+            "ended_at": "Fecha y hora de fin",
             "description": "Descripcion",
             "impact_assessment": "Evaluacion de impacto",
             "requires_recalculation": "Requiere recalculo de fechas",
         }
         placeholders = {
+            "deviation_code": "Se generara automaticamente",
             "description": "Describe la desviacion detectada en la camara",
             "impact_assessment": "Indica el impacto y las acciones tomadas",
         }
         for name, field in self.fields.items():
             field.label = labels.get(name, field.label)
             _apply_bootstrap(field, placeholders.get(name))
-        self.fields["requires_recalculation"].help_text = "Marca esta opcion solo si quieres recalcular las fechas de muestreo del estudio asociado."
+        self.fields["requires_recalculation"].help_text = "Marca esta opcion solo si quieres recalcular las fechas de todas las muestras activas de esta camara."

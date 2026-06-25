@@ -410,7 +410,9 @@ class StockMovement(TimeStampedModel):
 class ChamberDeviation(TimeStampedModel):
     chamber = models.ForeignKey(Chamber, related_name="deviations", on_delete=models.CASCADE)
     study = models.ForeignKey(Study, related_name="deviations", on_delete=models.SET_NULL, null=True, blank=True)
+    deviation_code = models.CharField(max_length=100, blank=True, db_index=True)
     detected_at = models.DateTimeField()
+    ended_at = models.DateTimeField(null=True, blank=True)
     description = models.TextField()
     impact_assessment = models.TextField(blank=True)
     requires_recalculation = models.BooleanField(default=False)
@@ -419,8 +421,23 @@ class ChamberDeviation(TimeStampedModel):
         verbose_name = "Desviación de Cámara"
         verbose_name_plural = "Desviaciones de Cámaras"
     
+    def save(self, *args, **kwargs):
+        if not self.deviation_code:
+            year = timezone.localdate().year
+            prefix = f"DEV-{year}-"
+            existing = ChamberDeviation.objects.filter(
+                deviation_code__startswith=prefix
+            ).values_list("deviation_code", flat=True)
+            max_seq = 0
+            for value in existing:
+                suffix = (value or "").replace(prefix, "")
+                if suffix.isdigit():
+                    max_seq = max(max_seq, int(suffix))
+            self.deviation_code = f"{prefix}{max_seq + 1:03d}"
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"{self.chamber.code} - {self.detected_at:%Y-%m-%d %H:%M}"
+        return f"{self.deviation_code or self.chamber.code} - {self.detected_at:%Y-%m-%d %H:%M}"
 
 
 class StabilityAlert(TimeStampedModel):
