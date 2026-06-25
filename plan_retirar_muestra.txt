@@ -1,0 +1,97 @@
+Sí, ahora está clarísimo lo que quiere, y además encaja bastante bien con tu pantalla actual. No estás perdido: la transcripción ya te da la lógica.
+
+Lo aterrizaría así:
+
+**Qué cambia en la tabla**
+La columna `Notas` deja de ser protagonista y se sustituye por el circuito de retirada.
+En cada línea de `Fecha de muestreo` tendrías:
+- `Fecha`
+- `Código fecha de muestreo`
+- `Cámara`
+- `Ubicación`
+- `Cantidad`
+- `Fecha salida`
+- `Activa`
+- `Acciones`
+
+Y en `Acciones`:
+- `Generar etiqueta`
+- `Retirar muestra`
+- `Editar`
+- `Eliminar`
+
+**Qué hace `Retirar muestra`**
+Al pulsarlo:
+- se abre un modal
+- el modal muestra:
+  - usuario logado
+  - fecha y hora de salida
+  - opcionalmente un texto corto de confirmación
+- al confirmar:
+  - se guarda la fecha/hora de salida en esa línea
+  - se guarda el usuario que la retiró
+  - `is_active` pasa a `False`
+  - se cierra el modal
+  - la tabla se refresca mostrando que esa submuestra ya salió de cámara
+
+**Cómo se vería en la línea**
+La idea de tu responsable sería reflejar visualmente el estado.
+Por ejemplo:
+- `Activa = Sí` en naranja o azul suave cuando sigue en cámara
+- `Activa = No` o `Retirada` en verde cuando ya salió
+- además una columna `Fecha salida` con el valor guardado
+- y si quieres, una fila retirada con tono más apagado
+
+Yo usaría algo simple:
+- badge `En cámara`
+- badge `Retirada`
+- `Fecha salida` visible en tabla
+
+Eso es mejor que solo un color suelto porque se entiende más.
+
+**Qué campos harían falta en `SampleSchedule`**
+Para implementarlo bien:
+- `removed_at` o `withdrawn_at`
+- `removed_by` o `withdrawn_by`
+- mantener `is_active`
+
+Con eso basta para una primera versión buena.
+
+**Regla de negocio**
+- si no se ha retirado:
+  - `is_active = True`
+  - `removed_at = null`
+  - `removed_by = null`
+- si se retira:
+  - `is_active = False`
+  - `removed_at = fecha/hora`
+  - `removed_by = usuario logado`
+
+**Trazabilidad**
+Aquí encaja perfecto con tu sistema:
+- nueva acción auditada tipo `web_withdraw_sample_schedule`
+- en `changes` guardar:
+  - `is_active`: `True -> False`
+  - `removed_at`: `null -> fecha`
+  - `removed_by`: `null -> usuario`
+
+Así queda muy limpio.
+
+**Cómo lo haría visualmente en tu pantalla**
+1. Reemplazar la columna `Notas` por `Fecha salida`
+2. Añadir botón `Retirar muestra` en `Acciones`
+3. Modal de retirada
+4. Badge en `Activa`:
+   - `En cámara`
+   - `Retirada`
+
+**Mi recomendación concreta**
+Para no complicarte:
+- no eliminaría el campo `notes` del modelo todavía
+- solo lo quitaría de la tabla principal web
+- y pondría `Fecha salida` en su lugar
+- el botón `Retirar muestra` iría al lado de `Generar etiqueta`
+
+Así cumples lo que te pide sin hacer una cirugía grande innecesaria.
+
+Si quieres, el siguiente paso te lo hago ya en código con mucho cuidado.

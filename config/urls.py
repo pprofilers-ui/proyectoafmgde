@@ -37,7 +37,7 @@ from stability.web_views import (
 
 schema_view = get_schema_view(
     openapi.Info(
-        title='AFMGDE API',
+        title='NetLab One Stability API',
         default_version='v1',
         description='API para el modulo de gestion de estudios de estabilidad.',
     ),

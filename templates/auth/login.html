@@ -1,10 +1,19 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block title %}Acceso | NetLab One Stability{% endblock %}
 
 {% block content %}
 <div class="login-shell">
     <div class="hero glass p-4 mb-4">
-        <h1>Acceso AFMGDE</h1>
-        <p>Aplicacion web para gestion de estudios de estabilidad. Los usuarios normales entran aqui. El panel admin queda reservado para administracion.</p>
+        <img
+            src="{% static 'branding/netlabone-stability-logo.png' %}"
+            alt="NetLab One Stability"
+            class="img-fluid d-block mx-auto mb-4"
+            style="max-width: 360px;"
+        >
+        <h1 class="h2 mb-3 text-center">Acceso a NetLab One Stability</h1>
+        <p class="mb-0 text-center">Aplicacion web para gestion de estudios de estabilidad. Los usuarios normales entran aqui. El panel admin queda reservado para administracion.</p>
     </div>
     <div class="card glass border-0 shadow-sm">
         <form method="post" class="p-4 p-md-5">

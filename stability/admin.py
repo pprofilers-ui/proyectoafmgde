@@ -573,7 +573,7 @@ def _grouped_admin_app_list(request, app_label=None):
             maestros = deepcopy(app)
             maestros["name"] = "Maestros"
             maestros["app_label"] = "maestros"
-            maestros["models"] = maestros_models_list + ([model_map["Client"]] if "Client" in model_map else [])
+            maestros["models"] = maestros_models_list
             grouped_apps.append(maestros)
 
         if stability_models_list:
