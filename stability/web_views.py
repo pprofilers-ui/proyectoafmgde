@@ -877,7 +877,15 @@ def extract_sample_web(request):
 @login_required
 def sample_label_preview(request, pk):
     sample = get_object_or_404(
-        Sample.objects.select_related("study", "sampling_point", "chamber", "chamber__storage_condition"),
+        Sample.objects.select_related(
+            "study",
+            "sampling_point",
+            "chamber",
+            "chamber__storage_condition",
+            "reception",
+            "reception__packaging",
+            "reception__batch",
+        ),
         pk=pk,
     )
     schedule = None

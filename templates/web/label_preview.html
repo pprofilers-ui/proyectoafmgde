@@ -4,67 +4,275 @@
     <meta charset="UTF-8">
     <title>Etiqueta {{ sample.sample_code }}</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
-        .label {
-            width: 420px;
-            background: white;
-            border: 2px solid #222;
-            border-radius: 16px;
-            padding: 20px;
+        :root {
+            color-scheme: light;
+            --ink: #13213f;
+            --muted: #5f6f96;
+            --line: #d7e2f7;
+            --panel: #ffffff;
+            --accent: #dce9ff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 18px;
+            background: #eef3fb;
+            font-family: Arial, sans-serif;
+            color: var(--ink);
+        }
+
+        .label-sheet {
+            width: 6in;
+            min-height: 3.5in;
             margin: 0 auto;
-            position: relative;
+            background: var(--panel);
+            border: 1px solid #2d3b5f;
+            border-radius: 18px;
+            padding: 0.18in;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            gap: 12px;
+            box-shadow: 0 16px 40px rgba(40, 58, 102, 0.12);
         }
-        .condition-band {
-            height: 12px;
+
+        .top-band {
+            height: 10px;
             border-radius: 999px;
-            margin-bottom: 16px;
-            background: #DCEBFF;
+            background: linear-gradient(90deg, #d7f0ff, #dce9ff, #d7f0ff);
         }
-        .qr {
-            margin-top: 16px;
-            padding: 12px;
-            border: 1px dashed #555;
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            align-items: flex-start;
+        }
+
+        .title {
+            font-size: 13px;
+            font-weight: 800;
+            margin: 0 0 6px;
+        }
+
+        .subtitle {
+            font-size: 10px;
+            color: var(--muted);
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .code-chip {
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: var(--accent);
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .body-grid {
+            display: grid;
+            grid-template-columns: 1.45fr 0.95fr;
+            gap: 14px;
+            align-items: start;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 12px;
+        }
+
+        .meta-block {
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 8px 10px;
+            min-height: 46px;
+        }
+
+        .meta-block.wide {
+            grid-column: 1 / -1;
+        }
+
+        .meta-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .meta-value {
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.25;
+            word-break: break-word;
+        }
+
+        .meta-value.small {
+            font-size: 11px;
+        }
+
+        .qr-panel {
+            border: 1px dashed #7b8ab1;
+            border-radius: 14px;
+            padding: 10px;
             text-align: center;
-            background: #fafafa;
+            background: #fbfcff;
         }
-        .qr-text {
-            font-family: monospace;
-            font-size: 18px;
-            margin-bottom: 10px;
-        }
-        .qr img {
-            width: 140px;
-            height: 140px;
+
+        .qr-panel img {
+            width: 122px;
+            height: 122px;
             image-rendering: pixelated;
+            display: block;
+            margin: 6px auto 8px;
         }
-        .meta { margin: 8px 0; }
-        .actions { text-align: center; margin-top: 20px; }
-        @media print { .actions { display: none; } body { background: white; } }
+
+        .qr-caption {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+        }
+
+        .qr-text {
+            font-size: 10px;
+            font-family: monospace;
+            line-height: 1.25;
+            word-break: break-all;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .footer-note {
+            font-size: 9px;
+            color: var(--muted);
+        }
+
+        .actions {
+            text-align: center;
+        }
+
+        .actions button {
+            border: 1px solid #8897be;
+            background: white;
+            border-radius: 999px;
+            padding: 8px 14px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        @page {
+            size: 6in 3.5in;
+            margin: 0.12in;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .label-sheet {
+                margin: 0;
+                box-shadow: none;
+                border-radius: 12px;
+                min-height: auto;
+            }
+
+            .actions {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="label">
-        <div class="condition-band"></div>
-        <h2>Etiqueta de muestra</h2>
-        <div class="meta"><strong>Producto:</strong> {{ sample.study.product_name }}</div>
-        <div class="meta"><strong>Presentacion:</strong> {{ sample.reception.presentation|default:"-" }}</div>
-        <div class="meta"><strong>Codigo interno:</strong> {{ sample.sample_code }}</div>
-        <div class="meta"><strong>Lote interno:</strong> {% if sample.reception.batch %}{{ sample.reception.batch.code }}{% else %}-{% endif %}</div>
-        <div class="meta"><strong>Condicion climatica:</strong> {% if schedule and schedule.chamber and schedule.chamber.storage_condition %}{{ schedule.chamber.storage_condition.name }}{% elif sample.chamber and sample.chamber.storage_condition %}{{ sample.chamber.storage_condition.name }}{% else %}-{% endif %}</div>
-        <div class="meta"><strong>Muestra:</strong> {{ sample.sample_code }}</div>
-        <div class="meta"><strong>Estudio:</strong> {{ sample.study.code }}</div>
-        <div class="meta"><strong>Fecha de muestreo:</strong> {% if schedule %}{{ schedule.planned_date|date:"d/m/Y" }}{% else %}-{% endif %}</div>
-        <div class="meta"><strong>Codigo fecha de muestreo:</strong> {% if schedule %}{{ schedule.label|default:"-" }}{% else %}-{% endif %}</div>
-        <div class="meta"><strong>Fecha de entrada en camara:</strong> {{ sample.placed_in_chamber_at|default:"-" }}</div>
-        <div class="meta"><strong>Camara:</strong> {% if schedule and schedule.chamber %}{{ schedule.chamber.code }}{% else %}{{ sample.chamber.code|default:"-" }}{% endif %}</div>
-        <div class="meta"><strong>Ubicacion:</strong> {% if schedule and schedule.chamber_location %}{{ schedule.chamber_location.code }} - {{ schedule.chamber_location.name }}{% else %}-{% endif %}</div>
-        <div class="meta"><strong>Estado:</strong> {{ sample.get_status_display }}</div>
-        <div class="qr">
-            <div class="qr-text">{{ qr_value }}</div>
-            <img src="data:image/png;base64,{{ qr_image_base64 }}" alt="Codigo QR de la muestra">
+    <div class="label-sheet">
+        <div class="top-band"></div>
+
+        <div class="header">
+            <div>
+                <p class="subtitle">Informacion</p>
+                <h1 class="title">Etiqueta de muestra</h1>
+            </div>
+            <div class="code-chip">{{ sample.study.code }}</div>
         </div>
-        <div class="actions">
-            <button onclick="window.print()">Imprimir / Guardar PDF</button>
+
+        <div class="body-grid">
+            <div class="meta-grid">
+                <div class="meta-block wide">
+                    <div class="meta-label">Producto y presentacion</div>
+                    <div class="meta-value">
+                        {{ sample.study.product_name|default:"-" }}
+                        {% if sample.reception.presentation %} / {{ sample.reception.presentation }}{% endif %}
+                    </div>
+                </div>
+
+                <div class="meta-block">
+                    <div class="meta-label">Codigo interno</div>
+                    <div class="meta-value">{{ sample.sample_code }}</div>
+                </div>
+
+                <div class="meta-block wide">
+                    <div class="meta-label">Condicion climatica / Camara</div>
+                    <div class="meta-value small">
+                        {% if schedule and schedule.chamber and schedule.chamber.storage_condition %}
+                            {{ schedule.chamber.storage_condition.name }} / {{ schedule.chamber.code }}
+                        {% elif sample.chamber and sample.chamber.storage_condition %}
+                            {{ sample.chamber.storage_condition.name }} / {{ sample.chamber.code }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="meta-block wide">
+                    <div class="meta-label">Ubicacion</div>
+                    <div class="meta-value small">
+                        {% if schedule and schedule.chamber_location %}
+                            {{ schedule.chamber_location.code }} - {{ schedule.chamber_location.name }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="meta-block">
+                    <div class="meta-label">Punto de muestreo</div>
+                    <div class="meta-value">{{ schedule.label|default:"-" }}</div>
+                </div>
+
+                <div class="meta-block">
+                    <div class="meta-label">Fecha de entrada en camaras</div>
+                    <div class="meta-value">{{ sample.placed_in_chamber_at|date:"d/m/Y H:i"|default:"-" }}</div>
+                </div>
+            </div>
+
+            <div class="qr-panel">
+                <div class="qr-caption">Codigo QR</div>
+                <img src="data:image/png;base64,{{ qr_image_base64 }}" alt="Codigo QR de la muestra">
+                <div class="qr-text">{{ qr_value }}</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="footer-note">
+                {% if sample.reception.batch %}Lote: {{ sample.reception.batch.code }}{% else %}Lote: -{% endif %}
+            </div>
+            <div class="actions">
+                <button onclick="window.print()">Imprimir / Guardar PDF</button>
+            </div>
         </div>
     </div>
 </body>
