@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
 from django.db.models import Count, F, Q, Sum
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 import qrcode
@@ -217,6 +218,11 @@ def create_study_web(request):
             )
         messages.success(request, f"Estudio {study.code} creado correctamente.")
     else:
+        if wants_print and is_ajax:
+            errors = []
+            for field_errors in form.errors.values():
+                errors.extend(field_errors)
+            return JsonResponse({"ok": False, "errors": errors}, status=400)
         messages.error(request, "No se pudo crear el estudio. Revisa los campos obligatorios.")
     return redirect("web-studies")
 
@@ -665,6 +671,8 @@ def create_sample_schedule_web(request, pk):
     if request.method != "POST":
         return redirect("web-sample-schedules", pk=sample.pk)
     form = SampleScheduleForm(request.POST)
+    wants_print = request.POST.get("submit_action") == "save_and_print"
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     if form.is_valid():
         schedule = form.save(commit=False)
         schedule.sample = sample
@@ -685,6 +693,14 @@ def create_sample_schedule_web(request, pk):
             payload={"sample_code": sample.sample_code, "planned_date": str(schedule.planned_date)},
             changes=_schedule_audit_changes(None, schedule),
         )
+        if wants_print and is_ajax:
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "label_url": f"/app/labels/{sample.id}/?schedule={schedule.id}&autoprint=1",
+                    "redirect_url": f"/app/samples/{sample.id}/schedules/?refresh={timezone.now().timestamp()}#add-schedule-form",
+                }
+            )
         messages.success(request, "Fecha de muestreo añadida correctamente.")
     else:
         messages.error(request, "No se pudo añadir la fecha de muestreo.")
@@ -968,5 +984,6 @@ def sample_label_preview(request, pk):
         "schedule": schedule,
         "qr_value": qr_value,
         "qr_image_base64": qr_image_base64,
+        "autoprint": request.GET.get("autoprint") == "1",
     }
     return render(request, "web/label_preview.html", context)

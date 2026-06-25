@@ -153,6 +153,15 @@
 
                         </form>
 
+                        <a class="btn btn-sm btn-outline-dark rounded-pill ms-1"
+                           href="/app/labels/{{ sample.id }}/?schedule={{ item.id }}&autoprint=1"
+                           target="_blank"
+                           rel="noopener">
+
+                            Imprimir etiqueta
+
+                        </a>
+
                     </td>
 
                 </tr>
@@ -189,7 +198,8 @@
 
             <form method="post"
                   action="/app/samples/{{ sample.id }}/schedules/create/"
-                  class="row g-4">
+                  class="row g-4"
+                  id="add-schedule-form">
 
                 {% csrf_token %}
 
@@ -236,6 +246,15 @@
                         type="submit">
 
                         Guardar fecha
+
+                    </button>
+
+                    <button
+                        class="btn btn-outline-primary btn-lg soft-pill ms-2"
+                        type="button"
+                        onclick="saveAndPrintScheduleLabel(this)">
+
+                        Guardar e imprimir etiqueta
 
                     </button>
 
@@ -420,6 +439,89 @@ function filterLocationOptions(chamberSelectId, locationSelectId) {
         return;
     }
     locationSelect.value = '';
+}
+
+async function saveAndPrintScheduleLabel(button) {
+    const form = document.getElementById('add-schedule-form');
+    if (!form) {
+        return;
+    }
+
+    const plannedDate = document.getElementById('id_planned_date');
+    const chamber = document.getElementById('id_chamber');
+    const chamberLocation = document.getElementById('id_chamber_location');
+    const quantity = document.getElementById('id_quantity');
+
+    const missingFields = [];
+    if (!plannedDate || !plannedDate.value) {
+        missingFields.push('Fecha de muestreo');
+    }
+    if (!chamber || !chamber.value) {
+        missingFields.push('Camara');
+    }
+    if (!chamberLocation || !chamberLocation.value) {
+        missingFields.push('Ubicacion');
+    }
+    if (!quantity || !quantity.value || Number(quantity.value) <= 0) {
+        missingFields.push('Cantidad');
+    }
+
+    if (missingFields.length) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Completa los datos primero',
+            text: `Antes de guardar e imprimir, revisa estos campos: ${missingFields.join(', ')}.`,
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
+    const submitButton = button || null;
+    if (submitButton) {
+        submitButton.disabled = true;
+    }
+
+    const formData = new FormData(form);
+    formData.set('submit_action', 'save_and_print');
+
+    try {
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        });
+
+        const payload = await response.json();
+
+        if (!response.ok || !payload.ok) {
+            const errorMessage = payload.errors && payload.errors.length
+                ? payload.errors.join('\n')
+                : 'No se pudo guardar la fecha de muestreo.';
+            Swal.fire({
+                icon: 'error',
+                title: 'No se pudo guardar',
+                text: errorMessage,
+                confirmButtonText: 'Aceptar'
+            });
+            return;
+        }
+
+        window.open(payload.label_url, '_blank', 'noopener');
+        window.location.href = payload.redirect_url;
+    } catch (error) {
+        Swal.fire({
+            icon: 'error',
+            title: 'No se pudo imprimir',
+            text: 'No se pudo guardar e imprimir la etiqueta. Intentalo de nuevo.',
+            confirmButtonText: 'Aceptar'
+        });
+    } finally {
+        if (submitButton) {
+            submitButton.disabled = false;
+        }
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function () {
