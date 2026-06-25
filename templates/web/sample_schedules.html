@@ -201,7 +201,23 @@
                         {{ field.label }}
                     </label>
 
+                    {% if field.name == 'chamber' %}
+                    <select id="id_chamber" name="chamber" class="form-select rounded-4 shadow-sm">
+                        <option value="">---------</option>
+                        {% for option in schedule_form.chamber.field.queryset %}
+                        <option value="{{ option.pk }}" data-chamber-key="{{ option.code|upper|cut:'-' }}">{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                    {% elif field.name == 'chamber_location' %}
+                    <select id="id_chamber_location" name="chamber_location" class="form-select rounded-4 shadow-sm">
+                        <option value="">---------</option>
+                        {% for option in schedule_form.chamber_location.field.queryset %}
+                        <option value="{{ option.pk }}" data-chamber-key="{% if option.code %}{{ option.code|upper|slice:':5' }}{% endif %}">{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                    {% else %}
                     {{ field }}
+                    {% endif %}
 
                     {% if field.errors %}
                     <div class="text-danger small mt-1">
@@ -303,7 +319,7 @@
                             <select id="edit_schedule_chamber" name="chamber" class="form-select rounded-4 shadow-sm">
                                 <option value="">---------</option>
                                 {% for option in schedule_form.chamber.field.queryset %}
-                                <option value="{{ option.pk }}">{{ option }}</option>
+                                <option value="{{ option.pk }}" data-chamber-key="{{ option.code|upper|cut:'-' }}">{{ option }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -312,7 +328,7 @@
                             <select id="edit_schedule_chamber_location" name="chamber_location" class="form-select rounded-4 shadow-sm">
                                 <option value="">---------</option>
                                 {% for option in schedule_form.chamber_location.field.queryset %}
-                                <option value="{{ option.pk }}">{{ option }}</option>
+                                <option value="{{ option.pk }}" data-chamber-key="{% if option.code %}{{ option.code|upper|slice:':5' }}{% endif %}">{{ option }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -366,6 +382,7 @@ function openScheduleEditModal(scheduleId, plannedDate, label, chamberId, chambe
     document.getElementById('edit_schedule_planned_date').value = plannedDate || '';
     document.getElementById('edit_schedule_label').value = label || '';
     document.getElementById('edit_schedule_chamber').value = chamberId || '';
+    filterLocationOptions('edit_schedule_chamber', 'edit_schedule_chamber_location');
     document.getElementById('edit_schedule_chamber_location').value = chamberLocationId || '';
     document.getElementById('edit_schedule_quantity').value = quantity || 1;
     document.getElementById('edit_schedule_notes').value = notes || '';
@@ -373,5 +390,55 @@ function openScheduleEditModal(scheduleId, plannedDate, label, chamberId, chambe
     const modal = new bootstrap.Modal(document.getElementById('scheduleEditModal'));
     modal.show();
 }
+
+function filterLocationOptions(chamberSelectId, locationSelectId) {
+    const chamberSelect = document.getElementById(chamberSelectId);
+    const locationSelect = document.getElementById(locationSelectId);
+    if (!chamberSelect || !locationSelect) {
+        return;
+    }
+
+    const selectedOption = chamberSelect.options[chamberSelect.selectedIndex];
+    const selectedChamberKey = selectedOption ? (selectedOption.dataset.chamberKey || '') : '';
+    const currentValue = locationSelect.value;
+
+    Array.from(locationSelect.options).forEach((option, index) => {
+        if (index === 0) {
+            option.hidden = false;
+            option.disabled = false;
+            return;
+        }
+
+        const optionChamberKey = option.dataset.chamberKey || '';
+        const shouldShow = !selectedChamberKey || optionChamberKey === selectedChamberKey;
+        option.hidden = !shouldShow;
+        option.disabled = !shouldShow;
+    });
+
+    const selectedLocationOption = locationSelect.options[locationSelect.selectedIndex];
+    if (currentValue && selectedLocationOption && !selectedLocationOption.hidden) {
+        return;
+    }
+    locationSelect.value = '';
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const createChamber = document.getElementById('id_chamber');
+    const editChamber = document.getElementById('edit_schedule_chamber');
+
+    if (createChamber) {
+        createChamber.addEventListener('change', function () {
+            filterLocationOptions('id_chamber', 'id_chamber_location');
+        });
+        filterLocationOptions('id_chamber', 'id_chamber_location');
+    }
+
+    if (editChamber) {
+        editChamber.addEventListener('change', function () {
+            filterLocationOptions('edit_schedule_chamber', 'edit_schedule_chamber_location');
+        });
+        filterLocationOptions('edit_schedule_chamber', 'edit_schedule_chamber_location');
+    }
+});
 </script>
 {% endblock %}

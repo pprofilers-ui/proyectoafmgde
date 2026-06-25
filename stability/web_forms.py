@@ -38,6 +38,19 @@ def _apply_bootstrap(field, placeholder=None):
         widget.attrs["placeholder"] = placeholder
 
 
+def _chamber_key_from_code(code):
+    cleaned = (code or "").strip().upper().replace("-", "")
+    return cleaned
+
+
+def _location_matches_chamber(chamber, chamber_location):
+    if not chamber or not chamber_location:
+        return True
+    chamber_key = _chamber_key_from_code(getattr(chamber, "code", ""))
+    location_code = (getattr(chamber_location, "code", "") or "").strip().upper()
+    return location_code.startswith(f"{chamber_key}-")
+
+
 def _next_reception_number():
     from .models import SampleReception
 
@@ -478,6 +491,14 @@ class SampleScheduleForm(forms.ModelForm):
             field.label = labels.get(name, field.label)
             _apply_bootstrap(field, placeholders.get(name))
 
+    def clean(self):
+        cleaned_data = super().clean()
+        chamber = cleaned_data.get("chamber")
+        chamber_location = cleaned_data.get("chamber_location")
+        if chamber and chamber_location and not _location_matches_chamber(chamber, chamber_location):
+            self.add_error("chamber_location", "La ubicacion seleccionada no pertenece a la camara indicada.")
+        return cleaned_data
+
 
 class SampleScheduleEditForm(forms.ModelForm):
     class Meta:
@@ -511,6 +532,14 @@ class SampleScheduleEditForm(forms.ModelForm):
         for name, field in self.fields.items():
             field.label = labels.get(name, field.label)
             _apply_bootstrap(field, placeholders.get(name))
+
+    def clean(self):
+        cleaned_data = super().clean()
+        chamber = cleaned_data.get("chamber")
+        chamber_location = cleaned_data.get("chamber_location")
+        if chamber and chamber_location and not _location_matches_chamber(chamber, chamber_location):
+            self.add_error("chamber_location", "La ubicacion seleccionada no pertenece a la camara indicada.")
+        return cleaned_data
 
 
 class ChamberDeviationForm(forms.ModelForm):
