@@ -443,12 +443,7 @@ function filterLocationOptions(chamberSelectId, locationSelectId) {
     locationSelect.value = '';
 }
 
-async function saveAndPrintScheduleLabel(button) {
-    const form = document.getElementById('add-schedule-form');
-    if (!form) {
-        return;
-    }
-
+function validateScheduleCreateForm(form) {
     const plannedDate = document.getElementById('id_planned_date');
     const chamber = document.getElementById('id_chamber');
     const chamberLocation = document.getElementById('id_chamber_location');
@@ -474,10 +469,10 @@ async function saveAndPrintScheduleLabel(button) {
         Swal.fire({
             icon: 'warning',
             title: 'Completa los datos primero',
-            text: `Antes de guardar e imprimir, revisa estos campos: ${missingFields.join(', ')}.`,
+            text: `Antes de guardar, revisa estos campos: ${missingFields.join(', ')}.`,
             confirmButtonText: 'Entendido'
         });
-        return;
+        return false;
     }
 
     const requestedQuantity = Number(quantity.value || '0');
@@ -488,6 +483,19 @@ async function saveAndPrintScheduleLabel(button) {
             text: `La suma asignada seria ${assignedQuantity + requestedQuantity} y no puede superar la cantidad recibida (${receivedQuantity}).`,
             confirmButtonText: 'Entendido'
         });
+        return false;
+    }
+
+    return true;
+}
+
+async function saveAndPrintScheduleLabel(button) {
+    const form = document.getElementById('add-schedule-form');
+    if (!form) {
+        return;
+    }
+
+    if (!validateScheduleCreateForm(form)) {
         return;
     }
 
@@ -540,8 +548,17 @@ async function saveAndPrintScheduleLabel(button) {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+    const createForm = document.getElementById('add-schedule-form');
     const createChamber = document.getElementById('id_chamber');
     const editChamber = document.getElementById('edit_schedule_chamber');
+
+    if (createForm) {
+        createForm.addEventListener('submit', function (event) {
+            if (!validateScheduleCreateForm(createForm)) {
+                event.preventDefault();
+            }
+        });
+    }
 
     if (createChamber) {
         createChamber.addEventListener('change', function () {
