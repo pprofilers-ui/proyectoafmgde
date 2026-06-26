@@ -324,7 +324,13 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
-                <form id="scheduleEditForm" method="post" action="">
+                <form id="scheduleEditForm"
+                      method="post"
+                      action=""
+                      data-received-quantity="{{ sample.reception.quantity_received|default:0 }}"
+                      data-assigned-quantity="{{ sample.assigned_quantity_live|default:0 }}"
+                      data-original-quantity="0"
+                      data-original-active="false">
                     {% csrf_token %}
                     <div class="row g-4">
                         <div class="col-md-4">
@@ -400,6 +406,8 @@ function openScheduleWithdrawModal(scheduleId, label, username, notes) {
 function openScheduleEditModal(scheduleId, plannedDate, label, chamberId, chamberLocationId, quantity, notes, isActive) {
     const form = document.getElementById('scheduleEditForm');
     form.action = `/app/samples/schedules/${scheduleId}/edit/`;
+    form.dataset.originalQuantity = quantity || 0;
+    form.dataset.originalActive = isActive === 'true' ? 'true' : 'false';
     document.getElementById('edit_schedule_planned_date').value = plannedDate || '';
     document.getElementById('edit_schedule_label').value = label || '';
     document.getElementById('edit_schedule_chamber').value = chamberId || '';
@@ -489,6 +497,59 @@ function validateScheduleCreateForm(form) {
     return true;
 }
 
+function validateScheduleEditForm(form) {
+    const plannedDate = document.getElementById('edit_schedule_planned_date');
+    const chamber = document.getElementById('edit_schedule_chamber');
+    const chamberLocation = document.getElementById('edit_schedule_chamber_location');
+    const quantity = document.getElementById('edit_schedule_quantity');
+    const isActive = document.getElementById('edit_schedule_is_active');
+    const receivedQuantity = Number(form.dataset.receivedQuantity || '0');
+    const assignedQuantity = Number(form.dataset.assignedQuantity || '0');
+    const originalQuantity = Number(form.dataset.originalQuantity || '0');
+    const originalActive = form.dataset.originalActive === 'true';
+
+    const missingFields = [];
+    if (!plannedDate || !plannedDate.value) {
+        missingFields.push('Fecha de muestreo');
+    }
+    if (!chamber || !chamber.value) {
+        missingFields.push('Camara');
+    }
+    if (!chamberLocation || !chamberLocation.value) {
+        missingFields.push('Ubicacion');
+    }
+    if (!quantity || !quantity.value || Number(quantity.value) <= 0) {
+        missingFields.push('Cantidad');
+    }
+
+    if (missingFields.length) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Completa los datos primero',
+            text: `Antes de guardar, revisa estos campos: ${missingFields.join(', ')}.`,
+            confirmButtonText: 'Entendido'
+        });
+        return false;
+    }
+
+    const requestedQuantity = Number(quantity.value || '0');
+    const requestedActive = isActive && isActive.value === 'true';
+    const currentAssignedWithoutThisLine = assignedQuantity - (originalActive ? originalQuantity : 0);
+    const recalculatedAssigned = currentAssignedWithoutThisLine + (requestedActive ? requestedQuantity : 0);
+
+    if (recalculatedAssigned > receivedQuantity) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Cantidad no valida',
+            text: `La suma asignada seria ${recalculatedAssigned} y no puede superar la cantidad recibida (${receivedQuantity}).`,
+            confirmButtonText: 'Entendido'
+        });
+        return false;
+    }
+
+    return true;
+}
+
 async function saveAndPrintScheduleLabel(button) {
     const form = document.getElementById('add-schedule-form');
     if (!form) {
@@ -549,12 +610,21 @@ async function saveAndPrintScheduleLabel(button) {
 
 document.addEventListener('DOMContentLoaded', function () {
     const createForm = document.getElementById('add-schedule-form');
+    const editForm = document.getElementById('scheduleEditForm');
     const createChamber = document.getElementById('id_chamber');
     const editChamber = document.getElementById('edit_schedule_chamber');
 
     if (createForm) {
         createForm.addEventListener('submit', function (event) {
             if (!validateScheduleCreateForm(createForm)) {
+                event.preventDefault();
+            }
+        });
+    }
+
+    if (editForm) {
+        editForm.addEventListener('submit', function (event) {
+            if (!validateScheduleEditForm(editForm)) {
                 event.preventDefault();
             }
         });
