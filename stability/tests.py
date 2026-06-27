@@ -8,7 +8,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Chamber, Product, Sample, SamplingPointTemplate, Study, StudyPlanningEntry
+from .models import Chamber, PlannedSubsample, Product, Sample, SamplingPointTemplate, Study, StudyPlanningEntry
 from .web_forms import StudyCreateForm, StudyEditForm
 
 
@@ -183,6 +183,34 @@ class PlanningViewTests(TestCase):
         entries = StudyPlanningEntry.objects.filter(study=self.study).order_by("analysis_type")
         self.assertEqual(entries.count(), 2)
         self.assertEqual(entries[0].subsample_quantity + entries[1].subsample_quantity, 5)
+
+    def test_generate_planning_creates_planned_subsamples(self):
+        template = SamplingPointTemplate.objects.create(month_number=99, label="99M", is_active=True)
+        StudyPlanningEntry.objects.create(
+            study=self.study,
+            sampling_point_template=template,
+            chamber=self.chamber,
+            analysis_type=StudyPlanningEntry.AnalysisType.FQ,
+            subsample_quantity=2,
+        )
+        StudyPlanningEntry.objects.create(
+            study=self.study,
+            sampling_point_template=template,
+            chamber=self.chamber,
+            analysis_type=StudyPlanningEntry.AnalysisType.MICRO,
+            subsample_quantity=1,
+        )
+
+        response = self.client.post(
+            f"/app/studies/{self.study.id}/planning/",
+            data={"action": "generate_planning"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        subsamples = PlannedSubsample.objects.filter(study=self.study).order_by("code")
+        self.assertEqual(subsamples.count(), 3)
+        self.assertEqual(subsamples.first().status, PlannedSubsample.Status.IN_CHAMBER)
+        self.assertTrue(subsamples.first().code.startswith(f"{self.study.code}-P-"))
 
 
 class AdminGroupingTests(TestCase):

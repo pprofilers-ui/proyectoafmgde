@@ -434,6 +434,43 @@ class StudyPlanningEntry(TimeStampedModel):
         return f"{self.study.code} - {self.sampling_point_template.label} - {self.chamber.code} - {self.get_analysis_type_display()}"
 
 
+class PlannedSubsample(TimeStampedModel):
+    class AnalysisType(models.TextChoices):
+        FQ = "fq", "FQ"
+        MICRO = "micro", "Micro"
+
+    class Status(models.TextChoices):
+        IN_CHAMBER = "in_chamber", "En camara"
+        WITHDRAWN = "withdrawn", "Retirada"
+
+    study = models.ForeignKey(Study, related_name="planned_subsamples", on_delete=models.CASCADE)
+    sampling_point_template = models.ForeignKey(
+        SamplingPointTemplate,
+        related_name="planned_subsamples",
+        on_delete=models.PROTECT,
+    )
+    chamber = models.ForeignKey(
+        Chamber,
+        related_name="planned_subsamples",
+        on_delete=models.PROTECT,
+    )
+    analysis_type = models.CharField(max_length=20, choices=AnalysisType.choices)
+    code = models.CharField(max_length=120, unique=True)
+    planned_date = models.DateField(null=True, blank=True)
+    actual_sampling_date = models.DateField(null=True, blank=True)
+    analysis_date = models.DateField(null=True, blank=True)
+    location_notes = models.CharField(max_length=255, blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.IN_CHAMBER)
+
+    class Meta:
+        ordering = ["sampling_point_template__month_number", "code"]
+        verbose_name = "Submuestra Planificada"
+        verbose_name_plural = "Submuestras Planificadas"
+
+    def __str__(self):
+        return self.code
+
+
 class StockMovement(TimeStampedModel):
     class MovementType(models.TextChoices):
         RECEPTION = "reception", "Recepcion"

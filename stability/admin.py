@@ -12,6 +12,7 @@ from .models import (
     Client,
     PackagingConfiguration,
     Product,
+    PlannedSubsample,
     ProductBatch,
     Sample,
     SampleSchedule,
@@ -177,6 +178,18 @@ _apply_admin_field_labels(StudyPlanningEntry, {
     "chamber": "CÃ¡mara",
     "analysis_type": "Tipo de anÃ¡lisis",
     "subsample_quantity": "NÃºmero de submuestras",
+})
+_apply_admin_field_labels(PlannedSubsample, {
+    "study": "Estudio",
+    "sampling_point_template": "Punto de muestreo",
+    "chamber": "CÃ¡mara",
+    "analysis_type": "Tipo de anÃ¡lisis",
+    "code": "CÃ³digo de la submuestra",
+    "planned_date": "Fecha de muestreo prevista",
+    "actual_sampling_date": "Fecha de muestreo real",
+    "analysis_date": "Fecha de anÃ¡lisis",
+    "location_notes": "Cantidad ubicaciÃ³n",
+    "status": "Estado",
 })
 _apply_admin_field_labels(StockMovement, {
     "sample": "Muestra",
@@ -559,6 +572,13 @@ class StudyPlanningEntryAdmin(admin.ModelAdmin):
     search_fields = ("study__code", "sampling_point_template__label", "chamber__code")
 
 
+@admin.register(PlannedSubsample)
+class PlannedSubsampleAdmin(admin.ModelAdmin):
+    list_display = ("code", "study", "sampling_point_template", "chamber", "analysis_type", "planned_date", "status")
+    list_filter = ("status", "analysis_type", "chamber", "study")
+    search_fields = ("code", "study__code", "sampling_point_template__label", "chamber__code")
+
+
 
 @admin.register(StockMovement)
 class StockMovementAdmin(admin.ModelAdmin):
@@ -591,7 +611,7 @@ clases_maestras = [
     StorageConditionAdmin, ChamberLocationAdmin, StudyAdmin,
     ChamberAdmin, SamplingPointAdmin, SamplingPointTemplateAdmin, SampleReceptionAdmin,
     SampleAdmin, SampleScheduleAdmin, StockMovementAdmin, ChamberDeviationAdmin, 
-    StabilityAlertAdmin, StudyPlanningEntryAdmin, AuditTrailAdmin
+    StabilityAlertAdmin, StudyPlanningEntryAdmin, PlannedSubsampleAdmin, AuditTrailAdmin
 ]
 
 # 2. Recorremos los modelos registrados en Django y aplicamos los permisos a sus instancias
@@ -625,6 +645,7 @@ def _grouped_admin_app_list(request, app_label=None):
         "SampleReception",
         "SamplingPoint",
         "SampleSchedule",
+        "PlannedSubsample",
         "StockMovement",
         "ChamberDeviation",
         "StabilityAlert",

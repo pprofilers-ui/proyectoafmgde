@@ -15,7 +15,7 @@ import qrcode
 
 from audit.utils import register_audit_event
 
-from .models import Chamber, ChamberDeviation, LabelTemplate, ProductBatch, Sample, SampleReception, SampleSchedule, SamplingPoint, SamplingPointTemplate, StabilityAlert, StockMovement, Study, StudyPlanningEntry
+from .models import Chamber, ChamberDeviation, LabelTemplate, PlannedSubsample, ProductBatch, Sample, SampleReception, SampleSchedule, SamplingPoint, SamplingPointTemplate, StabilityAlert, StockMovement, Study, StudyPlanningEntry
 from .web_forms import ChamberDeviationForm, ChamberPlacementForm, SampleCreateForm, SampleExtractionForm, SampleLabelForm, SampleRegistrationForm, SampleReceptionForm, SampleScheduleEditForm, SampleScheduleForm, StudyCreateForm, StudyEditForm
 
 
@@ -248,6 +248,54 @@ def _save_study_planning_entries(request, study, chambers, templates):
         changes={"planning_entries": {"before": None, "after": len(entries_to_create)}},
     )
     return True, None
+
+
+def _generate_planned_subsample_code(study, seq):
+    return f"{study.code}-P-{seq:04d}"
+
+
+def _generate_study_planning(study):
+    planning_entries = list(
+        study.planning_entries.select_related("sampling_point_template", "chamber").order_by(
+            "sampling_point_template__month_number",
+            "chamber__code",
+            "analysis_type",
+        )
+    )
+    if not planning_entries:
+        return False, "Primero debes guardar una planificacion base con cantidades por punto y camara."
+
+    planned_subsamples = []
+    sequence = 1
+    for entry in planning_entries:
+        for _index in range(entry.subsample_quantity):
+            planned_subsamples.append(
+                PlannedSubsample(
+                    study=study,
+                    sampling_point_template=entry.sampling_point_template,
+                    chamber=entry.chamber,
+                    analysis_type=entry.analysis_type,
+                    code=_generate_planned_subsample_code(study, sequence),
+                    planned_date=None,
+                    actual_sampling_date=None,
+                    analysis_date=None,
+                    location_notes="",
+                    status=PlannedSubsample.Status.IN_CHAMBER,
+                )
+            )
+            sequence += 1
+
+    with transaction.atomic():
+        study.planned_subsamples.all().delete()
+        PlannedSubsample.objects.bulk_create(planned_subsamples)
+
+    register_audit_event(
+        study,
+        "web_generate_study_planning",
+        payload={"study": study.code, "subsamples_count": len(planned_subsamples)},
+        changes={"planned_subsamples": {"before": None, "after": len(planned_subsamples)}},
+    )
+    return True, len(planned_subsamples)
 
 
 class AppLoginView(LoginView):
@@ -488,11 +536,18 @@ def planning_study_view(request, pk):
     templates = list(SamplingPointTemplate.objects.filter(is_active=True).order_by("month_number"))
 
     if request.method == "POST":
-        ok, error_message = _save_study_planning_entries(request, study, chambers, templates)
-        if ok:
-            messages.success(request, "Planificacion base guardada correctamente.")
-            return redirect("web-study-planning", pk=study.pk)
-        messages.error(request, error_message or "No se pudo guardar la planificacion.")
+        if request.POST.get("action") == "generate_planning":
+            ok, result = _generate_study_planning(study)
+            if ok:
+                messages.success(request, f"Planificacion generada correctamente con {result} submuestras.")
+                return redirect("web-study-planning", pk=study.pk)
+            messages.error(request, result or "No se pudo generar la planificacion.")
+        else:
+            ok, error_message = _save_study_planning_entries(request, study, chambers, templates)
+            if ok:
+                messages.success(request, "Planificacion base guardada correctamente.")
+                return redirect("web-study-planning", pk=study.pk)
+            messages.error(request, error_message or "No se pudo guardar la planificacion.")
 
     study_samples = (
         Sample.objects.select_related("chamber", "sampling_point")
@@ -505,6 +560,10 @@ def planning_study_view(request, pk):
         .order_by("planned_date", "sample__sample_code", "id")[:25]
     )
     planning_matrix_rows = _build_planning_matrix(study, chambers, templates)
+    generated_subsamples = study.planned_subsamples.select_related("sampling_point_template", "chamber").order_by(
+        "sampling_point_template__month_number",
+        "code",
+    )
     context = {
         "study": study,
         "study_samples": study_samples,
@@ -513,6 +572,7 @@ def planning_study_view(request, pk):
         "planning_matrix_rows": planning_matrix_rows,
         "active_chambers": chambers,
         "sampling_point_templates": templates,
+        "generated_subsamples": generated_subsamples,
     }
     return render(request, "web/planning.html", context)
 
