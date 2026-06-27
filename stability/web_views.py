@@ -353,6 +353,21 @@ def sample_schedules_view(request, pk):
 
 
 @login_required
+def planning_list_view(request):
+    status_filter = (request.GET.get("status") or "").strip()
+    studies = Study.objects.select_related("study_type", "client", "product")
+    if status_filter in {choice for choice, _label in Study.Status.choices}:
+        studies = studies.filter(status=status_filter)
+    studies = studies.order_by("-created_at")
+    context = {
+        "studies": studies,
+        "selected_status": status_filter,
+        "status_choices": Study.Status.choices,
+    }
+    return render(request, "web/planning_list.html", context)
+
+
+@login_required
 def planning_study_view(request, pk):
     study = get_object_or_404(
         Study.objects.select_related("study_type", "client", "product"),

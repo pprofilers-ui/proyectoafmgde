@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero glass p-4 p-lg-5 mb-4">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-8">
+            <h1 class="display-4 mb-2">Planificacion</h1>
+            <p class="lead text-secondary mb-0">Primer paso del flujo indicado en el documento: seleccionar el estudio que queremos planificar.</p>
+        </div>
+        <div class="col-lg-4">
+            <div class="mini-kpi">
+                <div class="small text-uppercase text-muted">Siguiente paso</div>
+                <div class="fw-semibold mt-2">Entrar al estudio y definir puntos de muestreo, tipo de analisis y submuestras por camara.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card glass soft-card border-0 mb-4">
+    <div class="card-body p-4 p-lg-5">
+        <div class="app-section-title">Seleccion de estudio</div>
+        <div class="app-section-copy">Puedes localizar el estudio por estado y entrar a su pantalla de planificacion desde aqui.</div>
+
+        <form method="get" action="/app/planning/" class="row g-3 align-items-end mb-4">
+            <div class="col-md-4 col-lg-3">
+                <label class="form-label" for="planningStatusFilter">Filtrar por estado</label>
+                <select class="form-select rounded-4 shadow-sm" id="planningStatusFilter" name="status">
+                    <option value="">Todos</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-auto">
+                <button class="btn btn-outline-primary rounded-pill" type="submit">Aplicar filtro</button>
+            </div>
+            <div class="col-md-auto">
+                <a href="/app/planning/" class="btn btn-outline-secondary rounded-pill">Quitar filtro</a>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <tr>
+                    <th>Codigo</th>
+                    <th>Titulo</th>
+                    <th>Cliente</th>
+                    <th>Producto</th>
+                    <th>Estado</th>
+                    <th>Inicio</th>
+                    <th>Accion</th>
+                </tr>
+                {% for study in studies %}
+                <tr>
+                    <td class="fw-semibold">{{ study.code }}</td>
+                    <td>{{ study.title }}</td>
+                    <td>{{ study.client.description|default:"-" }}</td>
+                    <td>{% if study.product %}{{ study.product.name }}{% else %}{{ study.product_name|default:"-" }}{% endif %}</td>
+                    <td><span class="badge text-bg-light">{{ study.get_status_display }}</span></td>
+                    <td>{{ study.start_date|date:"d/m/Y" }}</td>
+                    <td class="text-nowrap">
+                        <a class="btn btn-sm btn-outline-warning rounded-pill" href="/app/studies/{{ study.id }}/planning/">
+                            Abrir planificacion
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-muted">No hay estudios disponibles para planificar con el filtro actual.</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

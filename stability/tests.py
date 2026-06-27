@@ -148,3 +148,10 @@ class PlanningViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Planificacion del estudio")
         self.assertContains(response, self.study.code)
+
+    def test_planning_list_view_loads(self):
+        response = self.client.get("/app/planning/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Seleccion de estudio")
+        self.assertContains(response, self.study.code)
