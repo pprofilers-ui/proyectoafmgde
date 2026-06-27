@@ -353,6 +353,31 @@ def sample_schedules_view(request, pk):
 
 
 @login_required
+def planning_study_view(request, pk):
+    study = get_object_or_404(
+        Study.objects.select_related("study_type", "client", "product"),
+        pk=pk,
+    )
+    study_samples = (
+        Sample.objects.select_related("chamber", "sampling_point")
+        .filter(study=study)
+        .order_by("sample_code")
+    )
+    planning_rows = (
+        SampleSchedule.objects.select_related("sample", "chamber", "chamber_location")
+        .filter(sample__study=study)
+        .order_by("planned_date", "sample__sample_code", "id")[:25]
+    )
+    context = {
+        "study": study,
+        "study_samples": study_samples,
+        "planning_rows": planning_rows,
+        "planning_rows_count": SampleSchedule.objects.filter(sample__study=study).count(),
+    }
+    return render(request, "web/planning.html", context)
+
+
+@login_required
 def alerts_list(request):
     alerts = StabilityAlert.objects.select_related("study", "sample").order_by("status", "due_date")
     return render(request, "web/alerts.html", {"alerts": alerts})

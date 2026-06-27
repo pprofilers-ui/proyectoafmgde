@@ -1,7 +1,7 @@
 from datetime import date
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import Client, TestCase
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -122,3 +122,29 @@ class StudyFormValidationTests(TestCase):
         )
 
         self.assertTrue(form.is_valid(), form.errors)
+
+
+class PlanningViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="planner.user",
+            email="planner@example.com",
+            password="Secret123!",
+        )
+        self.study = Study.objects.create(
+            code="EST-PLAN-001",
+            title="Estudio planificacion",
+            product_name="Producto test",
+            batch_number="L-PLAN-001",
+            company_code="ACME",
+            start_date=date.today(),
+        )
+        self.client = Client()
+        self.client.force_login(self.user)
+
+    def test_planning_view_loads_for_study(self):
+        response = self.client.get(f"/app/studies/{self.study.id}/planning/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Planificacion del estudio")
+        self.assertContains(response, self.study.code)

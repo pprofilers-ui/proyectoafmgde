@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero glass p-4 p-lg-5 mb-4">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-8">
+            <h1 class="display-4 mb-2">Planificacion del estudio</h1>
+            <p class="lead text-secondary mb-0">Punto de entrada al nuevo flujo para definir puntos de muestreo, tipos de analisis y submuestras por camara.</p>
+        </div>
+        <div class="col-lg-4">
+            <div class="mini-kpi">
+                <div class="small text-uppercase text-muted">Estudio seleccionado</div>
+                <div class="fw-semibold mt-2">{{ study.code }}</div>
+                <div class="small text-muted mt-2">{{ study.title }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-xl-8">
+        <div class="card glass soft-card border-0 h-100">
+            <div class="card-body p-4 p-lg-5">
+                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                    <div>
+                        <div class="app-section-title">Resumen del estudio</div>
+                        <div class="app-section-copy">Esta pantalla ya queda conectada desde el boton Planificar. En el siguiente paso anadiremos la captura de puntos de muestreo y la generacion masiva.</div>
+                    </div>
+                    <a class="btn btn-outline-secondary rounded-pill" href="/app/studies/">Volver a estudios</a>
+                </div>
+
+                <div class="row g-3 mt-2">
+                    <div class="col-md-6 col-xl-3">
+                        <div class="mini-kpi h-100">
+                            <div class="small text-uppercase text-muted">Estado</div>
+                            <div class="fw-semibold mt-2">{{ study.get_status_display }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl-3">
+                        <div class="mini-kpi h-100">
+                            <div class="small text-uppercase text-muted">Inicio</div>
+                            <div class="fw-semibold mt-2">{{ study.start_date|date:"d/m/Y" }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl-3">
+                        <div class="mini-kpi h-100">
+                            <div class="small text-uppercase text-muted">Muestras</div>
+                            <div class="fw-semibold mt-2">{{ study_samples|length }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl-3">
+                        <div class="mini-kpi h-100">
+                            <div class="small text-uppercase text-muted">Submuestras actuales</div>
+                            <div class="fw-semibold mt-2">{{ planning_rows_count }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info rounded-4 border-0 mt-4 mb-0">
+                    Aqui montaremos el formulario de planificacion por estudio. De momento solo dejamos preparada la entrada al flujo para avanzar sin romper la operativa actual.
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <div class="card glass soft-card border-0 h-100">
+            <div class="card-body p-4">
+                <div class="app-section-title">Datos base</div>
+                <div class="small text-muted mb-3">Informacion util antes de generar la planificacion.</div>
+                <div class="small text-uppercase text-muted">Cliente</div>
+                <div class="fw-semibold mb-3">{{ study.client.description|default:"-" }}</div>
+                <div class="small text-uppercase text-muted">Producto</div>
+                <div class="fw-semibold mb-3">{% if study.product %}{{ study.product.name }}{% else %}{{ study.product_name|default:"-" }}{% endif %}</div>
+                <div class="small text-uppercase text-muted">Tipo de estudio</div>
+                <div class="fw-semibold mb-3">{{ study.study_type.name|default:"-" }}</div>
+                <div class="small text-uppercase text-muted">Protocolo</div>
+                <div class="fw-semibold">{{ study.protocol|default:"-" }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-6">
+        <div class="card glass soft-card border-0 h-100">
+            <div class="card-body p-4 p-lg-5">
+                <div class="app-section-title">Muestras del estudio</div>
+                <div class="app-section-copy">Vista rapida para saber con que base estamos trabajando antes de pasar a la planificacion masiva.</div>
+                <div class="table-responsive mt-3">
+                    <table class="table table-hover align-middle">
+                        <tr>
+                            <th>Codigo</th>
+                            <th>Estado</th>
+                            <th>Camara</th>
+                            <th>Stock</th>
+                        </tr>
+                        {% for sample in study_samples %}
+                        <tr>
+                            <td class="fw-semibold">{{ sample.sample_code }}</td>
+                            <td>{{ sample.get_status_display }}</td>
+                            <td>{{ sample.chamber.code|default:"-" }}</td>
+                            <td>{{ sample.current_stock }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-muted">Todavia no hay muestras creadas para este estudio.</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card glass soft-card border-0 h-100">
+            <div class="card-body p-4 p-lg-5">
+                <div class="app-section-title">Submuestras ya existentes</div>
+                <div class="app-section-copy">Mientras migramos al nuevo modelo, aqui se ve si el estudio ya tiene fechas de muestreo creadas en el flujo anterior.</div>
+                <div class="table-responsive mt-3">
+                    <table class="table table-hover align-middle">
+                        <tr>
+                            <th>Codigo fecha</th>
+                            <th>Muestra</th>
+                            <th>Camara</th>
+                            <th>Fecha prevista</th>
+                            <th>Estado</th>
+                        </tr>
+                        {% for row in planning_rows %}
+                        <tr>
+                            <td class="fw-semibold">{{ row.label|default:"-" }}</td>
+                            <td>{{ row.sample.sample_code }}</td>
+                            <td>{{ row.chamber.code|default:"-" }}</td>
+                            <td>{{ row.planned_date|date:"d/m/Y" }}</td>
+                            <td>{% if row.is_active %}En camara{% else %}Retirada{% endif %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-muted">No hay submuestras registradas todavia para este estudio.</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
