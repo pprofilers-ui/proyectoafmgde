@@ -207,7 +207,13 @@
                             <td>{{ subsample.analysis_date|date:"d/m/Y"|default:"-" }}</td>
                             <td>{{ subsample.quantity|default:"-" }}</td>
                             <td>{{ subsample.storage_location|default:"-" }}</td>
-                            <td>{{ subsample.get_status_display }}</td>
+                            <td>
+                                {% if subsample.status == "withdrawn" %}
+                                <span class="badge bg-success fs-6 px-3 py-2">Retirada</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark fs-6 px-3 py-2">En camara</span>
+                                {% endif %}
+                            </td>
                             <td class="text-nowrap">
                                 <button
                                     class="btn btn-sm btn-outline-primary rounded-pill me-1 open-planned-edit-modal"
@@ -230,9 +236,9 @@
                                     <button class="btn btn-sm btn-outline-danger rounded-pill" type="submit">Retirar muestra</button>
                                 </form>
                                 {% elif subsample.status == "withdrawn" %}
-                                <span class="text-muted small">Retirada</span>
+                                <span class="badge bg-success fs-6 px-3 py-2">Retirada</span>
                                 {% else %}
-                                <span class="text-muted small">Disponible al aprobar</span>
+                                <span class="badge bg-secondary fs-6 px-3 py-2">Disponible al aprobar</span>
                                 {% endif %}
                             </td>
                         </tr>
