@@ -1,5 +1,6 @@
 import base64
 from io import BytesIO
+import calendar
 from datetime import timedelta
 import re
 
@@ -298,6 +299,35 @@ def _generate_study_planning(study):
     return True, len(planned_subsamples)
 
 
+def _add_months(source_date, months):
+    month_index = source_date.month - 1 + months
+    year = source_date.year + (month_index // 12)
+    month = (month_index % 12) + 1
+    day = min(source_date.day, calendar.monthrange(year, month)[1])
+    return source_date.replace(year=year, month=month, day=day)
+
+
+def _validate_study_can_be_approved(study):
+    if not study.start_date:
+        return False, "No puedes aprobar el estudio sin fecha de inicio."
+    if not study.planning_entries.exists():
+        return False, "No puedes aprobar el estudio sin planificacion base."
+    if not study.planned_subsamples.exists():
+        return False, "No puedes aprobar el estudio sin generar la planificacion."
+    return True, None
+
+
+def _apply_planned_dates_on_approval(study):
+    updated_fields = []
+    for subsample in study.planned_subsamples.select_related("sampling_point_template"):
+        planned_date = _add_months(study.start_date, subsample.sampling_point_template.month_number)
+        if subsample.planned_date != planned_date:
+            subsample.planned_date = planned_date
+            updated_fields.append(subsample)
+    if updated_fields:
+        PlannedSubsample.objects.bulk_update(updated_fields, ["planned_date", "updated_at"])
+
+
 class AppLoginView(LoginView):
     template_name = "auth/login.html"
     redirect_authenticated_user = True
@@ -408,22 +438,32 @@ def edit_study_web(request, pk):
     study = get_object_or_404(Study, pk=pk)
     if request.method != "POST":
         return redirect("web-studies")
+    original_status = study.status
     form = StudyEditForm(request.POST, instance=study)
     if form.is_valid():
-        previous_status = study.status
         updated_study = form.save(commit=False)
+        is_approving = original_status != Study.Status.ACTIVE and updated_study.status == Study.Status.ACTIVE
         if not updated_study.code:
             updated_study.code = study.code
         if updated_study.product and not updated_study.product_code:
             updated_study.product_code = updated_study.product.code
         if updated_study.product and not updated_study.product_name:
             updated_study.product_name = updated_study.product.name
+
+        if is_approving:
+            can_approve, error_message = _validate_study_can_be_approved(updated_study)
+            if not can_approve:
+                messages.error(request, error_message or "No se pudo aprobar el estudio.")
+                return redirect("web-studies")
+
         updated_study.save()
+        if is_approving:
+            _apply_planned_dates_on_approval(updated_study)
         register_audit_event(
             updated_study,
             "web_update_study",
             payload={"code": updated_study.code, "title": updated_study.title},
-            changes={"status": {"before": previous_status, "after": updated_study.status}},
+            changes={"status": {"before": original_status, "after": updated_study.status}},
         )
         messages.success(request, f"Estudio {updated_study.code} actualizado correctamente.")
     else:

@@ -212,6 +212,74 @@ class PlanningViewTests(TestCase):
         self.assertEqual(subsamples.first().status, PlannedSubsample.Status.IN_CHAMBER)
         self.assertTrue(subsamples.first().code.startswith(f"{self.study.code}-P-"))
 
+    def test_approving_study_requires_generated_planning(self):
+        response = self.client.post(
+            f"/app/studies/{self.study.id}/edit/",
+            data={
+                "code": self.study.code,
+                "title": self.study.title,
+                "study_type": "",
+                "client": "",
+                "product": "",
+                "product_code": "",
+                "protocol": "",
+                "specification": "",
+                "product_name": self.study.product_name,
+                "status": Study.Status.ACTIVE,
+                "start_date": str(self.study.start_date),
+                "end_date": "",
+                "comments": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.study.refresh_from_db()
+        self.assertEqual(self.study.status, Study.Status.DRAFT)
+
+    def test_approving_study_calculates_planned_dates(self):
+        template = SamplingPointTemplate.objects.create(month_number=3, label="3M", is_active=True)
+        StudyPlanningEntry.objects.create(
+            study=self.study,
+            sampling_point_template=template,
+            chamber=self.chamber,
+            analysis_type=StudyPlanningEntry.AnalysisType.FQ,
+            subsample_quantity=1,
+        )
+        PlannedSubsample.objects.create(
+            study=self.study,
+            sampling_point_template=template,
+            chamber=self.chamber,
+            analysis_type=PlannedSubsample.AnalysisType.FQ,
+            code=f"{self.study.code}-P-0001",
+            planned_date=None,
+            status=PlannedSubsample.Status.IN_CHAMBER,
+        )
+
+        response = self.client.post(
+            f"/app/studies/{self.study.id}/edit/",
+            data={
+                "code": self.study.code,
+                "title": self.study.title,
+                "study_type": "",
+                "client": "",
+                "product": "",
+                "product_code": "",
+                "protocol": "",
+                "specification": "",
+                "product_name": self.study.product_name,
+                "status": Study.Status.ACTIVE,
+                "start_date": "2026-07-01",
+                "end_date": "",
+                "comments": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.study.refresh_from_db()
+        self.assertEqual(self.study.status, Study.Status.ACTIVE)
+        subsample = PlannedSubsample.objects.get(study=self.study)
+        self.assertEqual(str(subsample.planned_date), "2026-10-01")
+
 
 class AdminGroupingTests(TestCase):
     def test_sampling_point_template_is_grouped_under_maestros(self):
