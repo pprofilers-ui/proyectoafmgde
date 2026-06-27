@@ -31,6 +31,24 @@
                     </button>
                 </div>
 
+                <form method="get" action="/app/studies/" class="row g-3 align-items-end mb-4">
+                    <div class="col-md-4 col-lg-3">
+                        <label class="form-label" for="statusFilter">Filtrar por estado</label>
+                        <select class="form-select rounded-4 shadow-sm" id="statusFilter" name="status">
+                            <option value="">Todos</option>
+                            {% for value, label in status_choices %}
+                            <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-auto">
+                        <button class="btn btn-outline-primary rounded-pill" type="submit">Aplicar filtro</button>
+                    </div>
+                    <div class="col-md-auto">
+                        <a href="/app/studies/" class="btn btn-outline-secondary rounded-pill">Quitar filtro</a>
+                    </div>
+                </form>
+
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
                         <tr>
@@ -100,7 +118,7 @@
                     <button type="button" class="btn btn-outline-secondary rounded-pill" onclick="toggleStudyForm()">Cerrar</button>
                 </div>
 
-                <form method="post" action="/app/studies/create/" class="row g-4">
+                <form method="post" action="/app/studies/create/" class="row g-4 study-status-form">
                     {% csrf_token %}
 
                     <div class="col-md-6">
@@ -172,7 +190,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
-                <form id="studyEditForm" method="post" action="">
+                <form id="studyEditForm" method="post" action="" class="study-status-form">
                     {% csrf_token %}
                     <div class="row g-4">
                         <div class="col-md-6">
@@ -272,6 +290,30 @@ function toggleStudyForm() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.study-status-form').forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            const statusField = form.querySelector('[name="status"]');
+            if (!statusField || statusField.value !== 'active' || form.dataset.approvalConfirmed === 'true') {
+                return;
+            }
+
+            event.preventDefault();
+            Swal.fire({
+                title: 'Revisar fecha de inicio',
+                text: 'Revise la fecha de inicio del estudio. Las fechas de muestreo seran calculadas de acuerdo con la fecha de inicio establecida.',
+                icon: 'info',
+                confirmButtonText: 'Continuar',
+                cancelButtonText: 'Cancelar',
+                showCancelButton: true
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    form.dataset.approvalConfirmed = 'true';
+                    form.submit();
+                }
+            });
+        });
+    });
+
     document.querySelectorAll('.study-delete-form').forEach(function (form) {
         form.addEventListener('submit', function (event) {
             event.preventDefault();

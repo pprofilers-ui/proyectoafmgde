@@ -183,8 +183,21 @@ def dashboard(request):
 
 @login_required
 def studies_list(request):
-    studies = Study.objects.select_related("study_type", "client", "product").order_by("-created_at")
-    return render(request, "web/studies.html", {"studies": studies, "study_form": StudyCreateForm()})
+    status_filter = (request.GET.get("status") or "").strip()
+    studies = Study.objects.select_related("study_type", "client", "product")
+    if status_filter in {choice for choice, _label in Study.Status.choices}:
+        studies = studies.filter(status=status_filter)
+    studies = studies.order_by("-created_at")
+    return render(
+        request,
+        "web/studies.html",
+        {
+            "studies": studies,
+            "study_form": StudyCreateForm(),
+            "selected_status": status_filter,
+            "status_choices": Study.Status.choices,
+        },
+    )
 
 
 @login_required

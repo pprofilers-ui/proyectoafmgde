@@ -255,6 +255,20 @@ class StudyCreateForm(forms.ModelForm):
         self.fields["code"].widget.attrs["tabindex"] = "-1"
         self.fields["end_date"].required = False
 
+    def clean(self):
+        cleaned_data = super().clean()
+        status = cleaned_data.get("status")
+        start_date = cleaned_data.get("start_date")
+        end_date = cleaned_data.get("end_date")
+
+        if status == Study.Status.ACTIVE and not start_date:
+            self.add_error("start_date", "La fecha de inicio es obligatoria cuando el estudio esta aprobado.")
+
+        if status == Study.Status.CLOSED and not end_date:
+            self.add_error("end_date", "La fecha de fin es obligatoria cuando el estudio esta finalizado.")
+
+        return cleaned_data
+
 
 class StudyEditForm(forms.ModelForm):
     class Meta:
@@ -318,6 +332,20 @@ class StudyEditForm(forms.ModelForm):
         self.fields["code"].widget.attrs["readonly"] = True
         self.fields["code"].widget.attrs["tabindex"] = "-1"
         self.fields["end_date"].required = False
+
+    def clean(self):
+        cleaned_data = super().clean()
+        status = cleaned_data.get("status")
+        start_date = cleaned_data.get("start_date")
+        end_date = cleaned_data.get("end_date")
+
+        if status == Study.Status.ACTIVE and not start_date:
+            self.add_error("start_date", "La fecha de inicio es obligatoria cuando el estudio esta aprobado.")
+
+        if status == Study.Status.CLOSED and not end_date:
+            self.add_error("end_date", "La fecha de fin es obligatoria cuando el estudio esta finalizado.")
+
+        return cleaned_data
 
 
 class SampleLabelForm(forms.Form):

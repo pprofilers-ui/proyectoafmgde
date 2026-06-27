@@ -1,11 +1,13 @@
 from datetime import date
 
 from django.contrib.auth import get_user_model
+from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import Product, Sample, Study
+from .web_forms import StudyCreateForm, StudyEditForm
 
 
 User = get_user_model()
@@ -72,3 +74,51 @@ class StudyApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("by_status", response.data)
         self.assertEqual(response.data["low_stock_samples"], 1)
+
+
+class StudyFormValidationTests(TestCase):
+    def test_create_form_requires_end_date_when_study_is_closed(self):
+        form = StudyCreateForm(
+            data={
+                "title": "Estudio finalizado",
+                "product_name": "Producto test",
+                "status": Study.Status.CLOSED,
+                "start_date": str(date.today()),
+                "end_date": "",
+            }
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("end_date", form.errors)
+
+    def test_edit_form_accepts_approved_study_with_start_date(self):
+        study = Study.objects.create(
+            code="EST-VAL-001",
+            title="Estudio aprobado",
+            product_name="Producto test",
+            batch_number="L-001",
+            company_code="ACME",
+            status=Study.Status.DRAFT,
+            start_date=date.today(),
+        )
+
+        form = StudyEditForm(
+            data={
+                "code": study.code,
+                "title": study.title,
+                "study_type": "",
+                "client": "",
+                "product": "",
+                "product_code": "",
+                "protocol": "",
+                "specification": "",
+                "product_name": study.product_name,
+                "status": Study.Status.ACTIVE,
+                "start_date": str(date.today()),
+                "end_date": "",
+                "comments": "",
+            },
+            instance=study,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
