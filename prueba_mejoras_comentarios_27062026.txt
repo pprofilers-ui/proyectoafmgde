@@ -1,0 +1,147 @@
+**Prueba Completa**
+Vamos a hacerla como checklist numerado. Tú me vas diciendo `prueba 1 ok`, `prueba 2 ok`, o qué error sale, y seguimos.
+
+**Prueba 1**
+Revisa los maestros en `Admin`.
+Tiene que existir como mínimo:
+- `Clientes`
+- `Tipos de Estudio`
+- `Cámaras`
+- `Puntos de muestreo` con valores tipo `1M`, `3M`, `6M`
+
+Qué comprobar:
+- que `Puntos de muestreo` aparece en `MAESTROS`
+- que dentro haya registros activos
+- que haya al menos una cámara activa
+
+Si falta algo, me lo dices antes de seguir.
+
+**Prueba 2**
+Crea un estudio nuevo en `Estudios`.
+
+Rellena al menos:
+- `Título`
+- `Tipo de estudio`
+- `Cliente`
+- `Producto` o `Nombre del producto`
+- `Protocolo` si quieres usarlo en la prueba
+- `Fecha de inicio`
+- `Estado`: `En Elaboración`
+
+Qué comprobar:
+- que se crea bien
+- que aparece en el listado
+- que puedes abrir `Planificar`
+
+**Prueba 3**
+Entra en `Crear muestras` para ese estudio y crea muestras base.
+
+Haz una prueba sencilla:
+- crea 1 o 2 muestras
+- comprueba que salen en la tabla
+- comprueba que el estudio luego muestra esas muestras en `Planificación`
+
+Qué comprobar:
+- código de muestra generado
+- stock visible
+- estudio asociado correcto
+
+**Prueba 4**
+Entra en `Planificar` para ese estudio y guarda una planificación base.
+
+Hazlo así para la prueba:
+- punto `1M`
+- en una o dos cámaras pon cantidades
+- mezcla `FQ` y `Micro`
+
+Ejemplo:
+- `CAM-01` `FQ = 1`
+- `CAM-01` `Micro = 1`
+- `CAM-02` `Micro = 1`
+
+Qué comprobar:
+- que deja guardar
+- que al recargar sigue apareciendo la matriz guardada
+
+**Prueba 5**
+Pulsa `Generar planificación`.
+
+Qué comprobar:
+- que sale el toast correcto
+- que aparecen `Submuestras generadas`
+- que cada una tiene:
+  - código
+  - cámara
+  - análisis
+  - punto
+  - estado `En cámara`
+- que `Fecha prevista` todavía está vacía si el estudio sigue en `En Elaboración`
+
+**Prueba 6**
+Prueba el bloqueo al aprobar sin condiciones válidas.
+
+Si quieres hacer la comprobación:
+- coge otro estudio sin planificación generada
+- intenta pasarlo a `Aprobado`
+
+Qué comprobar:
+- que el sistema lo bloquea con toast
+
+Si ya lo has probado y está bien, podemos dar esta por validada.
+
+**Prueba 7**
+Pasa el estudio correcto a `Aprobado`.
+
+Qué comprobar:
+- que ahora sí deja aprobar
+- que al volver a `Planificación`, las submuestras tienen `Fecha prevista`
+- que esa fecha coincide con el punto de muestreo
+
+Ejemplo:
+- si inicio = `25/06/2026`
+- y punto = `1M`
+- la prevista debe quedar en `25/07/2026`
+
+**Prueba 8**
+Edita una submuestra generada.
+
+Rellena:
+- `Fecha de análisis`
+- `Cantidad`
+- `Ubicación`
+- observaciones si quieres
+
+Qué comprobar:
+- que guarda
+- que los datos aparecen en la tabla
+- que son manuales, no recalculados por el sistema
+
+**Prueba 9**
+Pulsa `Etiqueta` en una submuestra.
+
+Qué comprobar:
+- que abre la etiqueta
+- que el QR/código corresponde a la submuestra planificada
+- que la vista es imprimible
+
+**Prueba 10**
+Retira una submuestra desde la propia planificación.
+
+Qué comprobar:
+- que pide confirmación
+- que cambia a `Retirada`
+- que se rellena `Fecha real`
+- que ya no deja volver a retirarla
+
+**Prueba 11**
+Prueba de seguridad final.
+
+Con un estudio `En Elaboración`:
+- intenta retirar una submuestra
+- no debería dejar
+
+Qué comprobar:
+- que bloquea la acción
+- que muestra el mensaje correspondiente
+
+Empieza por `prueba 1` y me dices el resultado.
