@@ -6,6 +6,7 @@ import re
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
+from django.db import transaction
 from django.db.models import Count, F, Q, Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -14,7 +15,7 @@ import qrcode
 
 from audit.utils import register_audit_event
 
-from .models import Chamber, ChamberDeviation, LabelTemplate, ProductBatch, Sample, SampleReception, SampleSchedule, SamplingPoint, StabilityAlert, StockMovement, Study
+from .models import Chamber, ChamberDeviation, LabelTemplate, ProductBatch, Sample, SampleReception, SampleSchedule, SamplingPoint, SamplingPointTemplate, StabilityAlert, StockMovement, Study, StudyPlanningEntry
 from .web_forms import ChamberDeviationForm, ChamberPlacementForm, SampleCreateForm, SampleExtractionForm, SampleLabelForm, SampleRegistrationForm, SampleReceptionForm, SampleScheduleEditForm, SampleScheduleForm, StudyCreateForm, StudyEditForm
 
 
@@ -138,6 +139,115 @@ def ensure_study_sampling_points(study):
         )
         created_points.append(point)
     return created_points
+
+
+def ensure_sampling_point_templates():
+    existing_months = set(SamplingPointTemplate.objects.values_list("month_number", flat=True))
+    missing = []
+    for month_number in range(1, 37):
+        if month_number not in existing_months:
+            missing.append(
+                SamplingPointTemplate(
+                    month_number=month_number,
+                    label=f"{month_number}M",
+                    is_active=True,
+                )
+            )
+    if missing:
+        SamplingPointTemplate.objects.bulk_create(missing)
+
+
+def _safe_int(value, default=0):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _build_planning_matrix(study, chambers, templates):
+    saved_entries = {
+        (entry.sampling_point_template_id, entry.chamber_id, entry.analysis_type): entry.subsample_quantity
+        for entry in study.planning_entries.all()
+    }
+    rows = []
+    for template in templates:
+        chamber_values = []
+        has_any_quantity = False
+        for chamber in chambers:
+            fq_value = saved_entries.get((template.id, chamber.id, StudyPlanningEntry.AnalysisType.FQ), 0)
+            micro_value = saved_entries.get((template.id, chamber.id, StudyPlanningEntry.AnalysisType.MICRO), 0)
+            if fq_value or micro_value:
+                has_any_quantity = True
+            chamber_values.append({"chamber": chamber, "fq": fq_value, "micro": micro_value})
+        if has_any_quantity:
+            rows.append(
+                {
+                    "template_id": template.id,
+                    "label": template.label,
+                    "chamber_values": chamber_values,
+                }
+            )
+    if not rows and templates:
+        rows.append(
+            {
+                "template_id": templates[0].id,
+                "label": templates[0].label,
+                "chamber_values": [{"chamber": chamber, "fq": 0, "micro": 0} for chamber in chambers],
+            }
+        )
+    return rows
+
+
+def _save_study_planning_entries(request, study, chambers, templates):
+    submitted_template_ids = request.POST.getlist("sampling_point_template")
+    valid_templates = {str(template.id): template for template in templates}
+    entries_to_create = []
+    has_valid_template = False
+
+    for raw_template_id in submitted_template_ids:
+        template = valid_templates.get(str(raw_template_id))
+        if not template:
+            continue
+        has_valid_template = True
+        for chamber in chambers:
+            fq_value = max(_safe_int(request.POST.get(f"qty_{template.id}_{chamber.id}_fq")), 0)
+            micro_value = max(_safe_int(request.POST.get(f"qty_{template.id}_{chamber.id}_micro")), 0)
+            if fq_value > 0:
+                entries_to_create.append(
+                    StudyPlanningEntry(
+                        study=study,
+                        sampling_point_template=template,
+                        chamber=chamber,
+                        analysis_type=StudyPlanningEntry.AnalysisType.FQ,
+                        subsample_quantity=fq_value,
+                    )
+                )
+            if micro_value > 0:
+                entries_to_create.append(
+                    StudyPlanningEntry(
+                        study=study,
+                        sampling_point_template=template,
+                        chamber=chamber,
+                        analysis_type=StudyPlanningEntry.AnalysisType.MICRO,
+                        subsample_quantity=micro_value,
+                    )
+                )
+
+    if not has_valid_template:
+        return False, "Debes seleccionar al menos un punto de muestreo."
+
+    with transaction.atomic():
+        study.planning_entries.all().delete()
+        if entries_to_create:
+            StudyPlanningEntry.objects.bulk_create(entries_to_create)
+
+    register_audit_event(
+        study,
+        "web_save_study_planning",
+        payload={"study": study.code, "entries_count": len(entries_to_create)},
+        changes={"planning_entries": {"before": None, "after": len(entries_to_create)}},
+    )
+    return True, None
 
 
 class AppLoginView(LoginView):
@@ -373,6 +483,17 @@ def planning_study_view(request, pk):
         Study.objects.select_related("study_type", "client", "product"),
         pk=pk,
     )
+    ensure_sampling_point_templates()
+    chambers = list(Chamber.objects.filter(is_active=True).order_by("code"))
+    templates = list(SamplingPointTemplate.objects.filter(is_active=True).order_by("month_number"))
+
+    if request.method == "POST":
+        ok, error_message = _save_study_planning_entries(request, study, chambers, templates)
+        if ok:
+            messages.success(request, "Planificacion base guardada correctamente.")
+            return redirect("web-study-planning", pk=study.pk)
+        messages.error(request, error_message or "No se pudo guardar la planificacion.")
+
     study_samples = (
         Sample.objects.select_related("chamber", "sampling_point")
         .filter(study=study)
@@ -383,11 +504,15 @@ def planning_study_view(request, pk):
         .filter(sample__study=study)
         .order_by("planned_date", "sample__sample_code", "id")[:25]
     )
+    planning_matrix_rows = _build_planning_matrix(study, chambers, templates)
     context = {
         "study": study,
         "study_samples": study_samples,
         "planning_rows": planning_rows,
         "planning_rows_count": SampleSchedule.objects.filter(sample__study=study).count(),
+        "planning_matrix_rows": planning_matrix_rows,
+        "active_chambers": chambers,
+        "sampling_point_templates": templates,
     }
     return render(request, "web/planning.html", context)
 

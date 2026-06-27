@@ -17,10 +17,12 @@ from .models import (
     SampleSchedule,
     SampleReception,
     SamplingPoint,
+    SamplingPointTemplate,
     StabilityAlert,
     StockMovement,
     StorageCondition,
     Study,
+    StudyPlanningEntry,
     StudyType,
 )
 from .web_forms import SampleReceptionForm as WebSampleReceptionForm
@@ -163,6 +165,18 @@ _apply_admin_field_labels(SampleSchedule, {
     "quantity": "Cantidad",
     "notes": "Notas",
     "is_active": "Activo",
+})
+_apply_admin_field_labels(SamplingPointTemplate, {
+    "month_number": "Mes",
+    "label": "Etiqueta",
+    "is_active": "Activo",
+})
+_apply_admin_field_labels(StudyPlanningEntry, {
+    "study": "Estudio",
+    "sampling_point_template": "Punto de muestreo",
+    "chamber": "CÃ¡mara",
+    "analysis_type": "Tipo de anÃ¡lisis",
+    "subsample_quantity": "NÃºmero de submuestras",
 })
 _apply_admin_field_labels(StockMovement, {
     "sample": "Muestra",
@@ -408,6 +422,13 @@ class SamplingPointAdmin(admin.ModelAdmin):
     search_fields = ("label", "study__code", "study__title")
 
 
+@admin.register(SamplingPointTemplate)
+class SamplingPointTemplateAdmin(admin.ModelAdmin):
+    list_display = ("month_number", "label", "is_active")
+    list_filter = ("is_active",)
+    search_fields = ("label",)
+
+
 class SampleReceptionAdminForm(WebSampleReceptionForm):
     sample_code = forms.CharField(label="Código de muestra", required=False, disabled=True)
 
@@ -531,6 +552,13 @@ class SampleScheduleAdmin(admin.ModelAdmin):
         return obj.removed_at or "-"
 
 
+@admin.register(StudyPlanningEntry)
+class StudyPlanningEntryAdmin(admin.ModelAdmin):
+    list_display = ("study", "sampling_point_template", "chamber", "analysis_type", "subsample_quantity")
+    list_filter = ("analysis_type", "chamber", "study")
+    search_fields = ("study__code", "sampling_point_template__label", "chamber__code")
+
+
 
 @admin.register(StockMovement)
 class StockMovementAdmin(admin.ModelAdmin):
@@ -561,9 +589,9 @@ class StabilityAlertAdmin(admin.ModelAdmin):
 clases_maestras = [
     ProductAdmin, PackagingConfigurationAdmin, ProductBatchAdmin,
     StorageConditionAdmin, ChamberLocationAdmin, StudyAdmin,
-    ChamberAdmin, SamplingPointAdmin, SampleReceptionAdmin,
+    ChamberAdmin, SamplingPointAdmin, SamplingPointTemplateAdmin, SampleReceptionAdmin,
     SampleAdmin, SampleScheduleAdmin, StockMovementAdmin, ChamberDeviationAdmin, 
-    StabilityAlertAdmin, AuditTrailAdmin
+    StabilityAlertAdmin, StudyPlanningEntryAdmin, AuditTrailAdmin
 ]
 
 # 2. Recorremos los modelos registrados en Django y aplicamos los permisos a sus instancias
@@ -586,6 +614,7 @@ def _grouped_admin_app_list(request, app_label=None):
     maestros_order = [
         "Client",
         "StudyType",
+        "SamplingPointTemplate",
         "Chamber",
         "ChamberLocation",
         "StorageCondition",
@@ -599,6 +628,7 @@ def _grouped_admin_app_list(request, app_label=None):
         "StockMovement",
         "ChamberDeviation",
         "StabilityAlert",
+        "StudyPlanningEntry",
     ]
     hidden_models = {"Product", "ProductBatch", "SamplingPoint", "Sample"}
 

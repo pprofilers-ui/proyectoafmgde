@@ -1,12 +1,14 @@
 from datetime import date
 
 from django.contrib.auth import get_user_model
+from django.contrib import admin
 from django.test import Client, TestCase
+from django.test import RequestFactory
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Product, Sample, Study
+from .models import Chamber, Product, Sample, SamplingPointTemplate, Study, StudyPlanningEntry
 from .web_forms import StudyCreateForm, StudyEditForm
 
 
@@ -139,6 +141,14 @@ class PlanningViewTests(TestCase):
             company_code="ACME",
             start_date=date.today(),
         )
+        self.chamber = Chamber.objects.create(
+            code="CH-001",
+            name="Camara 1",
+            location="Sala A",
+            temperature_set_point=25,
+            humidity_set_point=60,
+            is_active=True,
+        )
         self.client = Client()
         self.client.force_login(self.user)
 
@@ -155,3 +165,41 @@ class PlanningViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Seleccion de estudio")
         self.assertContains(response, self.study.code)
+
+    def test_planning_view_post_saves_entries(self):
+        response = self.client.get(f"/app/studies/{self.study.id}/planning/")
+        template = SamplingPointTemplate.objects.order_by("month_number").first()
+
+        post_response = self.client.post(
+            f"/app/studies/{self.study.id}/planning/",
+            data={
+                "sampling_point_template": [str(template.id)],
+                f"qty_{template.id}_{self.chamber.id}_fq": "3",
+                f"qty_{template.id}_{self.chamber.id}_micro": "2",
+            },
+        )
+
+        self.assertEqual(post_response.status_code, 302)
+        entries = StudyPlanningEntry.objects.filter(study=self.study).order_by("analysis_type")
+        self.assertEqual(entries.count(), 2)
+        self.assertEqual(entries[0].subsample_quantity + entries[1].subsample_quantity, 5)
+
+
+class AdminGroupingTests(TestCase):
+    def test_sampling_point_template_is_grouped_under_maestros(self):
+        user = User.objects.create_user(
+            username="admin.grouping",
+            email="admin.grouping@example.com",
+            password="Secret123!",
+            is_staff=True,
+            is_superuser=True,
+        )
+        request = RequestFactory().get("/admin/")
+        request.user = user
+
+        app_list = admin.site.get_app_list(request)
+        maestros_group = next((app for app in app_list if app.get("app_label") == "maestros"), None)
+
+        self.assertIsNotNone(maestros_group)
+        model_names = [model.get("object_name") for model in maestros_group.get("models", [])]
+        self.assertIn("SamplingPointTemplate", model_names)

@@ -250,6 +250,25 @@ class SamplingPoint(TimeStampedModel):
         return f"{self.study.code} - {self.label}"
 
 
+class SamplingPointTemplate(TimeStampedModel):
+    month_number = models.PositiveIntegerField(unique=True)
+    label = models.CharField(max_length=20, unique=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["month_number"]
+        verbose_name = "Maestro Punto de Muestreo"
+        verbose_name_plural = "Maestros Puntos de Muestreo"
+
+    def save(self, *args, **kwargs):
+        if not self.label:
+            self.label = f"{self.month_number}M"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.label
+
+
 class SampleReception(TimeStampedModel):
     class Status(models.TextChoices):
         PENDING = "pending", "Pendiente"
@@ -383,6 +402,36 @@ class SampleSchedule(TimeStampedModel):
     def __str__(self):
         suffix = f" - {self.label}" if self.label else ""
         return f"{self.sample.sample_code} - {self.planned_date}{suffix}"
+
+
+class StudyPlanningEntry(TimeStampedModel):
+    class AnalysisType(models.TextChoices):
+        FQ = "fq", "FQ"
+        MICRO = "micro", "Micro"
+
+    study = models.ForeignKey(Study, related_name="planning_entries", on_delete=models.CASCADE)
+    sampling_point_template = models.ForeignKey(
+        SamplingPointTemplate,
+        related_name="planning_entries",
+        on_delete=models.PROTECT,
+    )
+    chamber = models.ForeignKey(Chamber, related_name="planning_entries", on_delete=models.PROTECT)
+    analysis_type = models.CharField(max_length=20, choices=AnalysisType.choices)
+    subsample_quantity = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sampling_point_template__month_number", "chamber__code", "analysis_type"]
+        verbose_name = "Linea de Planificacion"
+        verbose_name_plural = "Lineas de Planificacion"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["study", "sampling_point_template", "chamber", "analysis_type"],
+                name="unique_study_planning_entry",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.study.code} - {self.sampling_point_template.label} - {self.chamber.code} - {self.get_analysis_type_display()}"
 
 
 class StockMovement(TimeStampedModel):
