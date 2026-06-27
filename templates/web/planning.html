@@ -189,7 +189,9 @@
                             <th>Analisis</th>
                             <th>Punto</th>
                             <th>Fecha prevista</th>
+                            <th>Fecha real</th>
                             <th>Estado</th>
+                            <th>Accion</th>
                         </tr>
                         {% for subsample in generated_subsamples %}
                         <tr>
@@ -198,11 +200,26 @@
                             <td>{{ subsample.get_analysis_type_display }}</td>
                             <td>{{ subsample.sampling_point_template.label }}</td>
                             <td>{{ subsample.planned_date|date:"d/m/Y"|default:"-" }}</td>
+                            <td>{{ subsample.actual_sampling_date|date:"d/m/Y"|default:"-" }}</td>
                             <td>{{ subsample.get_status_display }}</td>
+                            <td class="text-nowrap">
+                                {% if study.status == "active" and subsample.status == "in_chamber" %}
+                                <form method="post" class="d-inline planned-withdraw-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="withdraw_subsample">
+                                    <input type="hidden" name="subsample_id" value="{{ subsample.id }}">
+                                    <button class="btn btn-sm btn-outline-danger rounded-pill" type="submit">Retirar muestra</button>
+                                </form>
+                                {% elif subsample.status == "withdrawn" %}
+                                <span class="text-muted small">Retirada</span>
+                                {% else %}
+                                <span class="text-muted small">Disponible al aprobar</span>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-muted">Todavia no se ha ejecutado la generacion de planificacion para este estudio.</td>
+                            <td colspan="8" class="text-muted">Todavia no se ha ejecutado la generacion de planificacion para este estudio.</td>
                         </tr>
                         {% endfor %}
                     </table>
@@ -323,6 +340,25 @@ document.addEventListener('DOMContentLoaded', function () {
             attachRowEvents(clone);
         });
     }
+
+    document.querySelectorAll('.planned-withdraw-form').forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            Swal.fire({
+                title: 'Retirar submuestra',
+                text: 'La submuestra pasara a estado Retirada y se registrara la fecha real de muestreo.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Si, retirar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#d33'
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+    });
 });
 </script>
 {% endblock %}

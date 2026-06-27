@@ -280,6 +280,50 @@ class PlanningViewTests(TestCase):
         subsample = PlannedSubsample.objects.get(study=self.study)
         self.assertEqual(str(subsample.planned_date), "2026-10-01")
 
+    def test_withdraw_subsample_requires_approved_study(self):
+        template = SamplingPointTemplate.objects.create(month_number=4, label="4M", is_active=True)
+        subsample = PlannedSubsample.objects.create(
+            study=self.study,
+            sampling_point_template=template,
+            chamber=self.chamber,
+            analysis_type=PlannedSubsample.AnalysisType.FQ,
+            code=f"{self.study.code}-P-0100",
+            status=PlannedSubsample.Status.IN_CHAMBER,
+        )
+
+        response = self.client.post(
+            f"/app/studies/{self.study.id}/planning/",
+            data={"action": "withdraw_subsample", "subsample_id": str(subsample.id)},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        subsample.refresh_from_db()
+        self.assertEqual(subsample.status, PlannedSubsample.Status.IN_CHAMBER)
+        self.assertIsNone(subsample.actual_sampling_date)
+
+    def test_withdraw_subsample_sets_real_sampling_date(self):
+        self.study.status = Study.Status.ACTIVE
+        self.study.save(update_fields=["status", "updated_at"])
+        template = SamplingPointTemplate.objects.create(month_number=5, label="5M", is_active=True)
+        subsample = PlannedSubsample.objects.create(
+            study=self.study,
+            sampling_point_template=template,
+            chamber=self.chamber,
+            analysis_type=PlannedSubsample.AnalysisType.MICRO,
+            code=f"{self.study.code}-P-0101",
+            status=PlannedSubsample.Status.IN_CHAMBER,
+        )
+
+        response = self.client.post(
+            f"/app/studies/{self.study.id}/planning/",
+            data={"action": "withdraw_subsample", "subsample_id": str(subsample.id)},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        subsample.refresh_from_db()
+        self.assertEqual(subsample.status, PlannedSubsample.Status.WITHDRAWN)
+        self.assertEqual(str(subsample.actual_sampling_date), str(date.today()))
+
 
 class AdminGroupingTests(TestCase):
     def test_sampling_point_template_is_grouped_under_maestros(self):

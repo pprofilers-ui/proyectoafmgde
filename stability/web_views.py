@@ -328,6 +328,33 @@ def _apply_planned_dates_on_approval(study):
         PlannedSubsample.objects.bulk_update(updated_fields, ["planned_date", "updated_at"])
 
 
+def _withdraw_planned_subsample(study, subsample_id):
+    if study.status != Study.Status.ACTIVE:
+        return False, "Solo puedes retirar submuestras cuando el estudio esta aprobado."
+
+    subsample = study.planned_subsamples.filter(pk=subsample_id).first()
+    if not subsample:
+        return False, "La submuestra seleccionada no existe para este estudio."
+
+    if subsample.status == PlannedSubsample.Status.WITHDRAWN:
+        return False, "La submuestra ya estaba retirada."
+
+    subsample.status = PlannedSubsample.Status.WITHDRAWN
+    subsample.actual_sampling_date = timezone.localdate()
+    subsample.save(update_fields=["status", "actual_sampling_date", "updated_at"])
+
+    register_audit_event(
+        subsample,
+        "web_withdraw_planned_subsample",
+        payload={"study": study.code, "code": subsample.code},
+        changes={
+            "status": {"before": PlannedSubsample.Status.IN_CHAMBER, "after": subsample.status},
+            "actual_sampling_date": {"before": None, "after": str(subsample.actual_sampling_date)},
+        },
+    )
+    return True, None
+
+
 class AppLoginView(LoginView):
     template_name = "auth/login.html"
     redirect_authenticated_user = True
@@ -576,12 +603,20 @@ def planning_study_view(request, pk):
     templates = list(SamplingPointTemplate.objects.filter(is_active=True).order_by("month_number"))
 
     if request.method == "POST":
-        if request.POST.get("action") == "generate_planning":
+        action = request.POST.get("action")
+        if action == "generate_planning":
             ok, result = _generate_study_planning(study)
             if ok:
                 messages.success(request, f"Planificacion generada correctamente con {result} submuestras.")
                 return redirect("web-study-planning", pk=study.pk)
             messages.error(request, result or "No se pudo generar la planificacion.")
+        elif action == "withdraw_subsample":
+            ok, error_message = _withdraw_planned_subsample(study, request.POST.get("subsample_id"))
+            if ok:
+                messages.success(request, "Submuestra retirada correctamente.")
+                return redirect("web-study-planning", pk=study.pk)
+            messages.error(request, error_message or "No se pudo retirar la submuestra.")
+            return redirect("web-study-planning", pk=study.pk)
         else:
             ok, error_message = _save_study_planning_entries(request, study, chambers, templates)
             if ok:
