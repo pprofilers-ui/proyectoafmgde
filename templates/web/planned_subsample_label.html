@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Etiqueta {{ subsample.code }}</title>
+    <style>
+        body { margin: 0; padding: 18px; background: #eef3fb; font-family: Arial, sans-serif; color: #13213f; }
+        .label-sheet { width: 6in; min-height: 3.5in; margin: 0 auto; background: #fff; border: 1px solid #2d3b5f; border-radius: 18px; padding: 0.18in; box-shadow: 0 16px 40px rgba(40, 58, 102, 0.12); }
+        .top-band { height: 10px; border-radius: 999px; background: linear-gradient(90deg, #d7f0ff, #dce9ff, #d7f0ff); margin-bottom: 12px; }
+        .header, .footer { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+        .title { font-size: 13px; font-weight: 800; margin: 0 0 6px; }
+        .subtitle, .meta-label, .footer-note { font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; color: #5f6f96; }
+        .code-chip { padding: 6px 10px; border-radius: 999px; background: #dce9ff; font-size: 11px; font-weight: 700; }
+        .body-grid { display: grid; grid-template-columns: 1.45fr 0.95fr; gap: 14px; margin-top: 12px; }
+        .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+        .meta-block { border: 1px solid #d7e2f7; border-radius: 12px; padding: 8px 10px; min-height: 46px; }
+        .meta-block.wide { grid-column: 1 / -1; }
+        .meta-value { font-size: 12px; font-weight: 700; line-height: 1.25; word-break: break-word; }
+        .qr-panel { border: 1px dashed #7b8ab1; border-radius: 14px; padding: 10px; text-align: center; background: #fbfcff; }
+        .qr-panel img { width: 122px; height: 122px; image-rendering: pixelated; display: block; margin: 6px auto 8px; }
+        .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; }
+        .actions button, .actions a { border: 1px solid #8897be; background: white; border-radius: 999px; padding: 8px 14px; font-size: 12px; text-decoration: none; color: #13213f; cursor: pointer; }
+        @page { size: 6in 3.5in; margin: 0.12in; }
+        @media print { body { background: white; padding: 0; } .label-sheet { margin: 0; box-shadow: none; } .actions { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="label-sheet">
+        <div class="top-band"></div>
+        <div class="header">
+            <div>
+                <p class="subtitle">Informacion</p>
+                <h1 class="title">Etiqueta de submuestra planificada</h1>
+            </div>
+            <div class="code-chip">{{ subsample.study.code }}</div>
+        </div>
+        <div class="body-grid">
+            <div class="meta-grid">
+                <div class="meta-block wide">
+                    <div class="meta-label">Producto</div>
+                    <div class="meta-value">{{ subsample.study.product_name|default:"-" }}</div>
+                </div>
+                <div class="meta-block">
+                    <div class="meta-label">Codigo</div>
+                    <div class="meta-value">{{ subsample.code }}</div>
+                </div>
+                <div class="meta-block">
+                    <div class="meta-label">Punto</div>
+                    <div class="meta-value">{{ subsample.sampling_point_template.label }}</div>
+                </div>
+                <div class="meta-block wide">
+                    <div class="meta-label">Camara / Condicion</div>
+                    <div class="meta-value">{{ subsample.chamber.code }}{% if subsample.chamber.storage_condition %} / {{ subsample.chamber.storage_condition.name }}{% endif %}</div>
+                </div>
+                <div class="meta-block">
+                    <div class="meta-label">Analisis</div>
+                    <div class="meta-value">{{ subsample.get_analysis_type_display }}</div>
+                </div>
+                <div class="meta-block">
+                    <div class="meta-label">Ubicacion</div>
+                    <div class="meta-value">{{ subsample.storage_location|default:"-" }}</div>
+                </div>
+            </div>
+            <div class="qr-panel">
+                <img src="data:image/png;base64,{{ qr_image_base64 }}" alt="QR">
+                <div class="subtitle">QR</div>
+                <div class="meta-value">{{ qr_value }}</div>
+            </div>
+        </div>
+        <div class="actions">
+            <button type="button" onclick="window.print()">Imprimir</button>
+            <a href="/app/studies/{{ subsample.study.id }}/planning/">Volver</a>
+        </div>
+    </div>
+    {% if autoprint %}
+    <script>
+    window.addEventListener('load', function () {
+        setTimeout(function () { window.print(); }, 200);
+    });
+    </script>
+    {% endif %}
+</body>
+</html>

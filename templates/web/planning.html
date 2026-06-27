@@ -146,11 +146,11 @@
             </div>
         </div>
     </div>
-    <div class="col-xl-6">
+    <div class="col-12">
         <div class="card glass soft-card border-0 h-100">
             <div class="card-body p-4 p-lg-5">
                 <div class="app-section-title">Muestras del estudio</div>
-                <div class="app-section-copy">Vista rapida para saber con que base estamos trabajando antes de pasar a la planificacion masiva.</div>
+                <div class="app-section-copy">Vista rapida para saber con que base estamos trabajando antes de pasar a la planificacion masiva. Total de submuestras planificadas: {{ generated_subsamples|length }}.</div>
                 <div class="table-responsive mt-3">
                     <table class="table table-hover align-middle">
                         <tr>
@@ -176,7 +176,7 @@
             </div>
         </div>
     </div>
-    <div class="col-xl-6">
+    <div class="col-12">
         <div class="card glass soft-card border-0 h-100">
             <div class="card-body p-4 p-lg-5">
                 <div class="app-section-title">Submuestras generadas</div>
@@ -190,6 +190,9 @@
                             <th>Punto</th>
                             <th>Fecha prevista</th>
                             <th>Fecha real</th>
+                            <th>Fecha analisis</th>
+                            <th>Cantidad</th>
+                            <th>Ubicacion</th>
                             <th>Estado</th>
                             <th>Accion</th>
                         </tr>
@@ -201,8 +204,24 @@
                             <td>{{ subsample.sampling_point_template.label }}</td>
                             <td>{{ subsample.planned_date|date:"d/m/Y"|default:"-" }}</td>
                             <td>{{ subsample.actual_sampling_date|date:"d/m/Y"|default:"-" }}</td>
+                            <td>{{ subsample.analysis_date|date:"d/m/Y"|default:"-" }}</td>
+                            <td>{{ subsample.quantity|default:"-" }}</td>
+                            <td>{{ subsample.storage_location|default:"-" }}</td>
                             <td>{{ subsample.get_status_display }}</td>
                             <td class="text-nowrap">
+                                <button
+                                    class="btn btn-sm btn-outline-primary rounded-pill me-1 open-planned-edit-modal"
+                                    type="button"
+                                    data-subsample-id="{{ subsample.id }}"
+                                    data-code="{{ subsample.code }}"
+                                    data-analysis-date="{{ subsample.analysis_date|date:'Y-m-d'|default:'' }}"
+                                    data-quantity="{{ subsample.quantity|default:'' }}"
+                                    data-storage-location="{{ subsample.storage_location|default:''|escapejs }}"
+                                    data-location-notes="{{ subsample.location_notes|default:''|escapejs }}"
+                                >
+                                    Editar
+                                </button>
+                                <a class="btn btn-sm rounded-pill me-1" href="/app/planned-subsamples/{{ subsample.id }}/label/?autoprint=1" style="background-color:#f59e0b; border-color:#f59e0b; color:#fff;">Etiqueta</a>
                                 {% if study.status == "active" and subsample.status == "in_chamber" %}
                                 <form method="post" class="d-inline planned-withdraw-form">
                                     {% csrf_token %}
@@ -219,7 +238,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="text-muted">Todavia no se ha ejecutado la generacion de planificacion para este estudio.</td>
+                            <td colspan="11" class="text-muted">Todavia no se ha ejecutado la generacion de planificacion para este estudio.</td>
                         </tr>
                         {% endfor %}
                     </table>
@@ -228,7 +247,7 @@
             </div>
         </div>
     </div>
-    <div class="col-xl-6">
+    <div class="col-12">
         <div class="card glass soft-card border-0 h-100">
             <div class="card-body p-4 p-lg-5">
                 <div class="app-section-title">Submuestras ya existentes</div>
@@ -257,6 +276,50 @@
                         {% endfor %}
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="plannedSubsampleEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar submuestra planificada</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <form id="plannedSubsampleEditForm" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="edit_subsample">
+                    <input type="hidden" name="subsample_id" id="edit_planned_subsample_id">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Codigo</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_planned_subsample_code" type="text" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha de analisis</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_planned_analysis_date" name="analysis_date" type="date">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Cantidad</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_planned_quantity" name="quantity" type="number" min="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Ubicacion</label>
+                            <input class="form-control rounded-4 shadow-sm" id="edit_planned_storage_location" name="storage_location" type="text">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Observaciones de ubicacion</label>
+                            <textarea class="form-control rounded-4 shadow-sm" id="edit_planned_location_notes" name="location_notes" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 justify-content-end mt-4">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary rounded-pill">Guardar cambios</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -357,6 +420,19 @@ document.addEventListener('DOMContentLoaded', function () {
                     form.submit();
                 }
             });
+        });
+    });
+
+    document.querySelectorAll('.open-planned-edit-modal').forEach(function (button) {
+        button.addEventListener('click', function () {
+            document.getElementById('edit_planned_subsample_id').value = button.dataset.subsampleId || '';
+            document.getElementById('edit_planned_subsample_code').value = button.dataset.code || '';
+            document.getElementById('edit_planned_analysis_date').value = button.dataset.analysisDate || '';
+            document.getElementById('edit_planned_quantity').value = button.dataset.quantity || '';
+            document.getElementById('edit_planned_storage_location').value = button.dataset.storageLocation || '';
+            document.getElementById('edit_planned_location_notes').value = button.dataset.locationNotes || '';
+            const modal = new bootstrap.Modal(document.getElementById('plannedSubsampleEditModal'));
+            modal.show();
         });
     });
 });

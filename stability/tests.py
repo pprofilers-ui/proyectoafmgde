@@ -324,6 +324,53 @@ class PlanningViewTests(TestCase):
         self.assertEqual(subsample.status, PlannedSubsample.Status.WITHDRAWN)
         self.assertEqual(str(subsample.actual_sampling_date), str(date.today()))
 
+    def test_edit_generated_subsample_updates_fields(self):
+        template = SamplingPointTemplate.objects.create(month_number=7, label="7M", is_active=True)
+        subsample = PlannedSubsample.objects.create(
+            study=self.study,
+            sampling_point_template=template,
+            chamber=self.chamber,
+            analysis_type=PlannedSubsample.AnalysisType.FQ,
+            code=f"{self.study.code}-P-0200",
+            status=PlannedSubsample.Status.IN_CHAMBER,
+        )
+
+        response = self.client.post(
+            f"/app/studies/{self.study.id}/planning/",
+            data={
+                "action": "edit_subsample",
+                "subsample_id": str(subsample.id),
+                "analysis_date": "2026-07-10",
+                "quantity": "4",
+                "storage_location": "BALDA A3",
+                "location_notes": "Pendiente de verificacion",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        subsample.refresh_from_db()
+        self.assertEqual(str(subsample.analysis_date), "2026-07-10")
+        self.assertEqual(subsample.quantity, 4)
+        self.assertEqual(subsample.storage_location, "BALDA A3")
+        self.assertEqual(subsample.location_notes, "Pendiente de verificacion")
+
+    def test_planned_subsample_label_preview_marks_printed(self):
+        template = SamplingPointTemplate.objects.create(month_number=8, label="8M", is_active=True)
+        subsample = PlannedSubsample.objects.create(
+            study=self.study,
+            sampling_point_template=template,
+            chamber=self.chamber,
+            analysis_type=PlannedSubsample.AnalysisType.MICRO,
+            code=f"{self.study.code}-P-0201",
+            status=PlannedSubsample.Status.IN_CHAMBER,
+        )
+
+        response = self.client.get(f"/app/planned-subsamples/{subsample.id}/label/")
+
+        self.assertEqual(response.status_code, 200)
+        subsample.refresh_from_db()
+        self.assertIsNotNone(subsample.label_printed_at)
+
 
 class AdminGroupingTests(TestCase):
     def test_sampling_point_template_is_grouped_under_maestros(self):

@@ -456,9 +456,12 @@ class PlannedSubsample(TimeStampedModel):
     )
     analysis_type = models.CharField(max_length=20, choices=AnalysisType.choices)
     code = models.CharField(max_length=120, unique=True)
+    label_printed_at = models.DateTimeField(null=True, blank=True)
     planned_date = models.DateField(null=True, blank=True)
     actual_sampling_date = models.DateField(null=True, blank=True)
     analysis_date = models.DateField(null=True, blank=True)
+    quantity = models.PositiveIntegerField(null=True, blank=True)
+    storage_location = models.CharField(max_length=255, blank=True)
     location_notes = models.CharField(max_length=255, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.IN_CHAMBER)
 

@@ -574,7 +574,7 @@ class StudyPlanningEntryAdmin(admin.ModelAdmin):
 
 @admin.register(PlannedSubsample)
 class PlannedSubsampleAdmin(admin.ModelAdmin):
-    list_display = ("code", "study", "sampling_point_template", "chamber", "analysis_type", "planned_date", "status")
+    list_display = ("code", "study", "sampling_point_template", "chamber", "analysis_type", "planned_date", "quantity", "storage_location", "status")
     list_filter = ("status", "analysis_type", "chamber", "study")
     search_fields = ("code", "study__code", "sampling_point_template__label", "chamber__code")
 

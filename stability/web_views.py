@@ -11,6 +11,7 @@ from django.db import transaction
 from django.db.models import Count, F, Q, Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.dateparse import parse_date
 from django.utils import timezone
 import qrcode
 
@@ -355,6 +356,39 @@ def _withdraw_planned_subsample(study, subsample_id):
     return True, None
 
 
+def _update_planned_subsample(study, subsample_id, request):
+    subsample = study.planned_subsamples.filter(pk=subsample_id).first()
+    if not subsample:
+        return False, "La submuestra seleccionada no existe para este estudio."
+
+    analysis_date_raw = (request.POST.get("analysis_date") or "").strip()
+    quantity_raw = (request.POST.get("quantity") or "").strip()
+    subsample.quantity = _safe_int(quantity_raw, None) if quantity_raw else None
+    subsample.storage_location = (request.POST.get("storage_location") or "").strip()
+    subsample.location_notes = (request.POST.get("location_notes") or "").strip()
+    subsample.analysis_date = parse_date(analysis_date_raw) if analysis_date_raw else None
+    subsample.save(update_fields=["quantity", "storage_location", "location_notes", "analysis_date", "updated_at"])
+
+    register_audit_event(
+        subsample,
+        "web_update_planned_subsample",
+        payload={"study": study.code, "code": subsample.code},
+        changes={"updated": {"before": False, "after": True}},
+    )
+    return True, None
+
+
+def _mark_planned_subsample_label_printed(subsample):
+    subsample.label_printed_at = timezone.now()
+    subsample.save(update_fields=["label_printed_at", "updated_at"])
+    register_audit_event(
+        subsample,
+        "web_print_planned_subsample_label",
+        payload={"code": subsample.code},
+        changes={"label_printed_at": {"before": None, "after": subsample.label_printed_at.isoformat()}},
+    )
+
+
 class AppLoginView(LoginView):
     template_name = "auth/login.html"
     redirect_authenticated_user = True
@@ -616,6 +650,13 @@ def planning_study_view(request, pk):
                 messages.success(request, "Submuestra retirada correctamente.")
                 return redirect("web-study-planning", pk=study.pk)
             messages.error(request, error_message or "No se pudo retirar la submuestra.")
+            return redirect("web-study-planning", pk=study.pk)
+        elif action == "edit_subsample":
+            ok, error_message = _update_planned_subsample(study, request.POST.get("subsample_id"), request)
+            if ok:
+                messages.success(request, "Submuestra actualizada correctamente.")
+            else:
+                messages.error(request, error_message or "No se pudo actualizar la submuestra.")
             return redirect("web-study-planning", pk=study.pk)
         else:
             ok, error_message = _save_study_planning_entries(request, study, chambers, templates)
@@ -1306,3 +1347,27 @@ def sample_label_preview(request, pk):
         "autoprint": request.GET.get("autoprint") == "1",
     }
     return render(request, "web/label_preview.html", context)
+
+
+@login_required
+def planned_subsample_label_preview(request, pk):
+    subsample = get_object_or_404(
+        PlannedSubsample.objects.select_related("study", "chamber", "chamber__storage_condition", "sampling_point_template"),
+        pk=pk,
+    )
+    _mark_planned_subsample_label_printed(subsample)
+    qr_value = f"QR::{subsample.code}"
+    qr = qrcode.QRCode(version=1, box_size=5, border=2)
+    qr.add_data(qr_value)
+    qr.make(fit=True)
+    image = qr.make_image(fill_color="black", back_color="white")
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    qr_image_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+    context = {
+        "subsample": subsample,
+        "qr_value": qr_value,
+        "qr_image_base64": qr_image_base64,
+        "autoprint": request.GET.get("autoprint") == "1",
+    }
+    return render(request, "web/planned_subsample_label.html", context)
