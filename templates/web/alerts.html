@@ -1,29 +1,50 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="hero glass p-4 mb-4">
-    <h1>Alertas</h1>
-    <p>Listado operativo de alertas abiertas y cerradas para el seguimiento diario.</p>
-</div>
-<div class="card glass border-0">
-    <div class="card-body">
-    <div class="table-responsive">
-    <table class="table table-hover">
-        <tr><th>Titulo</th><th>Estudio</th><th>Muestra</th><th>Severidad</th><th>Estado</th><th>Vence</th></tr>
-        {% for alert in alerts %}
-        <tr>
-            <td>{{ alert.title }}</td>
-            <td>{% if alert.study %}{{ alert.study.code }}{% else %}-{% endif %}</td>
-            <td>{% if alert.sample %}{{ alert.sample.sample_code }}{% else %}-{% endif %}</td>
-            <td><span class="badge text-bg-warning">{{ alert.get_severity_display }}</span></td>
-            <td><span class="badge text-bg-light">{{ alert.get_status_display }}</span></td>
-            <td>{{ alert.due_date|default:"-" }}</td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="6">No hay alertas registradas.</td></tr>
-        {% endfor %}
-    </table>
+<div class="page-hero">
+    <div>
+        <h1 class="page-title">Alertas</h1>
+        <p class="page-subtitle">Listado operativo de alertas abiertas y cerradas para el seguimiento diario.</p>
     </div>
+    <div class="recommendation-card">
+        <p class="recommendation-label">Seguimiento diario</p>
+        <p class="recommendation-text">Prioriza primero las criticas, despues advertencias y por ultimo las informativas.</p>
+    </div>
+</div>
+
+<div class="content-card">
+    <div class="section-card-body">
+        <div class="table-shell">
+            <table class="table table-app">
+                <thead>
+                    <tr><th>Titulo</th><th>Estudio</th><th>Muestra</th><th>Severidad</th><th>Estado</th><th>Vence</th></tr>
+                </thead>
+                <tbody>
+                    {% for alert in alerts %}
+                    <tr>
+                        <td class="cell-title-strong">{{ alert.title }}</td>
+                        <td>{% if alert.study %}{{ alert.study.code }}{% else %}-{% endif %}</td>
+                        <td>{% if alert.sample %}{{ alert.sample.sample_code }}{% else %}-{% endif %}</td>
+                        <td>
+                            <span class="metric-pill {% if alert.severity == 'critical' %}is-danger{% elif alert.severity == 'warning' %}is-warning{% else %}is-info{% endif %}">
+                                {{ alert.get_severity_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-badge {% if alert.status == 'open' %}status-suspended{% else %}status-active{% endif %}">
+                                {{ alert.get_status_display }}
+                            </span>
+                        </td>
+                        <td>{{ alert.due_date|date:"d/m/Y"|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="table-empty">No hay alertas registradas.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}

@@ -1,36 +1,65 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="hero glass p-4 mb-4">
-    <h1>Detalle de trazabilidad</h1>
-    <p>{{ audit.friendly_entity }} #{{ audit.entity_id }} - {{ audit.friendly_action }}</p>
+<div class="page-hero">
+    <div>
+        <h1 class="page-title">Detalle de trazabilidad</h1>
+        <p class="page-subtitle">{{ audit.friendly_entity }} #{{ audit.entity_id }} - {{ audit.friendly_action }}</p>
+    </div>
+    <div class="recommendation-card">
+        <p class="recommendation-label">Solo lectura</p>
+        <p class="recommendation-text">Aqui puedes revisar la cabecera del evento, los cambios detectados y el payload original.</p>
+    </div>
 </div>
 
 <div class="row g-4">
     <div class="col-lg-4">
-        <div class="card glass border-0 h-100">
-            <div class="card-body">
-                <h4>Cabecera</h4>
-                <p><strong>Fecha:</strong> {{ audit.performed_at|date:"Y-m-d H:i:s" }}</p>
-                <p><strong>Usuario:</strong> {% if audit.performed_by %}{{ audit.performed_by.username }}{% else %}-{% endif %}</p>
-                <p><strong>Evento:</strong> {{ audit.friendly_action }}</p>
-                <p><strong>Entidad:</strong> {{ audit.friendly_entity }}</p>
-                <p><strong>Origen:</strong> {{ audit.friendly_route }}</p>
-                <p><strong>Company:</strong> {{ audit.company_code|default:"-" }}</p>
-                <p><strong>Contact:</strong> {{ audit.contact_code|default:"-" }}</p>
+        <div class="content-card h-100">
+            <div class="content-card-body">
+                <h3 class="dashboard-section-title">Cabecera</h3>
+                <div class="audit-detail-list">
+                    <div class="audit-detail-item">
+                        <p class="audit-detail-label">Fecha</p>
+                        <p class="audit-detail-value">{{ audit.performed_at|date:"Y-m-d H:i:s" }}</p>
+                    </div>
+                    <div class="audit-detail-item">
+                        <p class="audit-detail-label">Usuario</p>
+                        <p class="audit-detail-value">{% if audit.performed_by %}{{ audit.performed_by.username }}{% else %}-{% endif %}</p>
+                    </div>
+                    <div class="audit-detail-item">
+                        <p class="audit-detail-label">Evento</p>
+                        <p class="audit-detail-value">{{ audit.friendly_action }}</p>
+                    </div>
+                    <div class="audit-detail-item">
+                        <p class="audit-detail-label">Entidad</p>
+                        <p class="audit-detail-value">{{ audit.friendly_entity }}</p>
+                    </div>
+                    <div class="audit-detail-item">
+                        <p class="audit-detail-label">Origen</p>
+                        <p class="audit-detail-value">{{ audit.friendly_route }}</p>
+                    </div>
+                    <div class="audit-detail-item">
+                        <p class="audit-detail-label">Company</p>
+                        <p class="audit-detail-value">{{ audit.company_code|default:"-" }}</p>
+                    </div>
+                    <div class="audit-detail-item">
+                        <p class="audit-detail-label">Contact</p>
+                        <p class="audit-detail-value">{{ audit.contact_code|default:"-" }}</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
     <div class="col-lg-8">
-        <div class="card glass border-0 mb-4">
-            <div class="card-body">
-                <h4>Cambios</h4>
+        <div class="content-card mb-4">
+            <div class="content-card-body">
+                <h3 class="dashboard-section-title">Cambios</h3>
                 <div class="audit-json">{{ audit.changes }}</div>
             </div>
         </div>
-        <div class="card glass border-0">
-            <div class="card-body">
-                <h4>Payload</h4>
+        <div class="content-card">
+            <div class="content-card-body">
+                <h3 class="dashboard-section-title">Payload</h3>
                 <div class="audit-json">{{ audit.payload }}</div>
             </div>
         </div>

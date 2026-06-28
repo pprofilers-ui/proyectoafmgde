@@ -1,193 +1,255 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="hero glass p-4 p-lg-5 mb-4">
-    <div class="row align-items-center g-4">
-        <div class="col-lg-8">
-            <h1 class="display-4 mb-2">Estudios</h1>
-            <p class="lead text-secondary mb-0">Da de alta nuevos estudios de estabilidad y revisa los que ya existen en la aplicacion.</p>
-        </div>
-        <div class="col-lg-4">
-            <div class="mini-kpi">
-                <div class="small text-uppercase text-muted">Uso recomendado</div>
-                <div class="fw-semibold mt-2">Primero crea el estudio y despues sigue el flujo de recepcion y muestras.</div>
-            </div>
-        </div>
+<div class="page-hero">
+    <div>
+        <h1 class="page-title">Estudios</h1>
+        <p class="page-subtitle">Gestiona, planifica y controla todos los estudios de estabilidad.</p>
+    </div>
+    <div class="recommendation-card">
+        <p class="recommendation-label">Uso recomendado</p>
+        <p class="recommendation-text">Primero crea el estudio y despues sigue el flujo de recepcion y muestras.</p>
     </div>
 </div>
 
-<div class="row g-4">
-    <div class="col-12">
-        <div class="card glass soft-card border-0 h-100">
-            <div class="card-body p-4 p-lg-5">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div>
-                        <div class="app-section-title">Listado de estudios</div>
-                        <div class="app-section-copy">Consulta rapida del estado de estudios dados de alta.</div>
-                    </div>
+<div class="content-card">
+    <form method="get" action="/app/studies/" class="filters-bar">
+        <div class="filter-field filter-search">
+            <label class="filter-label" for="searchFilter">Buscar</label>
+            <div class="search-input-wrap">
+                <input class="app-input w-100" id="searchFilter" name="q" type="text" value="{{ search_term }}" placeholder="Buscar estudio, producto, cliente...">
+                <i class="bi bi-search search-input-icon"></i>
+            </div>
+        </div>
+        <div class="filter-field">
+            <label class="filter-label" for="statusFilter">Estado</label>
+            <select class="form-select" id="statusFilter" name="status">
+                <option value="">Todos</option>
+                {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-field">
+            <label class="filter-label" for="clientFilter">Cliente</label>
+            <select class="form-select" id="clientFilter" name="client">
+                <option value="">Todos</option>
+                {% for client in clients %}
+                <option value="{{ client.id }}" {% if selected_client == client.id|stringformat:"s" %}selected{% endif %}>{{ client.description }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-field">
+            <label class="filter-label" for="productFilter">Producto</label>
+            <select class="form-select" id="productFilter" name="product">
+                <option value="">Todos</option>
+                {% for product in products %}
+                <option value="{{ product.id }}" {% if selected_product == product.id|stringformat:"s" %}selected{% endif %}>{{ product.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-field">
+            <label class="filter-label" for="pageSize">Registros</label>
+            <select class="form-select pagination-size" id="pageSize" name="page_size">
+                <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
+                <option value="25" {% if page_size == 25 %}selected{% endif %}>25</option>
+                <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+            </select>
+        </div>
+        <div class="d-flex align-items-end gap-2 flex-wrap ms-auto">
+            <button class="btn btn-filter" type="submit"><i class="bi bi-funnel me-2"></i>Filtros</button>
+            <a href="/app/studies/" class="btn btn-ghost"><i class="bi bi-arrow-clockwise me-2"></i>Limpiar</a>
+            <button class="btn btn-primary" type="button" onclick="toggleStudyForm()">
+                <i class="bi bi-plus-lg me-2"></i>Nuevo estudio
+            </button>
+        </div>
+    </form>
 
-                    <button class="btn btn-primary rounded-pill" type="button" onclick="toggleStudyForm()">
-                        <i class="bi bi-plus-lg"></i> Nuevo estudio
-                    </button>
-                </div>
-
-                <form method="get" action="/app/studies/" class="row g-3 align-items-end mb-4">
-                    <div class="col-md-4 col-lg-3">
-                        <label class="form-label" for="statusFilter">Filtrar por estado</label>
-                        <select class="form-select rounded-4 shadow-sm" id="statusFilter" name="status">
-                            <option value="">Todos</option>
-                            {% for value, label in status_choices %}
-                            <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-auto">
-                        <button class="btn btn-outline-primary rounded-pill" type="submit">Aplicar filtro</button>
-                    </div>
-                    <div class="col-md-auto">
-                        <a href="/app/studies/" class="btn btn-outline-secondary rounded-pill">Quitar filtro</a>
-                    </div>
-                </form>
-
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <tr>
-                            <th>Codigo</th>
-                            <th>Titulo</th>
-                            <th>Tipo</th>
-                            <th>Cliente</th>
-                            <th>Producto</th>
-                            <th>Codigo producto</th>
-                            <th>Protocolo</th>
-                            <th>Especificacion</th>
-                            <th>Estado</th>
-                            <th>Inicio</th>
-                            <th>Fecha Fin</th>
-                            <th>Acciones</th>
-                        </tr>
-
-                        {% for study in studies %}
-                        <tr>
-                            <td class="fw-semibold">{{ study.code }}</td>
-                            <td>{{ study.title }}</td>
-                            <td>{{ study.study_type.name|default:"-" }}</td>
-                            <td>{{ study.client.description|default:"-" }}</td>
-                            <td>{% if study.product %}{{ study.product.name }}{% else %}{{ study.product_name|default:"-" }}{% endif %}</td>
-                            <td>{{ study.product_code|default:"-" }}</td>
-                            <td>{{ study.protocol|default:"-" }}</td>
-                            <td>{{ study.specification|default:"-" }}</td>
-                            <td><span class="badge text-bg-light">{{ study.get_status_display }}</span></td>
-                            <td>{{ study.start_date|date:"d/m/Y" }}</td>
-                            <td>{{ study.end_date|date:"d/m/Y"|default:"-" }}</td>
-                            <td class="text-nowrap">
-                                <a class="btn btn-sm btn-outline-success rounded-pill me-1" href="/app/samples/?study={{ study.id }}&open=create">
-                                    Crear muestras
+    <div class="section-card-body">
+        <div class="table-shell">
+            <table class="table table-app">
+                <thead>
+                    <tr>
+                        <th>Codigo</th>
+                        <th>Titulo del estudio</th>
+                        <th>Cliente</th>
+                        <th>Producto</th>
+                        <th>Codigo producto</th>
+                        <th>Protocolo</th>
+                        <th>Estado</th>
+                        <th>Inicio</th>
+                        <th>Fin prevista</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for study in studies %}
+                    <tr>
+                        <td class="cell-code">{{ study.code }}</td>
+                        <td class="cell-title-strong">{{ study.title }}</td>
+                        <td>{{ study.client.description|default:"-" }}</td>
+                        <td>{% if study.product %}{{ study.product.name }}{% else %}{{ study.product_name|default:"-" }}{% endif %}</td>
+                        <td>{{ study.product_code|default:"-" }}</td>
+                        <td>{{ study.protocol|default:"-" }}</td>
+                        <td>
+                            <span class="status-badge status-{{ study.status }}">{{ study.get_status_display }}</span>
+                        </td>
+                        <td>{{ study.start_date|date:"d/m/Y" }}</td>
+                        <td>{{ study.end_date|date:"d/m/Y"|default:"-" }}</td>
+                        <td>
+                            <div class="row-actions">
+                                <a class="action-icon icon-view" href="/app/samples/?study={{ study.id }}" title="Ver muestras del estudio" aria-label="Ver muestras del estudio">
+                                    <i class="bi bi-eye"></i>
                                 </a>
-                                <a class="btn btn-sm btn-outline-warning rounded-pill me-1" href="/app/studies/{{ study.id }}/planning/">
-                                    Planificar
+                                <a class="action-icon icon-plan" href="/app/studies/{{ study.id }}/planning/" title="Planificar estudio" aria-label="Planificar estudio">
+                                    <i class="bi bi-calendar3"></i>
                                 </a>
                                 <a
-                                    class="btn btn-sm btn-outline-primary rounded-pill me-1"
+                                    class="action-icon icon-edit"
                                     href="#"
+                                    title="Editar estudio"
+                                    aria-label="Editar estudio"
                                     onclick="openStudyEditModal('{{ study.id }}', '{{ study.code|escapejs }}', '{{ study.title|escapejs }}', '{{ study.study_type_id|default:'' }}', '{{ study.client_id|default:'' }}', '{{ study.product_id|default:'' }}', '{{ study.product_code|escapejs }}', '{{ study.protocol|escapejs }}', '{{ study.specification|escapejs }}', '{{ study.product_name|escapejs }}', '{{ study.comments|escapejs }}', '{{ study.status }}', '{{ study.start_date|date:'Y-m-d' }}', '{{ study.end_date|default:''|date:'Y-m-d' }}'); return false;">
-                                    Editar
+                                    <i class="bi bi-pencil"></i>
                                 </a>
                                 <form method="post" action="/app/studies/{{ study.id }}/delete/" class="d-inline study-delete-form">
                                     {% csrf_token %}
-                                    <button class="btn btn-sm btn-outline-danger rounded-pill" type="submit">Eliminar</button>
+                                    <button class="action-icon icon-delete" type="submit" title="Eliminar estudio" aria-label="Eliminar estudio">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
                                 </form>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="12" class="text-muted">No hay estudios todavia.</td>
-                        </tr>
-                        {% endfor %}
-                    </table>
-                </div>
-            </div>
+                                <div class="dropdown">
+                                    <button class="action-icon icon-more" type="button" title="Mas opciones" aria-label="Mas opciones" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <div class="dropdown-menu dropdown-menu-end row-actions-menu">
+                                        <a class="dropdown-item" href="/app/samples/?study={{ study.id }}">
+                                            <i class="bi bi-eye"></i>Ver muestras del estudio
+                                        </a>
+                                        <a class="dropdown-item" href="/app/samples/?study={{ study.id }}&open=create">
+                                            <i class="bi bi-plus-circle"></i>Crear muestra
+                                        </a>
+                                        <a class="dropdown-item" href="/app/studies/{{ study.id }}/planning/">
+                                            <i class="bi bi-calendar3"></i>Planificar estudio
+                                        </a>
+                                        <a
+                                            class="dropdown-item"
+                                            href="#"
+                                            onclick="openStudyEditModal('{{ study.id }}', '{{ study.code|escapejs }}', '{{ study.title|escapejs }}', '{{ study.study_type_id|default:'' }}', '{{ study.client_id|default:'' }}', '{{ study.product_id|default:'' }}', '{{ study.product_code|escapejs }}', '{{ study.protocol|escapejs }}', '{{ study.specification|escapejs }}', '{{ study.product_name|escapejs }}', '{{ study.comments|escapejs }}', '{{ study.status }}', '{{ study.start_date|date:'Y-m-d' }}', '{{ study.end_date|default:''|date:'Y-m-d' }}'); return false;">
+                                            <i class="bi bi-pencil"></i>Editar estudio
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="table-empty">No hay estudios con los filtros actuales.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-    </div>
 
-    <div class="col-12" id="createStudySection" style="display:none;">
-        <div class="card glass soft-card border-0 h-100">
-            <div class="card-body p-4 p-lg-5">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div>
-                        <div class="app-section-title">Crear estudio</div>
-                        <div class="app-section-copy">Alta funcional para usuarios normales sin pasar por el panel admin.</div>
-                    </div>
-
-                    <button type="button" class="btn btn-outline-secondary rounded-pill" onclick="toggleStudyForm()">Cerrar</button>
+        <div class="table-pagination">
+            <div class="pagination-summary">Mostrando {{ start_index }} a {{ end_index }} de {{ total_count }} resultados</div>
+            <div class="pagination-nav">
+                {% if page_obj.has_previous %}
+                <a class="pagination-link" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Pagina anterior">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+                {% endif %}
+                <div class="pagination-pages">
+                    {% for page_number in page_numbers %}
+                    <a class="pagination-link {% if page_obj.number == page_number %}active{% endif %}" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_number }}">{{ page_number }}</a>
+                    {% endfor %}
                 </div>
-
-                <form method="post" action="/app/studies/create/" class="row g-4 study-status-form">
-                    {% csrf_token %}
-
-                    <div class="col-md-6">
-                        <label class="form-label">{{ study_form.code.label }}</label>
-                        {{ study_form.code }}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">{{ study_form.title.label }}</label>
-                        {{ study_form.title }}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">{{ study_form.study_type.label }}</label>
-                        {{ study_form.study_type }}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">{{ study_form.client.label }}</label>
-                        {{ study_form.client }}
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">{{ study_form.product.label }}</label>
-                        {{ study_form.product }}
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">{{ study_form.product_code.label }}</label>
-                        {{ study_form.product_code }}
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">{{ study_form.product_name.label }}</label>
-                        {{ study_form.product_name }}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">{{ study_form.protocol.label }}</label>
-                        {{ study_form.protocol }}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">{{ study_form.specification.label }}</label>
-                        {{ study_form.specification }}
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">{{ study_form.status.label }}</label>
-                        {{ study_form.status }}
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">{{ study_form.start_date.label }}</label>
-                        {{ study_form.start_date }}
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">{{ study_form.end_date.label }}</label>
-                        {{ study_form.end_date }}
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label">{{ study_form.comments.label }}</label>
-                        {{ study_form.comments }}
-                    </div>
-                    <div class="col-12 pt-2">
-                        <button class="btn btn-primary btn-lg soft-pill" type="submit">Crear estudio</button>
-                    </div>
-                </form>
+                {% if page_obj.has_next %}
+                <a class="pagination-link" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Pagina siguiente">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="studyEditModal" tabindex="-1" aria-hidden="true">
+<div class="content-card mt-4" id="createStudySection" style="display:none;">
+    <div class="panel-toggle">
+        <div>
+            <h2 class="panel-copy-title">Crear estudio</h2>
+            <p class="panel-copy-text">Alta funcional para usuarios normales sin pasar por el panel admin.</p>
+        </div>
+        <button type="button" class="btn btn-outline-secondary" onclick="toggleStudyForm()">Cerrar</button>
+    </div>
+
+    <div class="form-panel">
+        <form method="post" action="/app/studies/create/" class="row g-4 study-status-form">
+            {% csrf_token %}
+
+            <div class="col-md-6">
+                <label class="form-label">{{ study_form.code.label }}</label>
+                {{ study_form.code }}
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">{{ study_form.title.label }}</label>
+                {{ study_form.title }}
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">{{ study_form.study_type.label }}</label>
+                {{ study_form.study_type }}
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">{{ study_form.client.label }}</label>
+                {{ study_form.client }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">{{ study_form.product.label }}</label>
+                {{ study_form.product }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">{{ study_form.product_code.label }}</label>
+                {{ study_form.product_code }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">{{ study_form.product_name.label }}</label>
+                {{ study_form.product_name }}
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">{{ study_form.protocol.label }}</label>
+                {{ study_form.protocol }}
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">{{ study_form.specification.label }}</label>
+                {{ study_form.specification }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">{{ study_form.status.label }}</label>
+                {{ study_form.status }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">{{ study_form.start_date.label }}</label>
+                {{ study_form.start_date }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">{{ study_form.end_date.label }}</label>
+                {{ study_form.end_date }}
+            </div>
+            <div class="col-12">
+                <label class="form-label">{{ study_form.comments.label }}</label>
+                {{ study_form.comments }}
+            </div>
+            <div class="col-12 pt-2">
+                <button class="btn btn-primary btn-lg" type="submit">Crear estudio</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade app-modal" id="studyEditModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content glass">
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Editar estudio</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
@@ -327,7 +389,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 showCancelButton: true,
                 confirmButtonText: 'Si, eliminar',
                 cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#d33'
+                confirmButtonColor: '#e5484d',
+                cancelButtonColor: '#7b8798',
+                customClass: {
+                    popup: 'app-swal-popup'
+                }
             }).then(function (result) {
                 if (result.isConfirmed) {
                     form.submit();

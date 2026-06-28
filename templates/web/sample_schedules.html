@@ -1,200 +1,119 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="hero glass p-4 p-lg-5 mb-4">
-    <div class="row align-items-center g-4">
-        <div class="col-lg-8">
-            <h1 class="display-4 mb-2">Fechas de muestreo</h1>
-            <p class="lead text-secondary mb-0">Consulta y gestion de las fechas asociadas a la muestra {{ sample.sample_code }}.</p>
-        </div>
-        <div class="col-lg-4">
-            <div class="mini-kpi hero">
-                <div class="small text-uppercase text-muted">Muestra asociada</div>
-                <div class="mt-2">
-                    <span class="badge bg-primary fs-6 px-3 py-2">
-                        {{ sample.study.code }}
-                    </span>
-                </div>
-
-                <div class="small text-muted mt-2 fw-semibold">
-                    {{ sample.study.title }}
-                </div>
-            </div>
-        </div>
+<div class="page-hero">
+    <div>
+        <h1 class="page-title">Fechas de muestreo</h1>
+        <p class="page-subtitle">Consulta y gestiona las fechas asociadas a la muestra {{ sample.sample_code }}.</p>
+    </div>
+    <div class="recommendation-card">
+        <p class="recommendation-label">Muestra asociada</p>
+        <p class="recommendation-text"><strong>{{ sample.study.code }}</strong><br>{{ sample.study.title }}</p>
     </div>
 </div>
 
-<div class="card glass soft-card border-0 mb-4">
-    <div class="card-body p-4">
-
-        <div class="d-flex justify-content-between align-items-center">
-
-            <div>
-                <div class="app-section-title">
-                    Listado de fechas
-                </div>
-
-                <div class="app-section-copy">
-                    Consulta y gestiona las fechas de muestreo asociadas a la muestra.
-                </div>
-                <div class="mt-3">
-
-                    <span class="badge bg-success fs-6">
-                        Filtro activo: {{ sample.sample_code }}
-                    </span>
-
-                </div>
+<div class="content-card mb-4">
+    <div class="panel-toggle">
+        <div>
+            <h2 class="panel-copy-title">Listado de fechas</h2>
+            <p class="panel-copy-text">Consulta y gestiona las fechas de muestreo asociadas a la muestra.</p>
+            <div class="mt-3">
+                <span class="status-badge status-active">Filtro activo: {{ sample.sample_code }}</span>
             </div>
-
-            <button
-                class="btn btn-primary rounded-pill px-4"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#addScheduleCollapse">
-
-                + Añadir fecha
-
-            </button>
-
         </div>
-
+        <button
+            class="btn btn-primary"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#addScheduleCollapse">
+            <i class="bi bi-plus-lg me-2"></i>Añadir fecha
+        </button>
     </div>
-</div>
 
-<div class="card glass soft-card border-0 mb-4">
-    <div class="card-body p-4 p-lg-5">
-
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-
-                <tr>
-                    <th>Fecha</th>
-                    <th>Código fecha de muestreo</th>
-                    <th>Cámara</th>
-                    <th>Ubicación</th>
-                    <th>Cantidad</th>
-                    <th>Fecha salida</th>
-                    <th>Activa</th>
-                    <th>Acciones</th>
-                </tr>
-
-                {% for item in schedules %}
-                <tr class="{% if not item.is_active %}table-success{% endif %}">
-                    <td class="fw-semibold">{{ item.planned_date }}</td>
-                    <td>{{ item.label|default:"-" }}</td>
-                    <td>{{ item.chamber.code|default:"-" }}</td>
-                    <td>{{ item.chamber_location.code|default:"-" }}</td>
-                    <td>{{ item.quantity }}</td>
-                    <td>{{ item.removed_at|date:"d/m/Y H:i"|default:"-" }}</td>
-
-                    <td>
-                        <span class="badge {% if item.is_active %}text-bg-warning{% else %}text-bg-success{% endif %}">
-                            {% if item.is_active %}En camara{% else %}Retirada{% endif %}
-                        </span>
-                    </td>
-
-                    <td class="text-nowrap">
-
-                        <a class="btn btn-sm rounded-pill me-1"
-                           href="/app/labels/{{ sample.id }}/?schedule={{ item.id }}"
-                           style="background-color:#f59e0b; border-color:#f59e0b; color:#fff;">
-
-                            Generar etiqueta
-
-                        </a>
-
-                        {% if item.is_active %}
-                        <button
-                            type="button"
-                            class="btn btn-sm btn-outline-success rounded-pill me-1"
-                            onclick="openScheduleWithdrawModal(
-                                '{{ item.id }}',
-                                '{{ item.label|escapejs }}',
-                                '{{ request.user.username|escapejs }}',
-                                '{{ item.notes|escapejs }}'
-                            )">
-
-                            Retirar muestra
-
-                        </button>
-                        {% endif %}
-
-                        <button
-                            type="button"
-                            class="btn btn-sm btn-outline-primary rounded-pill me-1"
-                            onclick="openScheduleEditModal(
-                                '{{ item.id }}',
-                                '{{ item.planned_date|date:"Y-m-d" }}',
-                                '{{ item.label|escapejs }}',
-                                '{% if item.chamber_id %}{{ item.chamber_id }}{% endif %}',
-                                '{% if item.chamber_location_id %}{{ item.chamber_location_id }}{% endif %}',
-                                '{{ item.quantity }}',
-                                '{{ item.notes|escapejs }}',
-                                '{{ item.is_active|yesno:"true,false" }}'
-                            )">
-
-                            Editar
-
-                        </button>
-
-                        <form method="post"
-                              action="/app/samples/schedules/{{ item.id }}/delete/"
-                              class="d-inline">
-
-                            {% csrf_token %}
-
-                            <button
-                                class="btn btn-sm btn-outline-danger rounded-pill"
-                                type="submit">
-
-                                Eliminar
-
-                            </button>
-
-                        </form>
-
-                        <a class="btn btn-sm btn-outline-dark rounded-pill ms-1"
-                           href="/app/labels/{{ sample.id }}/?schedule={{ item.id }}&autoprint=1"
-                           target="_blank"
-                           rel="noopener">
-
-                            Imprimir etiqueta
-
-                        </a>
-
-                    </td>
-
-                </tr>
-
-                {% empty %}
-
-                <tr>
-                    <td colspan="8" class="text-muted">
-                        Todavía no hay fechas de muestreo.
-                    </td>
-                </tr>
-
-                {% endfor %}
-
+    <div class="section-card-body">
+        <div class="table-shell">
+            <table class="table table-app">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Código fecha de muestreo</th>
+                        <th>Cámara</th>
+                        <th>Ubicación</th>
+                        <th>Cantidad</th>
+                        <th>Fecha salida</th>
+                        <th>Activa</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in schedules %}
+                    <tr>
+                        <td class="cell-code">{{ item.planned_date }}</td>
+                        <td>{{ item.label|default:"-" }}</td>
+                        <td>{{ item.chamber.code|default:"-" }}</td>
+                        <td>{{ item.chamber_location.code|default:"-" }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ item.removed_at|date:"d/m/Y H:i"|default:"-" }}</td>
+                        <td>
+                            <span class="status-badge {% if item.is_active %}status-suspended{% else %}status-active{% endif %}">
+                                {% if item.is_active %}En camara{% else %}Retirada{% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="planning-action-stack">
+                                <a class="btn btn-sm btn-filter" href="/app/labels/{{ sample.id }}/?schedule={{ item.id }}">Etiqueta</a>
+                                {% if item.is_active %}
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-danger-soft"
+                                    onclick="openScheduleWithdrawModal(
+                                        '{{ item.id }}',
+                                        '{{ item.label|escapejs }}',
+                                        '{{ request.user.username|escapejs }}',
+                                        '{{ item.notes|escapejs }}'
+                                    )">
+                                    Retirar muestra
+                                </button>
+                                {% endif %}
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-secondary-soft"
+                                    onclick="openScheduleEditModal(
+                                        '{{ item.id }}',
+                                        '{{ item.planned_date|date:"Y-m-d" }}',
+                                        '{{ item.label|escapejs }}',
+                                        '{% if item.chamber_id %}{{ item.chamber_id }}{% endif %}',
+                                        '{% if item.chamber_location_id %}{{ item.chamber_location_id }}{% endif %}',
+                                        '{{ item.quantity }}',
+                                        '{{ item.notes|escapejs }}',
+                                        '{{ item.is_active|yesno:"true,false" }}'
+                                    )">
+                                    Editar
+                                </button>
+                                <form method="post" action="/app/samples/schedules/{{ item.id }}/delete/" class="d-inline sample-delete-form">
+                                    {% csrf_token %}
+                                    <button class="btn btn-sm btn-danger-soft" type="submit">Eliminar</button>
+                                </form>
+                                <a class="btn btn-sm btn-neutral-soft" href="/app/labels/{{ sample.id }}/?schedule={{ item.id }}&autoprint=1" target="_blank" rel="noopener">Imprimir</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="table-empty">Todavía no hay fechas de muestreo.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
             </table>
         </div>
-
     </div>
 </div>
 
 <div class="collapse show" id="addScheduleCollapse">
-
-    <div class="card glass soft-card border-0">
-
-        <div class="card-body p-4 p-lg-5">
-
-            <div class="app-section-title">
-                Añadir fecha
-            </div>
-
-            <div class="app-section-copy">
-                Registra una nueva fecha de muestreo para esta muestra.
-            </div>
+    <div class="content-card">
+        <div class="form-panel">
+            <h2 class="panel-copy-title">Añadir fecha</h2>
+            <p class="panel-copy-text">Registra una nueva fecha de muestreo para esta muestra.</p>
 
             <form method="post"
                   action="/app/samples/{{ sample.id }}/schedules/create/"
@@ -206,22 +125,18 @@
                 {% csrf_token %}
 
                 {% for field in schedule_form %}
-
                 <div class="{% if field.name == 'planned_date' or field.name == 'chamber' or field.name == 'chamber_location' or field.name == 'quantity' %}col-md-6{% else %}col-12{% endif %}">
-
-                    <label class="form-label">
-                        {{ field.label }}
-                    </label>
+                    <label class="form-label">{{ field.label }}</label>
 
                     {% if field.name == 'chamber' %}
-                    <select id="id_chamber" name="chamber" class="form-select rounded-4 shadow-sm">
+                    <select id="id_chamber" name="chamber" class="form-select">
                         <option value="">---------</option>
                         {% for option in schedule_form.chamber.field.queryset %}
                         <option value="{{ option.pk }}" data-chamber-key="{{ option.code|upper|cut:'-' }}">{{ option }}</option>
                         {% endfor %}
                     </select>
                     {% elif field.name == 'chamber_location' %}
-                    <select id="id_chamber_location" name="chamber_location" class="form-select rounded-4 shadow-sm">
+                    <select id="id_chamber_location" name="chamber_location" class="form-select">
                         <option value="">---------</option>
                         {% for option in schedule_form.chamber_location.field.queryset %}
                         <option value="{{ option.pk }}" data-chamber-key="{% if option.code %}{{ option.code|upper|slice:':5' }}{% endif %}">{{ option }}</option>
@@ -232,55 +147,24 @@
                     {% endif %}
 
                     {% if field.errors %}
-                    <div class="text-danger small mt-1">
-                        {{ field.errors|striptags }}
-                    </div>
+                    <div class="text-danger small mt-1">{{ field.errors|striptags }}</div>
                     {% endif %}
-
                 </div>
-
                 {% endfor %}
 
                 <div class="col-12 pt-2">
-
-                    <button
-                        class="btn btn-primary btn-lg soft-pill"
-                        type="submit">
-
-                        Guardar fecha
-
-                    </button>
-
-                    <button
-                        class="btn btn-outline-primary btn-lg soft-pill ms-2"
-                        type="button"
-                        onclick="saveAndPrintScheduleLabel(this)">
-
-                        Guardar e imprimir etiqueta
-
-                    </button>
-
-                    <a
-                        class="btn btn-outline-secondary btn-lg soft-pill ms-2"
-                        href="/app/samples/">
-
-                        Volver
-
-                    </a>
-
+                    <button class="btn btn-primary btn-lg" type="submit">Guardar fecha</button>
+                    <button class="btn btn-secondary-soft btn-lg ms-2" type="button" onclick="saveAndPrintScheduleLabel(this)">Guardar e imprimir etiqueta</button>
+                    <a class="btn btn-cancel-soft btn-lg ms-2" href="/app/samples/">Volver</a>
                 </div>
-
             </form>
-
         </div>
-
     </div>
-
 </div>
 
-<div class="modal fade" id="scheduleWithdrawModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade app-modal" id="scheduleWithdrawModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content glass">
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Retirar muestra de camara</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
@@ -291,24 +175,24 @@
                     <div class="row g-4">
                         <div class="col-12">
                             <label class="form-label">Codigo fecha de muestreo</label>
-                            <input id="withdraw_schedule_label" type="text" class="form-control rounded-4 shadow-sm" readonly>
+                            <input id="withdraw_schedule_label" type="text" class="form-control" readonly>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Usuario</label>
-                            <input id="withdraw_schedule_user" type="text" class="form-control rounded-4 shadow-sm" readonly>
+                            <input id="withdraw_schedule_user" type="text" class="form-control" readonly>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Fecha y hora de salida</label>
-                            <input id="withdraw_schedule_removed_at" name="removed_at" type="datetime-local" class="form-control rounded-4 shadow-sm">
+                            <input id="withdraw_schedule_removed_at" name="removed_at" type="datetime-local" class="form-control">
                         </div>
                         <div class="col-12">
                             <label class="form-label">Notas de la linea</label>
-                            <input id="withdraw_schedule_notes" type="text" class="form-control rounded-4 shadow-sm" readonly>
+                            <input id="withdraw_schedule_notes" type="text" class="form-control" readonly>
                         </div>
                     </div>
                     <div class="d-flex gap-2 justify-content-end mt-4">
-                        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-success rounded-pill">Confirmar retirada</button>
+                        <button type="button" class="btn btn-cancel-soft" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger-soft">Confirmar retirada</button>
                     </div>
                 </form>
             </div>
@@ -316,9 +200,9 @@
     </div>
 </div>
 
-<div class="modal fade" id="scheduleEditModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade app-modal" id="scheduleEditModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content glass">
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Editar fecha de muestreo</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
@@ -335,15 +219,15 @@
                     <div class="row g-4">
                         <div class="col-md-4">
                             <label class="form-label">Fecha de muestreo</label>
-                            <input id="edit_schedule_planned_date" name="planned_date" type="date" class="form-control rounded-4 shadow-sm">
+                            <input id="edit_schedule_planned_date" name="planned_date" type="date" class="form-control">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Código fecha de muestreo</label>
-                            <input id="edit_schedule_label" name="label" type="text" class="form-control rounded-4 shadow-sm" readonly>
+                            <input id="edit_schedule_label" name="label" type="text" class="form-control" readonly>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Camara</label>
-                            <select id="edit_schedule_chamber" name="chamber" class="form-select rounded-4 shadow-sm">
+                            <select id="edit_schedule_chamber" name="chamber" class="form-select">
                                 <option value="">---------</option>
                                 {% for option in schedule_form.chamber.field.queryset %}
                                 <option value="{{ option.pk }}" data-chamber-key="{{ option.code|upper|cut:'-' }}">{{ option }}</option>
@@ -352,7 +236,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Ubicacion</label>
-                            <select id="edit_schedule_chamber_location" name="chamber_location" class="form-select rounded-4 shadow-sm">
+                            <select id="edit_schedule_chamber_location" name="chamber_location" class="form-select">
                                 <option value="">---------</option>
                                 {% for option in schedule_form.chamber_location.field.queryset %}
                                 <option value="{{ option.pk }}" data-chamber-key="{% if option.code %}{{ option.code|upper|slice:':5' }}{% endif %}">{{ option }}</option>
@@ -361,27 +245,23 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Cantidad</label>
-                            <input id="edit_schedule_quantity"
-                                name="quantity"
-                                type="number"
-                                min="1"
-                                class="form-control rounded-4 shadow-sm">
+                            <input id="edit_schedule_quantity" name="quantity" type="number" min="1" class="form-control">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Activa</label>
-                            <select id="edit_schedule_is_active" name="is_active" class="form-select rounded-4 shadow-sm">
+                            <select id="edit_schedule_is_active" name="is_active" class="form-select">
                                 <option value="true">Si</option>
                                 <option value="false">No</option>
                             </select>
                         </div>
                         <div class="col-12">
                             <label class="form-label">Notas</label>
-                            <input id="edit_schedule_notes" name="notes" type="text" class="form-control rounded-4 shadow-sm">
+                            <input id="edit_schedule_notes" name="notes" type="text" class="form-control">
                         </div>
                     </div>
                     <div class="d-flex gap-2 justify-content-end mt-4">
-                        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary rounded-pill">Guardar cambios</button>
+                        <button type="button" class="btn btn-cancel-soft" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar cambios</button>
                     </div>
                 </form>
             </div>
@@ -478,7 +358,8 @@ function validateScheduleCreateForm(form) {
             icon: 'warning',
             title: 'Completa los datos primero',
             text: `Antes de guardar, revisa estos campos: ${missingFields.join(', ')}.`,
-            confirmButtonText: 'Entendido'
+            confirmButtonText: 'Entendido',
+            customClass: { popup: 'app-swal-popup' }
         });
         return false;
     }
@@ -489,7 +370,8 @@ function validateScheduleCreateForm(form) {
             icon: 'warning',
             title: 'Cantidad no valida',
             text: `La suma asignada seria ${assignedQuantity + requestedQuantity} y no puede superar la cantidad recibida (${receivedQuantity}).`,
-            confirmButtonText: 'Entendido'
+            confirmButtonText: 'Entendido',
+            customClass: { popup: 'app-swal-popup' }
         });
         return false;
     }
@@ -527,22 +409,28 @@ function validateScheduleEditForm(form) {
             icon: 'warning',
             title: 'Completa los datos primero',
             text: `Antes de guardar, revisa estos campos: ${missingFields.join(', ')}.`,
-            confirmButtonText: 'Entendido'
+            confirmButtonText: 'Entendido',
+            customClass: { popup: 'app-swal-popup' }
         });
         return false;
     }
 
     const requestedQuantity = Number(quantity.value || '0');
-    const requestedActive = isActive && isActive.value === 'true';
-    const currentAssignedWithoutThisLine = assignedQuantity - (originalActive ? originalQuantity : 0);
-    const recalculatedAssigned = currentAssignedWithoutThisLine + (requestedActive ? requestedQuantity : 0);
+    let projectedAssigned = assignedQuantity;
+    if (originalActive) {
+        projectedAssigned = assignedQuantity - originalQuantity;
+    }
+    if (isActive && isActive.value === 'true') {
+        projectedAssigned += requestedQuantity;
+    }
 
-    if (recalculatedAssigned > receivedQuantity) {
+    if (projectedAssigned > receivedQuantity) {
         Swal.fire({
             icon: 'warning',
             title: 'Cantidad no valida',
-            text: `La suma asignada seria ${recalculatedAssigned} y no puede superar la cantidad recibida (${receivedQuantity}).`,
-            confirmButtonText: 'Entendido'
+            text: `La suma asignada seria ${projectedAssigned} y no puede superar la cantidad recibida (${receivedQuantity}).`,
+            confirmButtonText: 'Entendido',
+            customClass: { popup: 'app-swal-popup' }
         });
         return false;
     }
@@ -550,73 +438,27 @@ function validateScheduleEditForm(form) {
     return true;
 }
 
-async function saveAndPrintScheduleLabel(button) {
+function saveAndPrintScheduleLabel(button) {
     const form = document.getElementById('add-schedule-form');
-    if (!form) {
+    if (!form || !validateScheduleCreateForm(form)) {
         return;
     }
 
-    if (!validateScheduleCreateForm(form)) {
-        return;
-    }
-
-    const submitButton = button || null;
-    if (submitButton) {
-        submitButton.disabled = true;
-    }
-
-    const formData = new FormData(form);
-    formData.set('submit_action', 'save_and_print');
-
-    try {
-        const response = await fetch(form.action, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-        });
-
-        const payload = await response.json();
-
-        if (!response.ok || !payload.ok) {
-            const errorMessage = payload.errors && payload.errors.length
-                ? payload.errors.join('\n')
-                : 'No se pudo guardar la fecha de muestreo.';
-            Swal.fire({
-                icon: 'error',
-                title: 'No se pudo guardar',
-                text: errorMessage,
-                confirmButtonText: 'Aceptar'
-            });
-            return;
-        }
-
-        window.open(payload.label_url, '_blank', 'noopener');
-        window.location.href = payload.redirect_url;
-    } catch (error) {
-        Swal.fire({
-            icon: 'error',
-            title: 'No se pudo imprimir',
-            text: 'No se pudo guardar e imprimir la etiqueta. Intentalo de nuevo.',
-            confirmButtonText: 'Aceptar'
-        });
-    } finally {
-        if (submitButton) {
-            submitButton.disabled = false;
-        }
-    }
+    const helper = document.createElement('input');
+    helper.type = 'hidden';
+    helper.name = 'print_label';
+    helper.value = '1';
+    form.appendChild(helper);
+    form.submit();
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-    const createForm = document.getElementById('add-schedule-form');
+    const addForm = document.getElementById('add-schedule-form');
     const editForm = document.getElementById('scheduleEditForm');
-    const createChamber = document.getElementById('id_chamber');
-    const editChamber = document.getElementById('edit_schedule_chamber');
 
-    if (createForm) {
-        createForm.addEventListener('submit', function (event) {
-            if (!validateScheduleCreateForm(createForm)) {
+    if (addForm) {
+        addForm.addEventListener('submit', function (event) {
+            if (!validateScheduleCreateForm(addForm)) {
                 event.preventDefault();
             }
         });
@@ -630,19 +472,43 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    if (createChamber) {
+    const createChamber = document.getElementById('id_chamber');
+    const createLocation = document.getElementById('id_chamber_location');
+    const editChamber = document.getElementById('edit_schedule_chamber');
+
+    if (createChamber && createLocation) {
+        filterLocationOptions('id_chamber', 'id_chamber_location');
         createChamber.addEventListener('change', function () {
             filterLocationOptions('id_chamber', 'id_chamber_location');
         });
-        filterLocationOptions('id_chamber', 'id_chamber_location');
     }
 
     if (editChamber) {
         editChamber.addEventListener('change', function () {
             filterLocationOptions('edit_schedule_chamber', 'edit_schedule_chamber_location');
         });
-        filterLocationOptions('edit_schedule_chamber', 'edit_schedule_chamber_location');
     }
+
+    document.querySelectorAll('.sample-delete-form').forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            Swal.fire({
+                title: 'Eliminar fecha de muestreo',
+                text: 'Seguro que quieres eliminar esta fecha?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Si, eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#e5484d',
+                cancelButtonColor: '#7b8798',
+                customClass: { popup: 'app-swal-popup' }
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+    });
 });
 </script>
 {% endblock %}

@@ -3,6 +3,7 @@ from io import BytesIO
 import calendar
 from datetime import timedelta
 import re
+from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -10,14 +11,16 @@ from django.contrib.auth.views import LoginView, LogoutView
 from django.db import transaction
 from django.db.models import Count, F, Q, Sum
 from django.http import JsonResponse
+from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse_lazy
 from django.utils.dateparse import parse_date
 from django.utils import timezone
 import qrcode
 
 from audit.utils import register_audit_event
 
-from .models import Chamber, ChamberDeviation, LabelTemplate, PlannedSubsample, ProductBatch, Sample, SampleReception, SampleSchedule, SamplingPoint, SamplingPointTemplate, StabilityAlert, StockMovement, Study, StudyPlanningEntry
+from .models import Chamber, ChamberDeviation, Client, LabelTemplate, PlannedSubsample, Product, ProductBatch, Sample, SampleReception, SampleSchedule, SamplingPoint, SamplingPointTemplate, StabilityAlert, StockMovement, Study, StudyPlanningEntry
 from .web_forms import ChamberDeviationForm, ChamberPlacementForm, SampleCreateForm, SampleExtractionForm, SampleLabelForm, SampleRegistrationForm, SampleReceptionForm, SampleScheduleEditForm, SampleScheduleForm, StudyCreateForm, StudyEditForm
 
 
@@ -393,6 +396,9 @@ class AppLoginView(LoginView):
     template_name = "auth/login.html"
     redirect_authenticated_user = True
 
+    def get_success_url(self):
+        return self.get_redirect_url() or reverse_lazy("web-studies")
+
 
 class AppLogoutView(LogoutView):
     pass
@@ -432,19 +438,73 @@ def dashboard(request):
 
 @login_required
 def studies_list(request):
+    search_term = (request.GET.get("q") or "").strip()
     status_filter = (request.GET.get("status") or "").strip()
+    client_filter = (request.GET.get("client") or "").strip()
+    product_filter = (request.GET.get("product") or "").strip()
+    try:
+        page_size = int(request.GET.get("page_size") or 10)
+    except (TypeError, ValueError):
+        page_size = 10
+    if page_size not in {10, 25, 50}:
+        page_size = 10
+
     studies = Study.objects.select_related("study_type", "client", "product")
+    if search_term:
+        studies = studies.filter(
+            Q(code__icontains=search_term)
+            | Q(title__icontains=search_term)
+            | Q(product_name__icontains=search_term)
+            | Q(product_code__icontains=search_term)
+            | Q(client__description__icontains=search_term)
+        )
     if status_filter in {choice for choice, _label in Study.Status.choices}:
         studies = studies.filter(status=status_filter)
+    if client_filter.isdigit():
+        studies = studies.filter(client_id=int(client_filter))
+    if product_filter.isdigit():
+        studies = studies.filter(product_id=int(product_filter))
     studies = studies.order_by("-created_at")
+
+    paginator = Paginator(studies, page_size)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    page_numbers = []
+    for page_number in range(1, paginator.num_pages + 1):
+        if paginator.num_pages <= 7 or abs(page_number - page_obj.number) <= 1 or page_number in {1, paginator.num_pages}:
+            page_numbers.append(page_number)
+
+    filter_params = {
+        "q": search_term,
+        "status": status_filter,
+        "client": client_filter,
+        "product": product_filter,
+        "page_size": page_size,
+    }
+    query_string = urlencode({key: value for key, value in filter_params.items() if value not in {"", None}})
+    total_count = paginator.count
+    start_index = page_obj.start_index() if total_count else 0
+    end_index = page_obj.end_index() if total_count else 0
+
     return render(
         request,
         "web/studies.html",
         {
-            "studies": studies,
+            "studies": page_obj.object_list,
+            "page_obj": page_obj,
+            "page_numbers": page_numbers,
+            "page_size": page_size,
+            "query_string": query_string,
+            "total_count": total_count,
+            "start_index": start_index,
+            "end_index": end_index,
             "study_form": StudyCreateForm(),
+            "search_term": search_term,
             "selected_status": status_filter,
+            "selected_client": client_filter,
+            "selected_product": product_filter,
             "status_choices": Study.Status.choices,
+            "clients": Client.objects.order_by("description"),
+            "products": Product.objects.order_by("name"),
         },
     )
 
@@ -857,6 +917,70 @@ def create_deviation_web(request):
             messages.success(request, "Desviacion registrada correctamente.")
     else:
         messages.error(request, "No se pudo registrar la desviacion de camara. Revisa los campos.")
+    return redirect("web-deviations")
+
+
+@login_required
+def edit_deviation_web(request, pk):
+    deviation = get_object_or_404(ChamberDeviation, pk=pk)
+    if request.method != "POST":
+        return redirect("web-deviations")
+
+    before = {
+        "chamber": deviation.chamber.code if deviation.chamber_id else None,
+        "detected_at": deviation.detected_at.isoformat() if deviation.detected_at else None,
+        "ended_at": deviation.ended_at.isoformat() if deviation.ended_at else None,
+        "description": deviation.description,
+        "impact_assessment": deviation.impact_assessment,
+        "requires_recalculation": deviation.requires_recalculation,
+    }
+
+    form = ChamberDeviationForm(request.POST, instance=deviation)
+    if form.is_valid():
+        updated = form.save()
+        after = {
+            "chamber": updated.chamber.code if updated.chamber_id else None,
+            "detected_at": updated.detected_at.isoformat() if updated.detected_at else None,
+            "ended_at": updated.ended_at.isoformat() if updated.ended_at else None,
+            "description": updated.description,
+            "impact_assessment": updated.impact_assessment,
+            "requires_recalculation": updated.requires_recalculation,
+        }
+        changes = {
+            key: {"before": before[key], "after": after[key]}
+            for key in before
+            if before[key] != after[key]
+        }
+        register_audit_event(
+            updated,
+            "web_update_chamber_deviation",
+            payload={"chamber": updated.chamber.code, "deviation_code": updated.deviation_code},
+            changes=changes,
+        )
+        messages.success(request, "Desviacion actualizada correctamente.")
+    else:
+        messages.error(request, "No se pudo actualizar la desviacion. Revisa los campos.")
+    return redirect("web-deviations")
+
+
+@login_required
+def delete_deviation_web(request, pk):
+    deviation = get_object_or_404(ChamberDeviation, pk=pk)
+    if request.method != "POST":
+        return redirect("web-deviations")
+
+    payload = {
+        "chamber": deviation.chamber.code if deviation.chamber_id else None,
+        "deviation_code": deviation.deviation_code,
+    }
+    register_audit_event(
+        deviation,
+        "web_delete_chamber_deviation",
+        payload=payload,
+        changes={"deleted": {"before": deviation.deviation_code, "after": None}},
+    )
+    deviation.delete()
+    messages.success(request, "Desviacion eliminada correctamente.")
     return redirect("web-deviations")
 
 

@@ -1,143 +1,143 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="hero glass p-4 p-lg-5 mb-4">
-    <div class="row align-items-center g-4">
-        <div class="col-lg-8">
-            <h1 class="display-4 mb-2">Contenido de camaras</h1>
-            <p class="lead text-secondary mb-0">Consulta que submuestras siguen dentro de cada camara y revisa su historial de salida cuando haga falta.</p>
-        </div>
-        <div class="col-lg-4">
-            <div class="mini-kpi hero">
-                <div class="small text-uppercase text-muted">Circuito operativo</div>
-                <div class="fw-semibold mt-2">Fecha de muestreo = submuestra dentro de camara</div>
-                <div class="small text-muted mt-2">La retirada se gestiona desde la propia linea operativa.</div>
-            </div>
-        </div>
+<div class="page-hero">
+    <div>
+        <h1 class="page-title">Contenido de camaras</h1>
+        <p class="page-subtitle">Consulta que submuestras siguen dentro de cada camara y revisa su historial de salida cuando haga falta.</p>
+    </div>
+    <div class="recommendation-card">
+        <p class="recommendation-label">Circuito operativo</p>
+        <p class="recommendation-text">Fecha de muestreo equivale a submuestra dentro de camara. La retirada se gestiona desde la propia linea operativa.</p>
     </div>
 </div>
 
 <div class="row g-4 mb-4">
     <div class="col-lg-8">
-        <div class="card glass soft-card border-0 h-100">
-            <div class="card-body p-4">
-                <div class="app-section-title">Filtros</div>
-                <div class="app-section-copy">Selecciona una camara, un estudio o combina ambos para consultar el contenido operativo actual.</div>
-                <form method="get" action="/app/operations/" class="row g-3 align-items-end mt-1">
-                    <div class="col-md-4">
-                        <label class="form-label">Camara</label>
-                        <select name="chamber" class="form-select rounded-4 shadow-sm">
-                            <option value="">Todas las camaras</option>
-                            {% for chamber in chambers %}
-                            <option value="{{ chamber.id }}" {% if selected_chamber == chamber.id|stringformat:"s" %}selected{% endif %}>{{ chamber.code }} - {{ chamber.name }}</option>
-                            {% endfor %}
-                        </select>
+        <div class="content-card h-100">
+            <form method="get" action="/app/operations/" class="filters-bar filters-bar-grid-operations">
+                <div class="filter-field">
+                    <label class="filter-label">Camara</label>
+                    <select name="chamber" class="form-select">
+                        <option value="">Todas las camaras</option>
+                        {% for chamber in chambers %}
+                        <option value="{{ chamber.id }}" {% if selected_chamber == chamber.id|stringformat:"s" %}selected{% endif %}>{{ chamber.code }} - {{ chamber.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label class="filter-label">Estudio</label>
+                    <select name="study" class="form-select">
+                        <option value="">Todos los estudios</option>
+                        {% for study in studies %}
+                        <option value="{{ study.id }}" {% if selected_study == study.id|stringformat:"s" %}selected{% endif %}>{{ study.code }} - {{ study.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label class="filter-label">Mostrar</label>
+                    <select name="show" class="form-select">
+                        <option value="active" {% if not show_history %}selected{% endif %}>Solo activas</option>
+                        <option value="all" {% if show_history %}selected{% endif %}>Activas e historico</option>
+                    </select>
+                </div>
+                <div class="filter-field ms-auto">
+                    <label class="filter-label opacity-0">Acciones</label>
+                    <div class="filter-actions-block">
+                        <button class="btn btn-filter" type="submit"><i class="bi bi-funnel me-2"></i>Aplicar filtro</button>
+                        <a href="/app/operations/" class="btn btn-cancel-soft"><i class="bi bi-arrow-clockwise me-2"></i>Limpiar</a>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Estudio</label>
-                        <select name="study" class="form-select rounded-4 shadow-sm">
-                            <option value="">Todos los estudios</option>
-                            {% for study in studies %}
-                            <option value="{{ study.id }}" {% if selected_study == study.id|stringformat:"s" %}selected{% endif %}>{{ study.code }} - {{ study.title }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Mostrar</label>
-                        <select name="show" class="form-select rounded-4 shadow-sm">
-                            <option value="active" {% if not show_history %}selected{% endif %}>Solo activas</option>
-                            <option value="all" {% if show_history %}selected{% endif %}>Activas e historico</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <button class="btn btn-primary w-100 soft-pill" type="submit">Aplicar filtro</button>
-                    </div>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
     </div>
     <div class="col-lg-4">
-        <div class="card glass soft-card border-0 h-100">
-            <div class="card-body p-4">
-                <div class="app-section-title">Resumen</div>
-                <div class="d-flex gap-3 flex-wrap mt-3">
-                    <span class="badge bg-warning text-dark fs-6 px-3 py-2">En camara: {{ active_count }}</span>
-                    <span class="badge bg-success fs-6 px-3 py-2">Retiradas: {{ retired_count }}</span>
+        <div class="dashboard-block h-100">
+            <div class="dashboard-block-body">
+                <h3 class="dashboard-section-title">Resumen</h3>
+                <p class="dashboard-section-copy">Vista global del contenido operativo segun el filtro aplicado.</p>
+                <div class="metric-pill-row mb-3">
+                    <span class="metric-pill is-warning">En camara: {{ active_count }}</span>
+                    <span class="metric-pill is-success">Retiradas: {{ retired_count }}</span>
                 </div>
                 {% if selected_chamber and selected_study %}
-                <div class="small text-muted mt-3">Filtro activo sobre una camara y un estudio concretos.</div>
+                <p class="insight-list-copy">Filtro activo sobre una camara y un estudio concretos.</p>
                 {% elif selected_chamber %}
-                <div class="small text-muted mt-3">Filtro activo sobre una camara concreta.</div>
+                <p class="insight-list-copy">Filtro activo sobre una camara concreta.</p>
                 {% elif selected_study %}
-                <div class="small text-muted mt-3">Filtro activo sobre un estudio concreto.</div>
+                <p class="insight-list-copy">Filtro activo sobre un estudio concreto.</p>
                 {% else %}
-                <div class="small text-muted mt-3">Vista global de todas las camaras activas.</div>
+                <p class="insight-list-copy">Vista global de todas las camaras activas.</p>
                 {% endif %}
             </div>
         </div>
     </div>
 </div>
 
-<div class="row g-4 mb-4">
+<div class="row g-4 summary-grid">
     {% for chamber in chamber_summary %}
     <div class="col-md-6 col-xl-3">
-        <div class="card glass soft-card border-0 h-100">
-            <div class="card-body p-4">
-                <div class="small text-uppercase text-muted">{{ chamber.code }}</div>
-                <div class="fw-semibold mt-2">{{ chamber.name }}</div>
-                <div class="small text-muted mt-1">{{ chamber.location }}</div>
-                <div class="mt-3">
-                    <span class="badge bg-info text-dark fs-6 px-3 py-2">{{ chamber.active_schedule_count }} activas</span>
-                </div>
-            </div>
+        <div class="summary-card">
+            <p class="summary-card-label">{{ chamber.code }}</p>
+            <p class="cell-title-strong mb-1">{{ chamber.name }}</p>
+            <p class="insight-list-copy mb-3">{{ chamber.location|default:"Sala de camaras" }}</p>
+            <span class="metric-pill is-info">{{ chamber.active_schedule_count }} activas</span>
         </div>
     </div>
     {% endfor %}
 </div>
 
-<div class="card glass soft-card border-0">
-    <div class="card-body p-4 p-lg-5">
-        <div class="app-section-title">Submuestras en camara</div>
-        <div class="app-section-copy">Cada linea corresponde a una fecha de muestreo ubicada en una camara concreta.</div>
-        <div class="table-responsive mt-3">
-            <table class="table table-hover align-middle">
-                <tr>
-                    <th>Camara</th>
-                    <th>Ubicacion</th>
-                    <th>Estudio</th>
-                    <th>Muestra</th>
-                    <th>Codigo fecha</th>
-                    <th>Fecha muestreo</th>
-                    <th>Cantidad</th>
-                    <th>Estado</th>
-                    <th>Fecha salida</th>
-                    <th>Acciones</th>
-                </tr>
-                {% for item in chamber_contents %}
-                <tr class="{% if not item.is_active %}table-success{% endif %}">
-                    <td>{{ item.chamber.code|default:"-" }}</td>
-                    <td>{{ item.chamber_location.code|default:"-" }}</td>
-                    <td>{{ item.sample.study.code }}</td>
-                    <td>{{ item.sample.sample_code }}</td>
-                    <td>{{ item.label|default:"-" }}</td>
-                    <td>{{ item.planned_date }}</td>
-                    <td>{{ item.quantity }}</td>
-                    <td>
-                        <span class="badge {% if item.is_active %}text-bg-warning{% else %}text-bg-success{% endif %}">
-                            {% if item.is_active %}En camara{% else %}Retirada{% endif %}
-                        </span>
-                    </td>
-                    <td>{{ item.removed_at|date:"d/m/Y H:i"|default:"-" }}</td>
-                    <td class="text-nowrap">
-                        <a class="btn btn-sm rounded-pill me-1" href="/app/labels/{{ item.sample.id }}/?schedule={{ item.id }}" style="background-color:#f59e0b; border-color:#f59e0b; color:#fff;">Etiqueta</a>
-                        <a class="btn btn-sm btn-outline-primary rounded-pill" href="/app/samples/{{ item.sample.id }}/schedules/">Ver linea</a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="10" class="text-muted">No hay submuestras para los filtros seleccionados.</td>
-                </tr>
-                {% endfor %}
+<div class="content-card">
+    <div class="dashboard-block-body">
+        <h3 class="dashboard-section-title">Submuestras en camara</h3>
+        <p class="dashboard-section-copy">Cada linea corresponde a una fecha de muestreo ubicada en una camara concreta.</p>
+    </div>
+    <div class="section-card-body">
+        <div class="table-shell">
+            <table class="table table-app">
+                <thead>
+                    <tr>
+                        <th>Camara</th>
+                        <th>Ubicacion</th>
+                        <th>Estudio</th>
+                        <th>Muestra</th>
+                        <th>Codigo fecha</th>
+                        <th>Fecha muestreo</th>
+                        <th>Cantidad</th>
+                        <th>Estado</th>
+                        <th>Fecha salida</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in chamber_contents %}
+                    <tr>
+                        <td>{{ item.chamber.code|default:"-" }}</td>
+                        <td>{{ item.chamber_location.code|default:"-" }}</td>
+                        <td>{{ item.sample.study.code }}</td>
+                        <td class="cell-code">{{ item.sample.sample_code }}</td>
+                        <td>{{ item.label|default:"-" }}</td>
+                        <td>{{ item.planned_date|date:"d/m/Y"|default:"-" }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>
+                            <span class="status-badge {% if item.is_active %}status-suspended{% else %}status-active{% endif %}">
+                                {% if item.is_active %}En camara{% else %}Retirada{% endif %}
+                            </span>
+                        </td>
+                        <td>{{ item.removed_at|date:"d/m/Y H:i"|default:"-" }}</td>
+                        <td>
+                            <div class="planning-action-stack">
+                                <a class="btn btn-sm btn-filter" href="/app/labels/{{ item.sample.id }}/?schedule={{ item.id }}">Etiqueta</a>
+                                <a class="btn btn-sm btn-secondary-soft" href="/app/samples/{{ item.sample.id }}/schedules/">Ver linea</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="table-empty">No hay submuestras para los filtros seleccionados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
             </table>
         </div>
     </div>

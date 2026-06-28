@@ -2,19 +2,119 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Audit Trail PDF</title>
+    <title>Trazabilidad - Vista PDF</title>
     <style>
-        body { font-family: Arial, sans-serif; color: #111; margin: 24px; }
-        h1 { margin-bottom: 8px; }
-        p { color: #555; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #d0d0d0; padding: 8px; text-align: left; font-size: 12px; vertical-align: top; }
-        th { background: #f2f2f2; }
+        :root {
+            --ink: #0f1b2e;
+            --muted: #64759b;
+            --line: #dfe7f4;
+            --line-strong: #cad7ee;
+            --surface: #f5f8ff;
+            --purple: #6b5bd6;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 28px;
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: var(--ink);
+            background: #fff;
+        }
+
+        .print-hero {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            align-items: flex-start;
+            padding: 0 0 18px;
+            border-bottom: 1px solid var(--line);
+            margin-bottom: 18px;
+        }
+
+        .print-title {
+            margin: 0 0 6px;
+            font-size: 34px;
+            line-height: 1.05;
+            color: #495d94;
+        }
+
+        .print-copy {
+            margin: 0;
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .print-tag {
+            min-width: 240px;
+            padding: 12px 14px;
+            border: 1px solid var(--line-strong);
+            border-radius: 14px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        }
+
+        .print-tag-label {
+            margin: 0 0 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--purple);
+        }
+
+        .print-tag-copy {
+            margin: 0;
+            font-size: 13px;
+            color: #4f5f9c;
+            line-height: 1.45;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        th, td {
+            border: 1px solid var(--line);
+            padding: 9px 10px;
+            text-align: left;
+            vertical-align: top;
+            font-size: 12px;
+            word-wrap: break-word;
+        }
+
+        th {
+            background: var(--surface);
+            color: #4f5f9c;
+            font-weight: 700;
+        }
+
+        tr:nth-child(even) td {
+            background: #fbfcff;
+        }
+
+        @media print {
+            body {
+                padding: 12px;
+            }
+        }
     </style>
 </head>
 <body onload="window.print()">
-    <h1>Trazabilidad</h1>
-    <p>Vista lista para imprimir o guardar como PDF desde el navegador.</p>
+    <div class="print-hero">
+        <div>
+            <h1 class="print-title">Trazabilidad</h1>
+            <p class="print-copy">Vista lista para imprimir o guardar como PDF desde el navegador.</p>
+        </div>
+        <div class="print-tag">
+            <p class="print-tag-label">Exportacion</p>
+            <p class="print-tag-copy">Listado filtrado de eventos de auditoria para consulta o archivo.</p>
+        </div>
+    </div>
+
     <table>
         <tr>
             <th>Fecha</th>

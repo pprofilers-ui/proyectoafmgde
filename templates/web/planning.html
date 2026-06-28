@@ -1,35 +1,30 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="hero glass p-4 p-lg-5 mb-4">
-    <div class="row align-items-center g-4">
-        <div class="col-lg-8">
-            <h1 class="display-4 mb-2">Planificacion del estudio</h1>
-            <p class="lead text-secondary mb-0">Punto de entrada al nuevo flujo para definir puntos de muestreo, tipos de analisis y submuestras por camara.</p>
-        </div>
-        <div class="col-lg-4">
-            <div class="mini-kpi">
-                <div class="small text-uppercase text-muted">Estudio seleccionado</div>
-                <div class="fw-semibold mt-2">{{ study.code }}</div>
-                <div class="small text-muted mt-2">{{ study.title }}</div>
-            </div>
-        </div>
+<div class="page-hero">
+    <div>
+        <h1 class="page-title">Planificacion del estudio</h1>
+        <p class="page-subtitle">Punto de entrada al flujo para definir puntos de muestreo, tipos de analisis y submuestras por camara.</p>
+    </div>
+    <div class="recommendation-card">
+        <p class="recommendation-label">Estudio seleccionado</p>
+        <p class="recommendation-text"><strong>{{ study.code }}</strong><br>{{ study.title }}</p>
     </div>
 </div>
 
 <div class="row g-4 mb-4">
     <div class="col-xl-8">
-        <div class="card glass soft-card border-0 h-100">
-            <div class="card-body p-4 p-lg-5">
+        <div class="planning-info-card h-100">
+            <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
                     <div>
-                        <div class="app-section-title">Resumen del estudio</div>
-                        <div class="app-section-copy">Esta pantalla ya queda conectada desde el boton Planificar. En el siguiente paso anadiremos la captura de puntos de muestreo y la generacion masiva.</div>
+                        <h2 class="planning-card-title">Resumen del estudio</h2>
+                        <p class="planning-card-copy">Desde aqui puedes guardar la planificacion base y despues generar las submuestras del estudio.</p>
                     </div>
-                    <a class="btn btn-outline-secondary rounded-pill" href="/app/studies/">Volver a estudios</a>
+                    <a class="btn btn-neutral-soft d-inline-flex align-items-center justify-content-center" href="/app/studies/">Volver a estudios</a>
                 </div>
 
-                <div class="row g-3 mt-2">
+                <div class="row g-3 planning-summary-grid">
                     <div class="col-md-6 col-xl-3">
                         <div class="mini-kpi h-100">
                             <div class="small text-uppercase text-muted">Estado</div>
@@ -56,17 +51,17 @@
                     </div>
                 </div>
 
-                <div class="alert alert-info rounded-4 border-0 mt-4 mb-0">
-                    Esta planificacion base guarda por estudio los puntos de muestreo y el numero de submuestras por camara para FQ y Micro. La generacion masiva vendra en el siguiente paso para mantener la implantacion controlada.
+                <div class="planning-helper">
+                    Esta planificacion base guarda por estudio los puntos de muestreo y el numero de submuestras por camara para FQ y Micro. Cuando la base este correcta, puedes generar las submuestras automaticamente.
                 </div>
             </div>
         </div>
     </div>
     <div class="col-xl-4">
-        <div class="card glass soft-card border-0 h-100">
-            <div class="card-body p-4">
-                <div class="app-section-title">Datos base</div>
-                <div class="small text-muted mb-3">Informacion util antes de generar la planificacion.</div>
+        <div class="planning-info-card h-100">
+            <div class="card-body">
+                <h2 class="planning-card-title">Datos base</h2>
+                <p class="planning-card-copy">Informacion util antes de generar la planificacion.</p>
                 <div class="small text-uppercase text-muted">Cliente</div>
                 <div class="fw-semibold mb-3">{{ study.client.description|default:"-" }}</div>
                 <div class="small text-uppercase text-muted">Producto</div>
@@ -82,14 +77,16 @@
 
 <div class="row g-4">
     <div class="col-12">
-        <div class="card glass soft-card border-0">
-            <div class="card-body p-4 p-lg-5">
-                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+        <div class="content-card">
+            <div class="form-panel">
+                <div class="planning-toolbar">
                     <div>
-                        <div class="app-section-title">Planificacion base</div>
-                        <div class="app-section-copy">Selecciona el punto de muestreo y define para cada camara cuantas submuestras necesitas en FQ y Micro. Puedes anadir tantos puntos como necesites.</div>
+                        <h2 class="planning-card-title">Planificacion base</h2>
+                        <p class="planning-card-copy">Selecciona el punto de muestreo y define para cada camara cuantas submuestras necesitas en FQ y Micro. Puedes anadir tantos puntos como necesites.</p>
                     </div>
-                    <button type="button" class="btn btn-outline-primary rounded-pill" id="addPlanningRowButton">Anadir punto</button>
+                    <button type="button" class="btn btn-secondary-soft" id="addPlanningRowButton">
+                        <i class="bi bi-plus-lg me-2"></i>Anadir punto
+                    </button>
                 </div>
 
                 {% if not active_chambers %}
@@ -99,154 +96,172 @@
                 {% else %}
                 <form method="post" class="mt-4">
                     {% csrf_token %}
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle" id="planningMatrixTable">
-                            <tr>
-                                <th>Punto de muestreo</th>
-                                {% for chamber in active_chambers %}
-                                <th class="text-center">{{ chamber.code }}<div class="small text-muted fw-normal">FQ</div></th>
-                                <th class="text-center">{{ chamber.code }}<div class="small text-muted fw-normal">Micro</div></th>
+                    <div class="table-shell">
+                        <table class="table table-app planning-matrix-table" id="planningMatrixTable">
+                            <thead>
+                                <tr>
+                                    <th class="planning-row-label">Punto de muestreo</th>
+                                    {% for chamber in active_chambers %}
+                                    <th>{{ chamber.code }}<div class="small text-muted fw-normal">FQ</div></th>
+                                    <th>{{ chamber.code }}<div class="small text-muted fw-normal">Micro</div></th>
+                                    {% endfor %}
+                                    <th>Accion</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in planning_matrix_rows %}
+                                <tr class="planning-row">
+                                    <td class="planning-row-label">
+                                        <select class="form-select planning-template-select" name="sampling_point_template">
+                                            {% for template in sampling_point_templates %}
+                                            <option value="{{ template.id }}" {% if template.id == row.template_id %}selected{% endif %}>{{ template.label }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    {% for chamber_value in row.chamber_values %}
+                                    <td>
+                                        <input class="form-control planning-qty-input" type="number" min="0" name="qty_{{ row.template_id }}_{{ chamber_value.chamber.id }}_fq" value="{{ chamber_value.fq }}" data-analysis="fq" data-chamber-id="{{ chamber_value.chamber.id }}">
+                                    </td>
+                                    <td>
+                                        <input class="form-control planning-qty-input" type="number" min="0" name="qty_{{ row.template_id }}_{{ chamber_value.chamber.id }}_micro" value="{{ chamber_value.micro }}" data-analysis="micro" data-chamber-id="{{ chamber_value.chamber.id }}">
+                                    </td>
+                                    {% endfor %}
+                                    <td class="text-nowrap">
+                                        <button type="button" class="btn btn-sm btn-danger-soft remove-planning-row">Quitar</button>
+                                    </td>
+                                </tr>
                                 {% endfor %}
-                                <th>Accion</th>
-                            </tr>
-                            {% for row in planning_matrix_rows %}
-                            <tr class="planning-row">
-                                <td style="min-width: 180px;">
-                                    <select class="form-select rounded-4 shadow-sm planning-template-select" name="sampling_point_template">
-                                        {% for template in sampling_point_templates %}
-                                        <option value="{{ template.id }}" {% if template.id == row.template_id %}selected{% endif %}>{{ template.label }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </td>
-                                {% for chamber_value in row.chamber_values %}
-                                <td>
-                                    <input class="form-control rounded-4 shadow-sm planning-qty-input" type="number" min="0" name="qty_{{ row.template_id }}_{{ chamber_value.chamber.id }}_fq" value="{{ chamber_value.fq }}" data-analysis="fq" data-chamber-id="{{ chamber_value.chamber.id }}">
-                                </td>
-                                <td>
-                                    <input class="form-control rounded-4 shadow-sm planning-qty-input" type="number" min="0" name="qty_{{ row.template_id }}_{{ chamber_value.chamber.id }}_micro" value="{{ chamber_value.micro }}" data-analysis="micro" data-chamber-id="{{ chamber_value.chamber.id }}">
-                                </td>
-                                {% endfor %}
-                                <td class="text-nowrap">
-                                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill remove-planning-row">Quitar</button>
-                                </td>
-                            </tr>
-                            {% endfor %}
+                            </tbody>
                         </table>
                     </div>
-                    <div class="d-flex justify-content-end mt-3">
-                        <button class="btn btn-primary rounded-pill" type="submit">Guardar planificacion base</button>
+                    <div class="planning-form-actions">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="bi bi-save me-2"></i>Guardar planificacion base
+                        </button>
                     </div>
                 </form>
-                <form method="post" class="mt-3 d-flex justify-content-end">
+                <form method="post" class="planning-form-actions">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="generate_planning">
-                    <button class="btn btn-warning rounded-pill" type="submit">Generar planificacion</button>
+                    <button class="btn btn-filter" type="submit">
+                        <i class="bi bi-diagram-3 me-2"></i>Generar planificacion
+                    </button>
                 </form>
                 {% endif %}
             </div>
         </div>
     </div>
     <div class="col-12">
-        <div class="card glass soft-card border-0 h-100">
-            <div class="card-body p-4 p-lg-5">
-                <div class="app-section-title">Muestras del estudio</div>
-                <div class="app-section-copy">Vista rapida para saber con que base estamos trabajando antes de pasar a la planificacion masiva. Total de submuestras planificadas: {{ generated_subsamples|length }}.</div>
-                <div class="table-responsive mt-3">
-                    <table class="table table-hover align-middle">
-                        <tr>
-                            <th>Codigo</th>
-                            <th>Estado</th>
-                            <th>Camara</th>
-                            <th>Stock</th>
-                        </tr>
-                        {% for sample in study_samples %}
-                        <tr>
-                            <td class="fw-semibold">{{ sample.sample_code }}</td>
-                            <td>{{ sample.get_status_display }}</td>
-                            <td>{{ sample.chamber.code|default:"-" }}</td>
-                            <td>{{ sample.current_stock }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" class="text-muted">Todavia no hay muestras creadas para este estudio.</td>
-                        </tr>
-                        {% endfor %}
+        <div class="content-card h-100">
+            <div class="form-panel">
+                <h2 class="planning-card-title">Muestras del estudio</h2>
+                <p class="planning-card-copy">Vista rapida para saber con que base estamos trabajando antes de pasar a la planificacion masiva. Total de submuestras planificadas: {{ generated_subsamples|length }}.</p>
+                <div class="table-shell mt-3">
+                    <table class="table table-app">
+                        <thead>
+                            <tr>
+                                <th>Codigo</th>
+                                <th>Estado</th>
+                                <th>Camara</th>
+                                <th>Stock</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sample in study_samples %}
+                            <tr>
+                                <td class="cell-code">{{ sample.sample_code }}</td>
+                                <td>{{ sample.get_status_display }}</td>
+                                <td>{{ sample.chamber.code|default:"-" }}</td>
+                                <td>{{ sample.current_stock }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="table-empty">Todavia no hay muestras creadas para este estudio.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
                     </table>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-12">
-        <div class="card glass soft-card border-0 h-100">
-            <div class="card-body p-4 p-lg-5">
-                <div class="app-section-title">Submuestras generadas</div>
-                <div class="app-section-copy">Resultado de la generacion automatica a partir de la planificacion base del estudio.</div>
-                <div class="table-responsive mt-3 mb-4">
-                    <table class="table table-hover align-middle">
-                        <tr>
-                            <th>Codigo</th>
-                            <th>Camara</th>
-                            <th>Analisis</th>
-                            <th>Punto</th>
-                            <th>Fecha prevista</th>
-                            <th>Fecha real</th>
-                            <th>Fecha analisis</th>
-                            <th>Cantidad</th>
-                            <th>Ubicacion</th>
-                            <th>Estado</th>
-                            <th>Accion</th>
-                        </tr>
-                        {% for subsample in generated_subsamples %}
-                        <tr>
-                            <td class="fw-semibold">{{ subsample.code }}</td>
-                            <td>{{ subsample.chamber.code }}</td>
-                            <td>{{ subsample.get_analysis_type_display }}</td>
-                            <td>{{ subsample.sampling_point_template.label }}</td>
-                            <td>{{ subsample.planned_date|date:"d/m/Y"|default:"-" }}</td>
-                            <td>{{ subsample.actual_sampling_date|date:"d/m/Y"|default:"-" }}</td>
-                            <td>{{ subsample.analysis_date|date:"d/m/Y"|default:"-" }}</td>
-                            <td>{{ subsample.quantity|default:"-" }}</td>
-                            <td>{{ subsample.storage_location|default:"-" }}</td>
-                            <td>
-                                {% if subsample.status == "withdrawn" %}
-                                <span class="badge bg-success fs-6 px-3 py-2">Retirada</span>
-                                {% else %}
-                                <span class="badge bg-warning text-dark fs-6 px-3 py-2">En camara</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-nowrap">
-                                <button
-                                    class="btn btn-sm btn-outline-primary rounded-pill me-1 open-planned-edit-modal"
-                                    type="button"
-                                    data-subsample-id="{{ subsample.id }}"
-                                    data-code="{{ subsample.code }}"
-                                    data-analysis-date="{{ subsample.analysis_date|date:'Y-m-d'|default:'' }}"
-                                    data-quantity="{{ subsample.quantity|default:'' }}"
-                                    data-storage-location="{{ subsample.storage_location|default:''|escapejs }}"
-                                    data-location-notes="{{ subsample.location_notes|default:''|escapejs }}"
-                                >
-                                    Editar
-                                </button>
-                                <a class="btn btn-sm rounded-pill me-1" href="/app/planned-subsamples/{{ subsample.id }}/label/?autoprint=1" style="background-color:#f59e0b; border-color:#f59e0b; color:#fff;">Etiqueta</a>
-                                {% if study.status == "active" and subsample.status == "in_chamber" %}
-                                <form method="post" class="d-inline planned-withdraw-form">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="withdraw_subsample">
-                                    <input type="hidden" name="subsample_id" value="{{ subsample.id }}">
-                                    <button class="btn btn-sm btn-outline-danger rounded-pill" type="submit">Retirar muestra</button>
-                                </form>
-                                {% elif subsample.status == "withdrawn" %}
-                                <span class="badge bg-success fs-6 px-3 py-2">Retirada</span>
-                                {% else %}
-                                <span class="badge bg-secondary fs-6 px-3 py-2">Disponible al aprobar</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="11" class="text-muted">Todavia no se ha ejecutado la generacion de planificacion para este estudio.</td>
-                        </tr>
-                        {% endfor %}
+        <div class="content-card h-100">
+            <div class="form-panel">
+                <h2 class="planning-card-title">Submuestras generadas</h2>
+                <p class="planning-card-copy">Resultado de la generacion automatica a partir de la planificacion base del estudio.</p>
+                <div class="table-shell mt-3 mb-4">
+                    <table class="table table-app">
+                        <thead>
+                            <tr>
+                                <th>Codigo</th>
+                                <th>Camara</th>
+                                <th>Analisis</th>
+                                <th>Punto</th>
+                                <th>Fecha prevista</th>
+                                <th>Fecha real</th>
+                                <th>Fecha analisis</th>
+                                <th>Cantidad</th>
+                                <th>Ubicacion</th>
+                                <th>Estado</th>
+                                <th>Accion</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for subsample in generated_subsamples %}
+                            <tr>
+                                <td class="cell-code">{{ subsample.code }}</td>
+                                <td>{{ subsample.chamber.code }}</td>
+                                <td>{{ subsample.get_analysis_type_display }}</td>
+                                <td>{{ subsample.sampling_point_template.label }}</td>
+                                <td>{{ subsample.planned_date|date:"d/m/Y"|default:"-" }}</td>
+                                <td>{{ subsample.actual_sampling_date|date:"d/m/Y"|default:"-" }}</td>
+                                <td>{{ subsample.analysis_date|date:"d/m/Y"|default:"-" }}</td>
+                                <td>{{ subsample.quantity|default:"-" }}</td>
+                                <td>{{ subsample.storage_location|default:"-" }}</td>
+                                <td>
+                                    {% if subsample.status == "withdrawn" %}
+                                    <span class="status-badge status-active">Retirada</span>
+                                    {% else %}
+                                    <span class="status-badge status-suspended">En camara</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-nowrap">
+                                    <div class="planning-action-stack">
+                                        <button
+                                            class="btn btn-sm btn-secondary-soft open-planned-edit-modal"
+                                            type="button"
+                                            data-subsample-id="{{ subsample.id }}"
+                                            data-code="{{ subsample.code }}"
+                                            data-analysis-date="{{ subsample.analysis_date|date:'Y-m-d'|default:'' }}"
+                                            data-quantity="{{ subsample.quantity|default:'' }}"
+                                            data-storage-location="{{ subsample.storage_location|default:''|escapejs }}"
+                                            data-location-notes="{{ subsample.location_notes|default:''|escapejs }}"
+                                        >
+                                            Editar
+                                        </button>
+                                        <a class="btn btn-sm btn-filter" href="/app/planned-subsamples/{{ subsample.id }}/label/?autoprint=1">Etiqueta</a>
+                                        {% if study.status == "active" and subsample.status == "in_chamber" %}
+                                        <form method="post" class="d-inline planned-withdraw-form">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="withdraw_subsample">
+                                            <input type="hidden" name="subsample_id" value="{{ subsample.id }}">
+                                            <button class="btn btn-sm btn-danger-soft" type="submit">Retirar muestra</button>
+                                        </form>
+                                        {% elif subsample.status == "withdrawn" %}
+                                        <span class="status-badge status-active">Retirada</span>
+                                        {% else %}
+                                        <span class="status-badge status-closed">Disponible al aprobar</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="11" class="table-empty">Todavia no se ha ejecutado la generacion de planificacion para este estudio.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
                     </table>
                 </div>
 
@@ -254,32 +269,36 @@
         </div>
     </div>
     <div class="col-12">
-        <div class="card glass soft-card border-0 h-100">
-            <div class="card-body p-4 p-lg-5">
-                <div class="app-section-title">Submuestras ya existentes</div>
-                <div class="app-section-copy">Mientras migramos al nuevo modelo, aqui se ve si el estudio ya tiene fechas de muestreo creadas en el flujo anterior.</div>
-                <div class="table-responsive mt-3">
-                    <table class="table table-hover align-middle">
-                        <tr>
-                            <th>Codigo fecha</th>
-                            <th>Muestra</th>
-                            <th>Camara</th>
-                            <th>Fecha prevista</th>
-                            <th>Estado</th>
-                        </tr>
-                        {% for row in planning_rows %}
-                        <tr>
-                            <td class="fw-semibold">{{ row.label|default:"-" }}</td>
-                            <td>{{ row.sample.sample_code }}</td>
-                            <td>{{ row.chamber.code|default:"-" }}</td>
-                            <td>{{ row.planned_date|date:"d/m/Y" }}</td>
-                            <td>{% if row.is_active %}En camara{% else %}Retirada{% endif %}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="5" class="text-muted">No hay submuestras registradas todavia para este estudio.</td>
-                        </tr>
-                        {% endfor %}
+        <div class="content-card h-100">
+            <div class="form-panel">
+                <h2 class="planning-card-title">Submuestras ya existentes</h2>
+                <p class="planning-card-copy">Mientras migramos al nuevo modelo, aqui se ve si el estudio ya tiene fechas de muestreo creadas en el flujo anterior.</p>
+                <div class="table-shell mt-3">
+                    <table class="table table-app">
+                        <thead>
+                            <tr>
+                                <th>Codigo fecha</th>
+                                <th>Muestra</th>
+                                <th>Camara</th>
+                                <th>Fecha prevista</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in planning_rows %}
+                            <tr>
+                                <td class="cell-code">{{ row.label|default:"-" }}</td>
+                                <td>{{ row.sample.sample_code }}</td>
+                                <td>{{ row.chamber.code|default:"-" }}</td>
+                                <td>{{ row.planned_date|date:"d/m/Y" }}</td>
+                                <td>{% if row.is_active %}<span class="status-badge status-suspended">En camara</span>{% else %}<span class="status-badge status-active">Retirada</span>{% endif %}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="table-empty">No hay submuestras registradas todavia para este estudio.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -287,9 +306,9 @@
     </div>
 </div>
 
-<div class="modal fade" id="plannedSubsampleEditModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade app-modal" id="plannedSubsampleEditModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content glass">
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Editar submuestra planificada</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
@@ -302,28 +321,28 @@
                     <div class="row g-4">
                         <div class="col-md-6">
                             <label class="form-label">Codigo</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_planned_subsample_code" type="text" readonly>
+                            <input class="form-control" id="edit_planned_subsample_code" type="text" readonly>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Fecha de analisis</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_planned_analysis_date" name="analysis_date" type="date">
+                            <input class="form-control" id="edit_planned_analysis_date" name="analysis_date" type="date">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Cantidad</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_planned_quantity" name="quantity" type="number" min="0">
+                            <input class="form-control" id="edit_planned_quantity" name="quantity" type="number" min="0">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Ubicacion</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_planned_storage_location" name="storage_location" type="text">
+                            <input class="form-control" id="edit_planned_storage_location" name="storage_location" type="text">
                         </div>
                         <div class="col-12">
                             <label class="form-label">Observaciones de ubicacion</label>
-                            <textarea class="form-control rounded-4 shadow-sm" id="edit_planned_location_notes" name="location_notes" rows="3"></textarea>
+                            <textarea class="form-control" id="edit_planned_location_notes" name="location_notes" rows="3"></textarea>
                         </div>
                     </div>
                     <div class="d-flex gap-2 justify-content-end mt-4">
-                        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary rounded-pill">Guardar cambios</button>
+                        <button type="button" class="btn btn-cancel-soft" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar cambios</button>
                     </div>
                 </form>
             </div>
@@ -333,8 +352,8 @@
 
 <template id="planningRowTemplate">
     <tr class="planning-row">
-        <td style="min-width: 180px;">
-            <select class="form-select rounded-4 shadow-sm planning-template-select" name="sampling_point_template">
+        <td class="planning-row-label">
+            <select class="form-select planning-template-select" name="sampling_point_template">
                 {% for template in sampling_point_templates %}
                 <option value="{{ template.id }}">{{ template.label }}</option>
                 {% endfor %}
@@ -342,14 +361,14 @@
         </td>
         {% for chamber in active_chambers %}
         <td>
-            <input class="form-control rounded-4 shadow-sm planning-qty-input" type="number" min="0" value="0" data-analysis="fq" data-chamber-id="{{ chamber.id }}">
+            <input class="form-control planning-qty-input" type="number" min="0" value="0" data-analysis="fq" data-chamber-id="{{ chamber.id }}">
         </td>
         <td>
-            <input class="form-control rounded-4 shadow-sm planning-qty-input" type="number" min="0" value="0" data-analysis="micro" data-chamber-id="{{ chamber.id }}">
+            <input class="form-control planning-qty-input" type="number" min="0" value="0" data-analysis="micro" data-chamber-id="{{ chamber.id }}">
         </td>
         {% endfor %}
         <td class="text-nowrap">
-            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill remove-planning-row">Quitar</button>
+            <button type="button" class="btn btn-sm btn-outline-danger remove-planning-row">Quitar</button>
         </td>
     </tr>
 </template>
@@ -405,7 +424,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (addButton && rowTemplate && table) {
         addButton.addEventListener('click', function () {
             const clone = rowTemplate.content.firstElementChild.cloneNode(true);
-            table.appendChild(clone);
+            const tbody = table.querySelector('tbody') || table;
+            tbody.appendChild(clone);
             attachRowEvents(clone);
         });
     }
@@ -420,7 +440,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 showCancelButton: true,
                 confirmButtonText: 'Si, retirar',
                 cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#d33'
+                confirmButtonColor: '#e5484d',
+                cancelButtonColor: '#7b8798',
+                customClass: {
+                    popup: 'app-swal-popup'
+                }
             }).then(function (result) {
                 if (result.isConfirmed) {
                     form.submit();

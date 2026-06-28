@@ -1,68 +1,72 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="hero glass p-4 p-lg-5 mb-4">
-    <div class="row align-items-center g-4">
-        <div class="col-lg-8">
-            <h1 class="display-4 mb-2">Muestras</h1>
-            <p class="lead text-secondary mb-0">Aqui puedes dar de alta muestras nuevas y controlar su recepcion, stock y etiqueta.</p>
-        </div>
-        <div class="col-lg-4">
-            <div class="mini-kpi">
-                <div class="small text-uppercase text-muted">Alta recomendada</div>
-                <div class="fw-semibold mt-2">Primero crea el estudio, luego recepciona y despues da de alta las muestras.</div>
-            </div>
-        </div>
+<div class="page-hero">
+    <div>
+        <h1 class="page-title">Muestras</h1>
+        <p class="page-subtitle">Aqui puedes dar de alta muestras nuevas y controlar su recepcion, stock y etiqueta.</p>
+    </div>
+    <div class="recommendation-card">
+        <p class="recommendation-label">Alta recomendada</p>
+        <p class="recommendation-text">Primero crea el estudio, luego recepciona y despues da de alta las muestras.</p>
     </div>
 </div>
 
-<div class="row g-4">
-    <div class="col-12">
-        <div class="card glass soft-card border-0 h-100">
-            <div class="card-body p-4 p-lg-5">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div>
-                        <div class="app-section-title">Listado de muestras</div>
-                        <div class="app-section-copy">Consulta operativa con stock, recepcion y acceso rapido a la etiqueta.</div>
-                    </div>
+<div class="content-card">
+    <div class="panel-toggle pt-4 px-4">
+        <div>
+            <h2 class="panel-copy-title">Listado de muestras</h2>
+            <p class="panel-copy-text">Consulta operativa con stock, recepcion y acceso rapido a la etiqueta.</p>
+        </div>
+        <button class="btn btn-primary" type="button" onclick="toggleSampleForm()">
+            <i class="bi bi-plus-lg me-2"></i>Nueva muestra
+        </button>
+    </div>
 
-                    <button class="btn btn-primary rounded-pill" type="button" onclick="toggleSampleForm()">
-                        Nueva muestra
-                    </button>
-                </div>
+    <div class="px-4 pt-3">
+        {% if preselected_study %}
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 px-3 py-3 mb-3 rounded-4" style="background:#eef9ea;border:1px solid rgba(43,181,169,.18);">
+            <div>Mostrando muestras del estudio: <strong>{{ preselected_study.code }}</strong></div>
+            <a href="/app/samples/" class="btn btn-outline-secondary">Quitar filtro</a>
+        </div>
+        {% endif %}
+    </div>
 
-                <div class="table-responsive">
-                    {% if preselected_study %}
-                    <div class="alert alert-success d-flex justify-content-between align-items-center mb-3">
-                        <div>Mostrando muestras del estudio: <strong>{{ preselected_study.code }}</strong></div>
-                        <a href="/app/samples/" class="btn btn-sm btn-outline-secondary rounded-pill">Quitar filtro</a>
-                    </div>
-                    {% endif %}
-                    <table class="table table-hover align-middle">
-                        <tr>
-                            <th>Codigo</th>
-                            <th>Estudio</th>
-                            <th>Presentacion</th>
-                            <th>Formato</th>
-                            <th>Lote</th>
-                            <th>Stock</th>
-                            <th>Ubicacion</th>
-                            <th>Acciones</th>
-                        </tr>
-                        {% for sample in samples %}
-                        <tr>
-                            <td class="fw-semibold">{{ sample.sample_code }}</td>
-                            <td>{{ sample.study.code }}</td>
-                            <td>{{ sample.reception.presentation|default:"-" }}</td>
-                            <td>{% if sample.reception.packaging %}{{ sample.reception.packaging.name }}{% else %}-{% endif %}</td>
-                            <td>{% if sample.reception.batch_number_text %}{{ sample.reception.batch_number_text }}{% elif sample.reception.batch %}{{ sample.reception.batch.code }}{% else %}-{% endif %}</td>
-                            <td>{{ sample.current_stock }}</td>
-                            <td>{{ sample.shelf|default:"-" }} / {{ sample.tray|default:"-" }} / {{ sample.physical_position|default:"-" }}</td>
-                            <td class="text-nowrap">
-                                <a class="btn btn-sm btn-outline-success rounded-pill me-1" href="/app/samples/{{ sample.id }}/schedules/">Fechas de muestreo</a>
+    <div class="section-card-body">
+        <div class="table-shell">
+            <table class="table table-app">
+                <thead>
+                    <tr>
+                        <th>Codigo</th>
+                        <th>Estudio</th>
+                        <th>Presentacion</th>
+                        <th>Formato</th>
+                        <th>Lote</th>
+                        <th>Stock</th>
+                        <th>Ubicacion</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sample in samples %}
+                    <tr>
+                        <td class="cell-code">{{ sample.sample_code }}</td>
+                        <td>{{ sample.study.code }}</td>
+                        <td>{{ sample.reception.presentation|default:"-" }}</td>
+                        <td>{% if sample.reception.packaging %}{{ sample.reception.packaging.name }}{% else %}-{% endif %}</td>
+                        <td>{% if sample.reception.batch_number_text %}{{ sample.reception.batch_number_text }}{% elif sample.reception.batch %}{{ sample.reception.batch.code }}{% else %}-{% endif %}</td>
+                        <td>{{ sample.current_stock }}</td>
+                        <td>{{ sample.shelf|default:"-" }} / {{ sample.tray|default:"-" }} / {{ sample.physical_position|default:"-" }}</td>
+                        <td>
+                            <div class="row-actions">
+                                <a class="action-icon icon-plan" href="/app/samples/{{ sample.id }}/schedules/" title="Fechas de muestreo" aria-label="Fechas de muestreo">
+                                    <i class="bi bi-calendar3"></i>
+                                </a>
                                 <a
-                                    class="btn btn-sm btn-outline-primary rounded-pill me-1"
+                                    class="action-icon icon-edit"
                                     href="#"
+                                    title="Editar muestra"
+                                    aria-label="Editar muestra"
                                     onclick="openSampleEditModal(
                                         '{{ sample.id }}',
                                         '{{ sample.sample_code|escapejs }}',
@@ -87,137 +91,137 @@
                                         '{{ sample.reception.quantity_contingency|default:0 }}',
                                         '{{ sample.reception.notes|default:''|escapejs }}'
                                     ); return false;">
-                                    Editar
+                                    <i class="bi bi-pencil"></i>
                                 </a>
                                 <form method="post" action="/app/samples/{{ sample.id }}/delete/" class="d-inline sample-delete-form">
                                     {% csrf_token %}
-                                    <button class="btn btn-sm btn-outline-danger rounded-pill" type="submit">Eliminar</button>
+                                    <button class="action-icon icon-delete" type="submit" title="Eliminar muestra" aria-label="Eliminar muestra">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
                                 </form>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="8" class="text-muted">No hay muestras todavia.</td></tr>
-                        {% endfor %}
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-12" id="createSampleSection" style="display:none;">
-        <div class="card glass soft-card border-0 h-100">
-            <div class="card-body p-4 p-lg-5">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div>
-                        <div class="app-section-title">Crear muestra</div>
-                        <div class="app-section-copy">Alta operativa desde recepcion de muestras sin salir del flujo actual.</div>
-                    </div>
-                    <button type="button" class="btn btn-outline-secondary rounded-pill" onclick="toggleSampleForm()">Cerrar</button>
-                </div>
-
-                <form method="post" action="/app/samples/create/" class="row g-4">
-                    {% csrf_token %}
-                    {{ sample_form.reception_number.as_hidden }}
-                    <div class="col-md-4">
-                        <label class="form-label">Estudio</label>
-                        {{ sample_form.study }}
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Codigo cliente</label>
-                        <input type="text" class="form-control rounded-4 shadow-sm" value="{{ client_code }}" readonly>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Codigo de muestra</label>
-                        <input class="form-control rounded-4 shadow-sm" type="text" value="{% if sample_code_preview %}{{ sample_code_preview }}{% else %}Se generara automaticamente{% endif %}" readonly>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">{{ sample_form.presentation.label }}</label>
-                        {{ sample_form.presentation }}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">{{ sample_form.packaging.label }}</label>
-                        {{ sample_form.packaging }}
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label">{{ sample_form.batch.label }}</label>
-                        {{ sample_form.batch }}
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">{{ sample_form.batch_size.label }}</label>
-                        {{ sample_form.batch_size }}
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">{{ sample_form.bulk_code.label }}</label>
-                        {{ sample_form.bulk_code }}
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label">{{ sample_form.api_batch.label }}</label>
-                        {{ sample_form.api_batch }}
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">{{ sample_form.api_code.label }}</label>
-                        {{ sample_form.api_code }}
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">{{ sample_form.manufacture_date.label }}</label>
-                        {{ sample_form.manufacture_date }}
-                    </div>
-
-                    <div class="col-12">
-                        <label class="form-label">{{ sample_form.primary_packing_material.label }}</label>
-                        {{ sample_form.primary_packing_material }}
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">{{ sample_form.received_by.label }}</label>
-                        {{ sample_form.received_by }}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">{{ sample_form.received_at.label }}</label>
-                        {{ sample_form.received_at }}
-                    </div>
-
-                    <div class="col-md-3">
-                        <label class="form-label">{{ sample_form.quantity_expected.label }}</label>
-                        {{ sample_form.quantity_expected }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ sample_form.quantity_received.label }}</label>
-                        {{ sample_form.quantity_received }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ sample_form.quantity_assigned.label }}</label>
-                        {{ sample_form.quantity_assigned }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ sample_form.quantity_reserved.label }}</label>
-                        {{ sample_form.quantity_reserved }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ sample_form.quantity_contingency.label }}</label>
-                        {{ sample_form.quantity_contingency }}
-                    </div>
-
-                    <div class="col-12">
-                        <label class="form-label">{{ sample_form.notes.label }}</label>
-                        {{ sample_form.notes }}
-                    </div>
-
-                    <div class="col-12 pt-2">
-                        <button class="btn btn-primary btn-lg soft-pill" type="submit">Crear muestra</button>
-                    </div>
-                </form>
-            </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="8" class="table-empty">No hay muestras todavia.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="sampleEditModal" tabindex="-1" aria-hidden="true">
+<div class="content-card mt-4" id="createSampleSection" style="display:none;">
+    <div class="panel-toggle">
+        <div>
+            <h2 class="panel-copy-title">Crear muestra</h2>
+            <p class="panel-copy-text">Alta operativa desde recepcion de muestras sin salir del flujo actual.</p>
+        </div>
+        <button type="button" class="btn btn-cancel-soft" onclick="toggleSampleForm()">Cerrar</button>
+    </div>
+
+    <div class="form-panel">
+        <form method="post" action="/app/samples/create/" class="row g-4">
+            {% csrf_token %}
+            {{ sample_form.reception_number.as_hidden }}
+            <div class="col-md-4">
+                <label class="form-label">Estudio</label>
+                {{ sample_form.study }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Codigo cliente</label>
+                <input type="text" class="form-control" value="{{ client_code }}" readonly>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Codigo de muestra</label>
+                <input class="form-control" type="text" value="{% if sample_code_preview %}{{ sample_code_preview }}{% else %}Se generara automaticamente{% endif %}" readonly>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">{{ sample_form.presentation.label }}</label>
+                {{ sample_form.presentation }}
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">{{ sample_form.packaging.label }}</label>
+                {{ sample_form.packaging }}
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">{{ sample_form.batch.label }}</label>
+                {{ sample_form.batch }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">{{ sample_form.batch_size.label }}</label>
+                {{ sample_form.batch_size }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">{{ sample_form.bulk_code.label }}</label>
+                {{ sample_form.bulk_code }}
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">{{ sample_form.api_batch.label }}</label>
+                {{ sample_form.api_batch }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">{{ sample_form.api_code.label }}</label>
+                {{ sample_form.api_code }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">{{ sample_form.manufacture_date.label }}</label>
+                {{ sample_form.manufacture_date }}
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">{{ sample_form.primary_packing_material.label }}</label>
+                {{ sample_form.primary_packing_material }}
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">{{ sample_form.received_by.label }}</label>
+                {{ sample_form.received_by }}
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">{{ sample_form.received_at.label }}</label>
+                {{ sample_form.received_at }}
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">{{ sample_form.quantity_expected.label }}</label>
+                {{ sample_form.quantity_expected }}
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">{{ sample_form.quantity_received.label }}</label>
+                {{ sample_form.quantity_received }}
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">{{ sample_form.quantity_assigned.label }}</label>
+                {{ sample_form.quantity_assigned }}
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">{{ sample_form.quantity_reserved.label }}</label>
+                {{ sample_form.quantity_reserved }}
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">{{ sample_form.quantity_contingency.label }}</label>
+                {{ sample_form.quantity_contingency }}
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">{{ sample_form.notes.label }}</label>
+                {{ sample_form.notes }}
+            </div>
+
+            <div class="col-12 pt-2">
+                <button class="btn btn-primary btn-lg" type="submit">Crear muestra</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade app-modal" id="sampleEditModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content glass">
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Editar muestra</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
@@ -229,7 +233,7 @@
                     <div class="row g-4">
                         <div class="col-md-4">
                             <label class="form-label">Estudio</label>
-                            <select class="form-select rounded-4 shadow-sm" id="edit_sample_study" name="study">
+                            <select class="form-select" id="edit_sample_study" name="study">
                                 {% for study in sample_edit_form.fields.study.queryset %}
                                 <option value="{{ study.id }}">{{ study.code }} - {{ study.title }}</option>
                                 {% endfor %}
@@ -237,20 +241,20 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Codigo cliente</label>
-                            <input type="text" class="form-control rounded-4 shadow-sm" id="edit_client_code" readonly>
+                            <input type="text" class="form-control" id="edit_client_code" readonly>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Codigo de muestra</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_code" name="sample_code" type="text" readonly>
+                            <input class="form-control" id="edit_sample_code" name="sample_code" type="text" readonly>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label">Presentacion</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_presentation" name="presentation" type="text">
+                            <input class="form-control" id="edit_sample_presentation" name="presentation" type="text">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Formato</label>
-                            <select class="form-select rounded-4 shadow-sm" id="edit_sample_packaging" name="packaging">
+                            <select class="form-select" id="edit_sample_packaging" name="packaging">
                                 <option value="">---------</option>
                                 {% for option in sample_edit_form.fields.packaging.queryset %}
                                 <option value="{{ option.id }}">{{ option.code }} - {{ option.name }}</option>
@@ -260,73 +264,73 @@
 
                         <div class="col-md-4">
                             <label class="form-label">Lote</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_batch" name="batch" type="text">
+                            <input class="form-control" id="edit_sample_batch" name="batch" type="text">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Batch Size</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_batch_size" name="batch_size" type="number" min="0">
+                            <input class="form-control" id="edit_sample_batch_size" name="batch_size" type="number" min="0">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Code Bulk</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_bulk_code" name="bulk_code" type="text">
+                            <input class="form-control" id="edit_sample_bulk_code" name="bulk_code" type="text">
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label">API Batch</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_api_batch" name="api_batch" type="text">
+                            <input class="form-control" id="edit_sample_api_batch" name="api_batch" type="text">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">API Code</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_api_code" name="api_code" type="text">
+                            <input class="form-control" id="edit_sample_api_code" name="api_code" type="text">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Manufacture Date</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_manufacture_date" name="manufacture_date" type="date">
+                            <input class="form-control" id="edit_sample_manufacture_date" name="manufacture_date" type="date">
                         </div>
 
                         <div class="col-12">
                             <label class="form-label">Primary Packing Material</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_primary_packing_material" name="primary_packing_material" type="text">
+                            <input class="form-control" id="edit_sample_primary_packing_material" name="primary_packing_material" type="text">
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label">Recibido por</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_received_by" name="received_by" type="text">
+                            <input class="form-control" id="edit_sample_received_by" name="received_by" type="text">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Fecha y hora de recepcion</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_received_at" name="received_at" type="datetime-local">
+                            <input class="form-control" id="edit_sample_received_at" name="received_at" type="datetime-local">
                         </div>
 
                         <div class="col-md-3">
                             <label class="form-label">Cantidad prevista</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity_expected" name="quantity_expected" type="number" min="0">
+                            <input class="form-control" id="edit_sample_quantity_expected" name="quantity_expected" type="number" min="0">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Cantidad recibida</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity_received" name="quantity_received" type="number" min="0">
+                            <input class="form-control" id="edit_sample_quantity_received" name="quantity_received" type="number" min="0">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Cantidad asignada</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity_assigned" name="quantity_assigned" type="number" min="0" readonly>
+                            <input class="form-control" id="edit_sample_quantity_assigned" name="quantity_assigned" type="number" min="0" readonly>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Cantidad reservada</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity_reserved" name="quantity_reserved" type="number" min="0">
+                            <input class="form-control" id="edit_sample_quantity_reserved" name="quantity_reserved" type="number" min="0">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Cantidad de contingencia</label>
-                            <input class="form-control rounded-4 shadow-sm" id="edit_sample_quantity_contingency" name="quantity_contingency" type="number" min="0">
+                            <input class="form-control" id="edit_sample_quantity_contingency" name="quantity_contingency" type="number" min="0">
                         </div>
 
                         <div class="col-12">
                             <label class="form-label">Observaciones</label>
-                            <textarea class="form-control rounded-4 shadow-sm" id="edit_sample_notes" name="notes" rows="3"></textarea>
+                            <textarea class="form-control" id="edit_sample_notes" name="notes" rows="3"></textarea>
                         </div>
                     </div>
                     <div class="d-flex gap-2 justify-content-end mt-4">
-                        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary rounded-pill">Guardar cambios</button>
+                        <button type="button" class="btn btn-cancel-soft" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar cambios</button>
                     </div>
                 </form>
             </div>
@@ -395,7 +399,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 showCancelButton: true,
                 confirmButtonText: 'Si, eliminar',
                 cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#d33'
+                confirmButtonColor: '#e5484d',
+                cancelButtonColor: '#7b8798',
+                customClass: {
+                    popup: 'app-swal-popup'
+                }
             }).then(function (result) {
                 if (result.isConfirmed) {
                     form.submit();

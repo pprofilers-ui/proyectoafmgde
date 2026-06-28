@@ -1,0 +1,119 @@
+Lo abordaría en modo seguro, por capas, para que no se rompa nada de la funcionalidad actual.
+
+He revisado la base y ahora mismo la estética común sale sobre todo de [templates/base.html](/C:/desarollo/proyecto_afmgde/templates/base.html) y la pantalla de referencia de `Estudios` está en [templates/web/studies.html](/C:/desarollo/proyecto_afmgde/templates/web/studies.html). La buena noticia es que la lógica está bastante separada del HTML, así que podemos rediseñar mucho sin tocar vistas, formularios ni flujos.
+
+Veo estas decisiones claras en tus Word:
+1. Mantener solo navegación superior.
+2. Usar una línea visual NetLab One con paleta fija.
+3. Convertir `Estudios` en la pantalla patrón.
+4. Quitar acciones grandes por fila y pasar a iconos.
+5. Hacer el hero más compacto para ganar espacio útil de tabla.
+6. Reutilizar después ese patrón en `Muestras`, `Planificación`, `Operaciones`, etc.
+
+La forma más segura de hacerlo sería así:
+1. Crear un sistema de tokens visuales globales: colores, radios, sombras, tipografía y estados.
+2. Aplicarlo primero en `base.html` para header, fondo, cards, inputs y botones comunes.
+3. Rediseñar solo `Estudios` como pantalla piloto, sin tocar backend.
+4. Validar que el look encaja con la maqueta.
+5. Extender el mismo patrón al resto de pantallas.
+6. Tratar el `admin` aparte, porque Django Admin necesita otra estrategia y conviene no mezclarlo con la web operativa.
+
+Ahora mismo la diferencia principal entre lo que tienes y lo pedido es:
+- El sistema visual aún depende de `Bootswatch Morph`.
+- `Estudios` tiene estructura parecida, pero no exacta.
+- La tabla todavía usa botones de texto en acciones.
+- Falta una barra de filtros como la del mockup.
+- El admin no está tematizado con esa identidad.
+
+Mi recomendación es empezar por este orden:
+1. `base.html` y estilos globales.
+2. `studies.html` para dejarla casi como la imagen.
+3. Revisar responsive y que no se rompa nada.
+4. Luego replicar patrón en el resto.
+5. Finalmente valorar si el `admin` solo se “suaviza” visualmente o si se personaliza más a fondo.
+
+Si te parece, en el siguiente paso hago una propuesta concreta de fase 1 solo para `Estudios`, con cambios visuales mínimos de riesgo y sin tocar funcionalidad.
+
+
+
+
+
+
+
+Ya está corregido ese detalle: el botón `Etiqueta` en `Submuestras generadas` queda alineado con `Editar` y `Retirar muestra` en [templates/web/planning.html](/C:/desarollo/proyecto_afmgde/templates/web/planning.html), apoyado por estilos nuevos en [static/css/netlabone.css](/C:/desarollo/proyecto_afmgde/static/css/netlabone.css).
+
+Además he dejado esa celda de acciones mejor estructurada para el siguiente paso, que es justo el que comentas: rematar visualmente todos los botones de esta pantalla sin tocar su funcionamiento. `Editar estudio` y `Eliminar estudios` en la vista de estudios siguen haciendo lo mismo que antes; aquí lo que estamos preparando es el diseño consistente de:
+- `Editar`
+- `Etiqueta`
+- `Retirar muestra`
+- `Guardar planificación base`
+- `Generar planificación`
+- `Quitar`
+- `Añadir punto`
+
+Si quieres, sigo ya con ese bloque completo de botones en `Planificación`.
+
+
+-------------------------------------------------------------------------------------------
+
+
+La vuelta general que he hecho me deja una conclusión bastante clara: **sí hemos seguido muy de cerca la línea del documento Word en lo importante**, y ahora mismo la aplicación ya transmite una identidad visual coherente y consistente con lo que se pedía.
+
+Lo que veo claramente alineado con el documento:
+- identidad `NetLab One Stability` unificada en toda la app
+- uso consistente de `hero` superior con bloque informativo lateral
+- tarjetas blancas suaves con borde fino y sombra ligera
+- botones principales en la gama violeta/azul definida
+- tablas limpias con encabezado muy claro y filas blancas
+- badges y estados suaves, sin colores agresivos
+- formularios con el mismo lenguaje visual en todas las pantallas
+- modales y acciones secundarias integradas en el mismo sistema visual
+- coherencia entre web principal, planificación, muestras, operaciones, informes y auditoría
+
+Lo que considero ya muy cerca de “cerrado”:
+- `Resumen`
+- `Estudios`
+- `Planificación`
+- `Muestras`
+- `Fechas de muestreo`
+- `Plan anual`
+- `Alertas`
+- `Informes`
+- `Auditoría`
+- `Desviaciones`
+- `Operaciones` con los últimos ajustes de alineación
+
+Mi valoración honesta:
+- **a nivel de estilo global, sí está siguiendo el documento al pie de la letra en espíritu, estructura y lenguaje visual**
+- **a nivel pixel-perfect absoluto**, eso solo lo daría por 100% cerrado después de tu revisión final pantalla a pantalla, porque ahí entran detalles muy finos de separación, alineación o proporción que solo viendo el resultado real pueden detectarse
+
+Lo único que dejaría en vigilancia mientras sigues revisando:
+- microalineaciones en filtros y acciones según tamaño de pantalla
+- alguna vista secundaria menos usada
+- posibles diferencias mínimas entre versión navegador normal y vista imprimir/PDF
+
+En resumen: **la base de diseño ya está bien implantada y es fiel al Word; ahora estamos en fase de remate fino, no de cambio estructural**. Si quieres, en el siguiente paso puedo prepararte una checklist corta de validación visual por módulos para que revisemos ambos con el mismo criterio.
+
+
+
+-------------------------------------------------------------------------------
+
+
+
+Sí, ahora mismo ese `3` tiene toda la pinta de ser **fijo/maquetado**, no dinámico.
+
+Lo normal es que esa campana se pueda usar después para varias cosas útiles:
+- contar `alertas abiertas`
+- avisos de `desviaciones` nuevas
+- tareas pendientes de `muestras` o `planificación`
+- notificaciones por usuario según su rol
+- accesos rápidos a un pequeño desplegable con las últimas incidencias
+
+La opción más lógica en esta aplicación sería conectarla a:
+- `Alertas` abiertas reales
+- quizás también desviaciones o pendientes críticos del flujo
+
+Así que sí: **ahora parece decorativa**, pero **se puede convertir fácilmente en un indicador real del sistema** cuando quieras. Si en tu revisión ves que interesa, más adelante la podemos hacer dinámica sin tocar el diseño que ya está bien.
+
+
+

@@ -1,58 +1,100 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="hero glass p-4 p-lg-5 mb-4">
-    <h1 class="display-5 mb-2">Plan anual y calendario maestro</h1>
-    <p class="lead text-secondary mb-0">Vista ejecutiva de fase 1 para controlar estudios planificados, activos, cierres, entradas, extracciones, carga de camaras y riesgos operativos.</p>
+<div class="page-hero">
+    <div>
+        <h1 class="page-title">Plan anual y calendario maestro</h1>
+        <p class="page-subtitle">Vista ejecutiva para controlar estudios planificados, activos, cierres, entradas, extracciones, carga de camaras y riesgos operativos.</p>
+    </div>
+    <div class="recommendation-card">
+        <p class="recommendation-label">Lectura recomendada</p>
+        <p class="recommendation-text">Usa este panel para anticipar carga de trabajo y entra despues al modulo operativo cuando necesites actuar.</p>
+    </div>
+</div>
+
+<div class="row g-4 summary-grid">
+    <div class="col-md-6 col-xl-3">
+        <div class="summary-card">
+            <p class="summary-card-label">Planificados</p>
+            <p class="summary-card-value summary-card-value-sm">{{ planned_studies|length }}</p>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="summary-card">
+            <p class="summary-card-label">Activos</p>
+            <p class="summary-card-value summary-card-value-sm">{{ active_studies|length }}</p>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="summary-card">
+            <p class="summary-card-label">Finalizados</p>
+            <p class="summary-card-value summary-card-value-sm">{{ closed_studies|length }}</p>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="summary-card">
+            <p class="summary-card-label">Alertas abiertas</p>
+            <p class="summary-card-value summary-card-value-sm">{{ open_alerts|length }}</p>
+        </div>
+    </div>
 </div>
 
 <div class="row g-4 mb-4">
     <div class="col-lg-4">
-        <div class="card glass border-0 h-100">
-            <div class="card-body">
-                <h3>Estudios planificados</h3>
-                <ul class="list-group list-group-flush">
+        <div class="dashboard-block">
+            <div class="dashboard-block-body">
+                <h3 class="dashboard-section-title">Estudios planificados</h3>
+                <p class="dashboard-section-copy">Estudios en elaboracion pendientes de pasar a operativo.</p>
+                <ul class="insight-list">
                     {% for study in planned_studies %}
-                    <li class="list-group-item bg-transparent px-0">
-                        <div class="fw-semibold">{{ study.code }}</div>
-                        <div class="text-muted small">{{ study.title }} | Inicio {{ study.start_date }}</div>
+                    <li class="insight-list-item">
+                        <p class="insight-list-title">{{ study.code }}</p>
+                        <p class="insight-list-copy">{{ study.title }} | Inicio {{ study.start_date|date:"d/m/Y"|default:"-" }}</p>
                     </li>
                     {% empty %}
-                    <li class="list-group-item bg-transparent px-0 text-muted">No hay estudios en elaboracion.</li>
+                    <li class="insight-list-item">
+                        <p class="insight-list-copy">No hay estudios en elaboracion.</p>
+                    </li>
                     {% endfor %}
                 </ul>
             </div>
         </div>
     </div>
     <div class="col-lg-4">
-        <div class="card glass border-0 h-100">
-            <div class="card-body">
-                <h3>Estudios activos</h3>
-                <ul class="list-group list-group-flush">
+        <div class="dashboard-block">
+            <div class="dashboard-block-body">
+                <h3 class="dashboard-section-title">Estudios activos</h3>
+                <p class="dashboard-section-copy">Seguimiento de estudios actualmente aprobados.</p>
+                <ul class="insight-list">
                     {% for study in active_studies %}
-                    <li class="list-group-item bg-transparent px-0">
-                        <div class="fw-semibold">{{ study.code }}</div>
-                        <div class="text-muted small">{{ study.title }} | {% if study.product %}{{ study.product.name }}{% else %}{{ study.product_name|default:"-" }}{% endif %}</div>
+                    <li class="insight-list-item">
+                        <p class="insight-list-title">{{ study.code }}</p>
+                        <p class="insight-list-copy">{{ study.title }} | {% if study.product %}{{ study.product.name }}{% else %}{{ study.product_name|default:"-" }}{% endif %}</p>
                     </li>
                     {% empty %}
-                    <li class="list-group-item bg-transparent px-0 text-muted">No hay estudios activos.</li>
+                    <li class="insight-list-item">
+                        <p class="insight-list-copy">No hay estudios activos.</p>
+                    </li>
                     {% endfor %}
                 </ul>
             </div>
         </div>
     </div>
     <div class="col-lg-4">
-        <div class="card glass border-0 h-100">
-            <div class="card-body">
-                <h3>Estudios finalizados</h3>
-                <ul class="list-group list-group-flush">
+        <div class="dashboard-block">
+            <div class="dashboard-block-body">
+                <h3 class="dashboard-section-title">Estudios finalizados</h3>
+                <p class="dashboard-section-copy">Historico reciente de cierres completados.</p>
+                <ul class="insight-list">
                     {% for study in closed_studies %}
-                    <li class="list-group-item bg-transparent px-0">
-                        <div class="fw-semibold">{{ study.code }}</div>
-                        <div class="text-muted small">{{ study.title }} | Fin {{ study.end_date|default:"-" }}</div>
+                    <li class="insight-list-item">
+                        <p class="insight-list-title">{{ study.code }}</p>
+                        <p class="insight-list-copy">{{ study.title }} | Fin {{ study.end_date|date:"d/m/Y"|default:"-" }}</p>
                     </li>
                     {% empty %}
-                    <li class="list-group-item bg-transparent px-0 text-muted">No hay estudios finalizados.</li>
+                    <li class="insight-list-item">
+                        <p class="insight-list-copy">No hay estudios finalizados.</p>
+                    </li>
                     {% endfor %}
                 </ul>
             </div>
@@ -62,12 +104,17 @@
 
 <div class="row g-4 mb-4">
     <div class="col-lg-6">
-        <div class="card glass border-0 h-100">
-            <div class="card-body">
-                <h3>Proximas entradas en camara</h3>
-                <div class="table-responsive">
-                    <table class="table table-hover">
+        <div class="dashboard-block">
+            <div class="dashboard-block-body">
+                <h3 class="dashboard-section-title">Proximas entradas en camara</h3>
+                <p class="dashboard-section-copy">Muestras pendientes de pasar al circuito de camaras.</p>
+            </div>
+            <div class="table-responsive">
+                <table class="table dashboard-table">
+                    <thead>
                         <tr><th>Muestra</th><th>Estudio</th><th>Estado</th></tr>
+                    </thead>
+                    <tbody>
                         {% for sample in upcoming_entries %}
                         <tr>
                             <td>{{ sample.sample_code }}</td>
@@ -77,18 +124,23 @@
                         {% empty %}
                         <tr><td colspan="3">No hay entradas pendientes.</td></tr>
                         {% endfor %}
-                    </table>
-                </div>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
     <div class="col-lg-6">
-        <div class="card glass border-0 h-100">
-            <div class="card-body">
-                <h3>Proximas extracciones</h3>
-                <div class="table-responsive">
-                    <table class="table table-hover">
+        <div class="dashboard-block">
+            <div class="dashboard-block-body">
+                <h3 class="dashboard-section-title">Proximas extracciones</h3>
+                <p class="dashboard-section-copy">Calendario de retiradas previstas segun puntos de muestreo.</p>
+            </div>
+            <div class="table-responsive">
+                <table class="table dashboard-table">
+                    <thead>
                         <tr><th>Muestra</th><th>Punto</th><th>Fecha objetivo</th></tr>
+                    </thead>
+                    <tbody>
                         {% for sample in upcoming_extractions %}
                         <tr>
                             <td>{{ sample.sample_code }}</td>
@@ -98,8 +150,8 @@
                         {% empty %}
                         <tr><td colspan="3">No hay extracciones programadas.</td></tr>
                         {% endfor %}
-                    </table>
-                </div>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -107,33 +159,43 @@
 
 <div class="row g-4 mb-4">
     <div class="col-lg-6">
-        <div class="card glass border-0 h-100">
-            <div class="card-body">
-                <h3>Calendario maestro de puntos</h3>
-                <div class="table-responsive">
-                    <table class="table table-hover">
+        <div class="dashboard-block">
+            <div class="dashboard-block-body">
+                <h3 class="dashboard-section-title">Calendario maestro de puntos</h3>
+                <p class="dashboard-section-copy">Vision consolidada de los puntos planificados por estudio.</p>
+            </div>
+            <div class="table-responsive">
+                <table class="table dashboard-table">
+                    <thead>
                         <tr><th>Estudio</th><th>Punto</th><th>Fecha efectiva</th></tr>
+                    </thead>
+                    <tbody>
                         {% for point in upcoming_points %}
                         <tr>
                             <td>{{ point.study.code }}</td>
                             <td>{{ point.label }}</td>
-                            <td>{{ point.effective_date }}</td>
+                            <td>{{ point.effective_date|default:"-" }}</td>
                         </tr>
                         {% empty %}
                         <tr><td colspan="3">No hay puntos planificados.</td></tr>
                         {% endfor %}
-                    </table>
-                </div>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
     <div class="col-lg-6">
-        <div class="card glass border-0 h-100">
-            <div class="card-body">
-                <h3>Carga de camaras</h3>
-                <div class="table-responsive">
-                    <table class="table table-hover">
+        <div class="dashboard-block">
+            <div class="dashboard-block-body">
+                <h3 class="dashboard-section-title">Carga de camaras</h3>
+                <p class="dashboard-section-copy">Reparto actual de muestras por camara y condicion.</p>
+            </div>
+            <div class="table-responsive">
+                <table class="table dashboard-table">
+                    <thead>
                         <tr><th>Camara</th><th>Condicion</th><th>Muestras</th></tr>
+                    </thead>
+                    <tbody>
                         {% for chamber in chamber_load %}
                         <tr>
                             <td>{{ chamber.code }}</td>
@@ -143,8 +205,8 @@
                         {% empty %}
                         <tr><td colspan="3">No hay camaras registradas.</td></tr>
                         {% endfor %}
-                    </table>
-                </div>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -152,34 +214,40 @@
 
 <div class="row g-4">
     <div class="col-lg-6">
-        <div class="card glass border-0 h-100">
-            <div class="card-body">
-                <h3>Alertas abiertas</h3>
-                <ul class="list-group list-group-flush">
+        <div class="dashboard-block">
+            <div class="dashboard-block-body">
+                <h3 class="dashboard-section-title">Alertas abiertas</h3>
+                <p class="dashboard-section-copy">Seguimiento rapido de vencimientos y severidad.</p>
+                <ul class="insight-list">
                     {% for alert in open_alerts %}
-                    <li class="list-group-item bg-transparent px-0">
-                        <div class="fw-semibold">{{ alert.title }}</div>
-                        <div class="text-muted small">{{ alert.get_severity_display }} | Vence {{ alert.due_date|default:"-" }}</div>
+                    <li class="insight-list-item">
+                        <p class="insight-list-title">{{ alert.title }}</p>
+                        <p class="insight-list-copy">{{ alert.get_severity_display }} | Vence {{ alert.due_date|date:"d/m/Y"|default:"-" }}</p>
                     </li>
                     {% empty %}
-                    <li class="list-group-item bg-transparent px-0 text-muted">No hay alertas abiertas.</li>
+                    <li class="insight-list-item">
+                        <p class="insight-list-copy">No hay alertas abiertas.</p>
+                    </li>
                     {% endfor %}
                 </ul>
             </div>
         </div>
     </div>
     <div class="col-lg-6">
-        <div class="card glass border-0 h-100">
-            <div class="card-body">
-                <h3>Riesgos y desviaciones recientes</h3>
-                <ul class="list-group list-group-flush">
+        <div class="dashboard-block">
+            <div class="dashboard-block-body">
+                <h3 class="dashboard-section-title">Riesgos y desviaciones recientes</h3>
+                <p class="dashboard-section-copy">Ultimos eventos que pueden afectar al calendario.</p>
+                <ul class="insight-list">
                     {% for deviation in deviations %}
-                    <li class="list-group-item bg-transparent px-0">
-                        <div class="fw-semibold">{{ deviation.chamber.code }} | {{ deviation.detected_at }}</div>
-                        <div class="text-muted small">{{ deviation.description|truncatechars:120 }}</div>
+                    <li class="insight-list-item">
+                        <p class="insight-list-title">{{ deviation.chamber.code }} | {{ deviation.detected_at|date:"d/m/Y H:i" }}</p>
+                        <p class="insight-list-copy">{{ deviation.description|truncatechars:120 }}</p>
                     </li>
                     {% empty %}
-                    <li class="list-group-item bg-transparent px-0 text-muted">No hay desviaciones registradas.</li>
+                    <li class="insight-list-item">
+                        <p class="insight-list-copy">No hay desviaciones registradas.</p>
+                    </li>
                     {% endfor %}
                 </ul>
             </div>

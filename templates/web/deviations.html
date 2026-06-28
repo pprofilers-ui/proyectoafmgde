@@ -1,89 +1,242 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="hero glass p-4 p-lg-5 mb-4">
-    <h1 class="display-5 mb-2">Desviaciones de camara</h1>
-    <p class="lead text-secondary mb-0">Registra incidencias de camaras, su impacto y, si procede, el recalculo auditado de fechas de muestreo.</p>
+<div class="page-hero">
+    <div>
+        <h1 class="page-title">Desviaciones de camara</h1>
+        <p class="page-subtitle">Registra incidencias de camaras, su impacto y, si procede, el recalculo auditado de fechas de muestreo.</p>
+    </div>
+    <div class="recommendation-card">
+        <p class="recommendation-label">Uso recomendado</p>
+        <p class="recommendation-text">Documenta primero el evento y activa el recalculo solo cuando el desvio afecte al calendario real.</p>
+    </div>
 </div>
 
-<div class="row g-4">
-    <div class="col-lg-5">
-        <div class="card glass soft-card border-0 h-100">
-            <div class="card-body p-4">
-                <div class="app-section-title">Registrar desviacion</div>
-                <div class="app-section-copy">Usa esta pantalla para documentar el evento y disparar el recalculo de fechas cuando aplique.</div>
-                <form method="post" action="/app/deviations/create/" class="row g-3">
+<div class="content-card mb-4">
+    <div class="filters-bar filters-bar-grid-deviations">
+        <div>
+            <h3 class="dashboard-section-title mb-1">Historico</h3>
+            <p class="dashboard-section-copy mb-0">Revision de eventos ya registrados por camara.</p>
+        </div>
+        <form method="get" class="planning-filter-actions ms-auto">
+            <div class="filter-field">
+                <label class="filter-label" for="chamberFilter">Camara</label>
+                <select id="chamberFilter" name="chamber" class="form-select" onchange="this.form.submit()">
+                    <option value="">Todas</option>
+                    {% for chamber in chambers %}
+                    <option value="{{ chamber.id }}" {% if selected_chamber == chamber.id|stringformat:"s" %}selected{% endif %}>{{ chamber.code }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-field">
+                <label class="filter-label opacity-0">Acciones</label>
+                <button class="btn btn-primary" type="button" onclick="toggleDeviationForm()">
+                    <i class="bi bi-plus-lg me-2"></i>Registrar desviacion
+                </button>
+            </div>
+        </form>
+    </div>
+    <div class="section-card-body">
+        <div class="table-shell">
+            <table class="table table-app">
+                <thead>
+                    <tr>
+                        <th>Codigo</th>
+                        <th>Camara</th>
+                        <th>Inicio</th>
+                        <th>Fin</th>
+                        <th>Recalculo</th>
+                        <th>Descripcion</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for deviation in deviations %}
+                    <tr>
+                        <td class="cell-code">{{ deviation.deviation_code|default:"-" }}</td>
+                        <td>{{ deviation.chamber.code }}</td>
+                        <td>{{ deviation.detected_at|date:"d/m/Y H:i" }}</td>
+                        <td>{{ deviation.ended_at|date:"d/m/Y H:i"|default:"-" }}</td>
+                        <td>
+                            <span class="metric-pill {% if deviation.requires_recalculation %}is-warning{% else %}is-neutral{% endif %}">
+                                {% if deviation.requires_recalculation %}Si{% else %}No{% endif %}
+                            </span>
+                        </td>
+                        <td>{{ deviation.description|truncatechars:120 }}</td>
+                        <td>
+                            <div class="row-actions">
+                                <a
+                                    class="action-icon icon-edit"
+                                    href="#"
+                                    title="Editar desviacion"
+                                    aria-label="Editar desviacion"
+                                    onclick="openDeviationEditModal('{{ deviation.id }}', '{{ deviation.deviation_code|escapejs }}', '{{ deviation.chamber_id|default:'' }}', '{{ deviation.detected_at|date:'Y-m-d\\TH:i' }}', '{{ deviation.ended_at|default:''|date:'Y-m-d\\TH:i' }}', '{{ deviation.description|escapejs }}', '{{ deviation.impact_assessment|escapejs }}', '{{ deviation.requires_recalculation|yesno:'true,false' }}'); return false;">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" action="/app/deviations/{{ deviation.id }}/delete/" class="d-inline deviation-delete-form">
+                                    {% csrf_token %}
+                                    <button class="action-icon icon-delete" type="submit" title="Eliminar desviacion" aria-label="Eliminar desviacion">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="table-empty">No hay desviaciones registradas.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="content-card" id="createDeviationSection" style="display:none;">
+    <div class="panel-toggle">
+        <div>
+            <h2 class="panel-copy-title">Registrar desviacion</h2>
+            <p class="panel-copy-text">Formulario operativo para documentar el evento y disparar el recalculo cuando aplique.</p>
+        </div>
+        <button type="button" class="btn btn-cancel-soft" onclick="toggleDeviationForm()">Cerrar</button>
+    </div>
+
+    <div class="form-panel">
+        <form method="post" action="/app/deviations/create/" class="row g-3">
+            {% csrf_token %}
+            {% for field in deviation_form %}
+            {% if field.name == 'requires_recalculation' %}
+            <div class="col-12">
+                <div class="p-3 rounded-4 border bg-light-subtle">
+                    <div class="fw-semibold mb-2">{{ field.label }}</div>
+                    <div class="form-check form-switch fs-5">
+                        {{ field }}
+                        <label class="form-check-label ms-2" for="{{ field.id_for_label }}">Si, recalcular fechas de todas las muestras activas de esta camara</label>
+                    </div>
+                    {% if field.help_text %}<div class="form-text mt-2">{{ field.help_text }}</div>{% endif %}
+                    {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors|striptags }}</div>{% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="{% if field.name == 'description' or field.name == 'impact_assessment' %}col-12{% else %}col-md-6{% endif %}">
+                <label class="form-label">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors|striptags }}</div>{% endif %}
+            </div>
+            {% endif %}
+            {% endfor %}
+            <div class="col-12 pt-2">
+                <button class="btn btn-primary" type="submit">Guardar desviacion</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade app-modal" id="deviationEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar desviacion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <form id="deviationEditForm" method="post" action="" class="row g-3">
                     {% csrf_token %}
-                    {% for field in deviation_form %}
-                    {% if field.name == 'requires_recalculation' %}
+                    <div class="col-md-6">
+                        <label class="form-label">Codigo Desviacion</label>
+                        <input id="edit_deviation_code" name="deviation_code" type="text" class="form-control" readonly tabindex="-1">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Camara</label>
+                        <select id="edit_deviation_chamber" name="chamber" class="form-select">
+                            {% for chamber in chambers %}
+                            <option value="{{ chamber.id }}">{{ chamber.code }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Fecha y hora de inicio</label>
+                        <input id="edit_deviation_detected_at" name="detected_at" type="datetime-local" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Fecha y hora de fin</label>
+                        <input id="edit_deviation_ended_at" name="ended_at" type="datetime-local" class="form-control">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Descripcion</label>
+                        <textarea id="edit_deviation_description" name="description" class="form-control" rows="4"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Evaluacion de impacto</label>
+                        <textarea id="edit_deviation_impact_assessment" name="impact_assessment" class="form-control" rows="4"></textarea>
+                    </div>
                     <div class="col-12">
                         <div class="p-3 rounded-4 border bg-light-subtle">
-                            <div class="fw-semibold mb-2">{{ field.label }}</div>
+                            <div class="fw-semibold mb-2">Requiere recalculo de fechas</div>
                             <div class="form-check form-switch fs-5">
-                                {{ field }}
-                                <label class="form-check-label ms-2" for="{{ field.id_for_label }}">Si, recalcular fechas de todas las muestras activas de esta camara</label>
+                                <input id="edit_deviation_requires_recalculation" name="requires_recalculation" type="checkbox" class="form-check-input">
+                                <label class="form-check-label ms-2" for="edit_deviation_requires_recalculation">Si, recalcular fechas de todas las muestras activas de esta camara</label>
                             </div>
-                            {% if field.help_text %}<div class="form-text mt-2">{{ field.help_text }}</div>{% endif %}
-                            {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors|striptags }}</div>{% endif %}
+                            <div class="form-text mt-2">Marca esta opcion solo si quieres recalcular las fechas de todas las muestras activas de esta camara.</div>
                         </div>
                     </div>
-                    {% else %}
-                    <div class="{% if field.name == 'description' or field.name == 'impact_assessment' %}col-12{% else %}col-md-6{% endif %}">
-                        <label class="form-label">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors|striptags }}</div>{% endif %}
-                    </div>
-                    {% endif %}
-                    {% endfor %}
-                    <div class="col-12 pt-2">
-                        <button class="btn btn-danger soft-pill" type="submit">Guardar desviacion</button>
+                    <div class="d-flex gap-2 justify-content-end mt-4">
+                        <button type="button" class="btn btn-cancel-soft" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar cambios</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-
-    <div class="col-lg-7">
-        <div class="card glass border-0 h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
-                    <h3 class="mb-0">Historico</h3>
-                    <form method="get" class="d-flex align-items-center gap-2">
-                        <label class="small text-muted" for="chamberFilter">Camara</label>
-                        <select id="chamberFilter" name="chamber" class="form-select form-select-sm rounded-pill" onchange="this.form.submit()">
-                            <option value="">Todas</option>
-                            {% for chamber in chambers %}
-                            <option value="{{ chamber.id }}" {% if selected_chamber == chamber.id|stringformat:"s" %}selected{% endif %}>{{ chamber.code }}</option>
-                            {% endfor %}
-                        </select>
-                    </form>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <tr>
-                            <th>Codigo</th>
-                            <th>Camara</th>
-                            <th>Inicio</th>
-                            <th>Fin</th>
-                            <th>Recalculo</th>
-                            <th>Descripcion</th>
-                        </tr>
-                        {% for deviation in deviations %}
-                        <tr>
-                            <td>{{ deviation.deviation_code|default:"-" }}</td>
-                            <td>{{ deviation.chamber.code }}</td>
-                            <td>{{ deviation.detected_at|date:"d/m/Y H:i" }}</td>
-                            <td>{{ deviation.ended_at|date:"d/m/Y H:i"|default:"-" }}</td>
-                            <td>{% if deviation.requires_recalculation %}Si{% else %}No{% endif %}</td>
-                            <td>{{ deviation.description|truncatechars:120 }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="6">No hay desviaciones registradas.</td></tr>
-                        {% endfor %}
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
+
+<script>
+function toggleDeviationForm() {
+    const section = document.getElementById('createDeviationSection');
+    if (!section) return;
+    const isHidden = section.style.display === 'none' || !section.style.display;
+    section.style.display = isHidden ? 'block' : 'none';
+    if (isHidden) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function openDeviationEditModal(id, code, chamberId, detectedAt, endedAt, description, impactAssessment, requiresRecalculation) {
+    document.getElementById('deviationEditForm').action = `/app/deviations/${id}/edit/`;
+    document.getElementById('edit_deviation_code').value = code || '';
+    document.getElementById('edit_deviation_chamber').value = chamberId || '';
+    document.getElementById('edit_deviation_detected_at').value = detectedAt || '';
+    document.getElementById('edit_deviation_ended_at').value = endedAt || '';
+    document.getElementById('edit_deviation_description').value = description || '';
+    document.getElementById('edit_deviation_impact_assessment').value = impactAssessment || '';
+    document.getElementById('edit_deviation_requires_recalculation').checked = (requiresRecalculation === 'true');
+
+    const modal = new bootstrap.Modal(document.getElementById('deviationEditModal'));
+    modal.show();
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.deviation-delete-form').forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            Swal.fire({
+                title: 'Eliminar desviacion',
+                text: 'Seguro que quieres eliminar esta desviacion?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Si, eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#e5484d',
+                cancelButtonColor: '#7b8798',
+                customClass: { popup: 'app-swal-popup' }
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+    });
+});
+</script>
 {% endblock %}
