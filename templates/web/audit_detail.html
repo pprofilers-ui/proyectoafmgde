@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-hero">
     <div>
-        <h1 class="page-title">Detalle de trazabilidad</h1>
+        <h1 class="page-title">Detalle de audit trail</h1>
         <p class="page-subtitle">{{ audit.friendly_entity }} #{{ audit.entity_id }} - {{ audit.friendly_action }}</p>
     </div>
     <div class="recommendation-card">
@@ -16,7 +16,7 @@
     <div class="col-lg-4">
         <div class="content-card h-100">
             <div class="content-card-body">
-                <h3 class="dashboard-section-title">Cabecera</h3>
+                <h3 class="dashboard-section-title">Cabecera del evento</h3>
                 <div class="audit-detail-list">
                     <div class="audit-detail-item">
                         <p class="audit-detail-label">Fecha</p>
@@ -53,13 +53,13 @@
     <div class="col-lg-8">
         <div class="content-card mb-4">
             <div class="content-card-body">
-                <h3 class="dashboard-section-title">Cambios</h3>
+                <h3 class="dashboard-section-title">Cambios detectados</h3>
                 <div class="audit-json">{{ audit.changes }}</div>
             </div>
         </div>
         <div class="content-card">
             <div class="content-card-body">
-                <h3 class="dashboard-section-title">Payload</h3>
+                <h3 class="dashboard-section-title">Payload original</h3>
                 <div class="audit-json">{{ audit.payload }}</div>
             </div>
         </div>

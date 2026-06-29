@@ -1,0 +1,131 @@
+**Plan De Pruebas**
+
+1. `Menú superior`
+   En cualquier pantalla web, comprueba que el logo se ve más grande, que `Resumen` e `Informes` ya no aparecen y que el orden sea `Plan anual > Estudios > Muestras > Planificación`.
+
+2. `Estudios - listado`
+   En [studies.html](C:\desarollo\proyecto_afmgde\templates\web\studies.html), verifica que no aparece la columna `Código producto` y que la tabla sigue cargando bien.
+
+3. `Estudios - aprobar por primera vez`
+   Crea o edita un estudio en `En elaboración` y pásalo a `Aprobado`.
+   Comprueba que:
+   - solo en ese momento aparece la confirmación especial
+   - se guardan fecha de aprobación y aprobador
+   - la fecha de fin se calcula automáticamente
+   - el estudio sigue guardando una fecha de inicio distinta de la de aprobación
+
+4. `Estudios - edición posterior`
+   Vuelve a editar ese mismo estudio ya aprobado.
+   Comprueba que:
+   - ya no vuelve a salir la pantalla o aviso especial de aprobación
+   - arriba a la derecha se ve el estado
+   - el estudio sigue en `Aprobado`
+
+5. `Estudios - borrado restringido`
+   Intenta borrar un estudio `Aprobado`.
+   Debe bloquearse.
+   Después intenta borrar uno `En elaboración`.
+   Debe permitirlo.
+
+6. `Muestras - filtros`
+   Ve a `Muestras` y busca por código de estudio y por cliente.
+   Comprueba que el filtro devuelve solo las muestras esperadas.
+
+7. `Muestras - columnas`
+   Revisa que en el listado no aparezcan `Ubicación` ni `Stock`, y que sí aparezcan `Cantidad recibida` y `Cantidad asignada`.
+
+8. `Muestras - borrado restringido`
+   Intenta borrar una muestra de un estudio aprobado.
+   Debe bloquearse.
+
+9. `Planificación - orden de bloques`
+   En la pantalla de planificación de un estudio, confirma este orden:
+   `Resumen del estudio > Muestras del estudio > Planificación base > Submuestras generadas`.
+
+10. `Planificación - resumen compacto`
+    Comprueba que en `Resumen del estudio` solo aparecen:
+    `Código`, `Título`, `Estado`, `Cliente`, `Producto`, `Tipo de estudio` y `Protocolo`.
+    No deben salir contadores innecesarios.
+
+11. `Planificación base`
+    Añade o modifica puntos de muestreo y verifica que los botones `Guardar planificación base` y `Generar planificación` estén uno al lado del otro y funcionen.
+
+12. `Submuestras generadas - columnas`
+    Genera planificación y revisa que la tabla tenga:
+    `Código`, `Cámara`, `Ubicación`, `Análisis`, `Punto`, `Fecha prevista`, `Fecha corregida`, `Fecha real`, `Fecha análisis`, `Cantidad`, `Estado`, `Acción`.
+
+13. `Submuestras generadas - acciones`
+    En una submuestra:
+    - abre `Editar`
+    - cambia ubicación o fecha de análisis
+    - guarda
+    - comprueba que el dato actualizado aparece en la tabla
+
+14. `Submuestras generadas - paginación`
+    Si hay suficientes registros, cambia `Registros` a `5`, `10`, `25`.
+    Comprueba que la paginación responde bien y que la navegación entre páginas no rompe la pantalla.
+
+15. `Etiquetas`
+    Pulsa `Etiqueta` en una submuestra y también `Imprimir etiquetas` al final.
+    Comprueba que se generan correctamente y que no salen superpuestas.
+
+16. `Informe cliente - acceso`
+    Verifica que el informe cliente solo puede generarse cuando el estudio ya tiene planificación generada.
+    Comprueba acceso desde `Planificación` y desde `Estudios`.
+
+17. `Informe cliente - impresión`
+    Abre el informe cliente y revisa:
+    - cabecera
+    - datos del estudio
+    - muestras
+    - planificación
+    - botón `Imprimir`
+    Comprueba que la vista es imprimible en A4 y que el PDF/impresión sale razonable.
+
+18. `Informe cliente - envío por email`
+    Usa `Enviar por email` y manda el informe a tu correo.
+    Comprueba que:
+    - abre el modal
+    - acepta destinatario, asunto y mensaje
+    - envía correctamente
+    - llega adjunto en PDF
+    - el PDF abre bien
+
+19. `Plan anual - widgets`
+    Revisa que los widgets superiores muestren:
+    `Estudios en marcha`, `Estudios en planificación`, `Submuestras en cámara` y `Retiradas próximos 30 días`.
+
+20. `Plan anual - bloques`
+    Valida visualmente los bloques:
+    `Estudios en marcha`, `Estado de cámaras`, `Retiradas por meses`, `Historial de desviaciones de cámaras` y `Alertas`.
+
+21. `Plan anual - enlaces`
+    Pulsa los enlaces tipo `Ver todos`, `Ver operativa`, `Ver todas las desviaciones`, etc.
+    Comprueba que te llevan a la pantalla correcta y, si aplica, con el filtro correspondiente.
+
+22. `Operaciones`
+    En `Operaciones`, revisa que los filtros estén alineados, incluido `Registros`, y que `Aplicar filtro` y `Limpiar` estén en la misma línea.
+
+23. `Operaciones - paginación`
+    En `Submuestras en cámara`, cambia el selector de `Registros` y navega entre páginas.
+    Comprueba que mantiene filtros y muestra bien los resultados.
+
+24. `Desviaciones, Alertas, Muestras, Planificación, Auditoría`
+    En cada una de esas pantallas, prueba:
+    - selector `Registros`
+    - cambio de página
+    - mantenimiento de filtros al paginar
+
+25. `Audit trail`
+    Revisa listado y detalle.
+    Comprueba que:
+    - la terminología está clara
+    - la paginación funciona
+    - el detalle muestra cabecera, cambios y payload
+
+26. `Prueba final de regresión`
+    Haz un recorrido completo:
+    `crear estudio > aprobar > crear muestra > planificar > generar submuestras > editar submuestra > imprimir etiqueta > generar informe cliente > enviar por email`
+    Si todo eso pasa sin errores, damos el bloque por validado.
+
+Si quieres, cuando vayas haciendo cada prueba me dices `prueba 1 ok`, `prueba 2 ok` y te voy marcando lo que quede pendiente.

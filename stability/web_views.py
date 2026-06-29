@@ -2,20 +2,28 @@ import base64
 from io import BytesIO
 import calendar
 from datetime import timedelta
+import os
+from pathlib import Path
 import re
 from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
+from django.conf import settings
+from django.core.mail import EmailMultiAlternatives, get_connection
 from django.db import transaction
 from django.db.models import Count, F, Q, Sum
+from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.core.paginator import Paginator
+from django.core.validators import validate_email
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 from django.urls import reverse_lazy
 from django.utils.dateparse import parse_date
 from django.utils import timezone
+from dotenv import load_dotenv
 import qrcode
 
 from audit.utils import register_audit_event
@@ -34,6 +42,7 @@ DEFAULT_SAMPLING_SCHEDULE = [
 STUDY_CODE_PATTERN = "EST-{year}-{seq:03d}"
 SAMPLE_CODE_PATTERN = "{study_code}-M-{seq:04d}"
 RECEPTION_CODE_PATTERN = "REC-{year}-{seq:03d}"
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 def _next_sequence(existing_values):
@@ -67,6 +76,17 @@ def generate_reception_number():
     )
     seq = _next_sequence(existing)
     return RECEPTION_CODE_PATTERN.format(year=year, seq=seq)
+
+
+def _get_page_size(request, allowed_sizes=None, default=10):
+    allowed = allowed_sizes or {5, 10, 25, 50}
+    try:
+        page_size = int(request.GET.get("page_size") or default)
+    except (TypeError, ValueError):
+        page_size = default
+    if page_size not in allowed:
+        page_size = default
+    return page_size
 
 
 def _schedule_audit_changes(before_schedule, after_schedule):
@@ -332,6 +352,19 @@ def _apply_planned_dates_on_approval(study):
         PlannedSubsample.objects.bulk_update(updated_fields, ["planned_date", "updated_at"])
 
 
+def _calculate_study_end_date(study):
+    return (
+        study.planned_subsamples.exclude(planned_date__isnull=True)
+        .order_by("-planned_date")
+        .values_list("planned_date", flat=True)
+        .first()
+    )
+
+
+def _study_has_generated_planning(study):
+    return study.planned_subsamples.exists()
+
+
 def _withdraw_planned_subsample(study, subsample_id):
     if study.status != Study.Status.ACTIVE:
         return False, "Solo puedes retirar submuestras cuando el estudio esta aprobado."
@@ -523,8 +556,19 @@ def create_study_web(request):
             study.product_code = study.product.code
         if study.product and not study.product_name:
             study.product_name = study.product.name
+        if study.status == Study.Status.ACTIVE:
+            can_approve, error_message = _validate_study_can_be_approved(study)
+            if not can_approve:
+                messages.error(request, error_message or "No se pudo aprobar el estudio.")
+                return redirect("web-studies")
         study.save()
         created_points = ensure_study_sampling_points(study)
+        if study.status == Study.Status.ACTIVE:
+            _apply_planned_dates_on_approval(study)
+            study.end_date = _calculate_study_end_date(study)
+            study.approved_at = timezone.now()
+            study.approved_by = request.user if request.user.is_authenticated else None
+            study.save(update_fields=["end_date", "approved_at", "approved_by", "updated_at"])
         register_audit_event(
             study,
             "web_create_study",
@@ -580,6 +624,10 @@ def edit_study_web(request, pk):
         updated_study.save()
         if is_approving:
             _apply_planned_dates_on_approval(updated_study)
+            updated_study.end_date = _calculate_study_end_date(updated_study)
+            updated_study.approved_at = timezone.now()
+            updated_study.approved_by = request.user if request.user.is_authenticated else None
+            updated_study.save(update_fields=["end_date", "approved_at", "approved_by", "updated_at"])
         register_audit_event(
             updated_study,
             "web_update_study",
@@ -596,6 +644,9 @@ def edit_study_web(request, pk):
 def delete_study_web(request, pk):
     study = get_object_or_404(Study, pk=pk)
     if request.method == "POST":
+        if study.status != Study.Status.DRAFT:
+            messages.error(request, "Solo se pueden eliminar estudios en elaboracion.")
+            return redirect("web-studies")
         register_audit_event(
             study,
             "web_delete_study",
@@ -610,6 +661,8 @@ def delete_study_web(request, pk):
 @login_required
 def samples_list(request):
     study_id = request.GET.get("study")
+    search_term = (request.GET.get("q") or "").strip()
+    page_size = _get_page_size(request)
     auto_open_create = request.GET.get("open") == "create"
     sample_initial = {}
     study = None
@@ -632,12 +685,40 @@ def samples_list(request):
                 sample_initial["quantity"] = reception.quantity_received
                 sample_initial["current_stock"] = reception.quantity_received
     sample_code_preview = generate_sample_code(study) if study else ""
-    samples = Sample.objects.select_related("study", "sampling_point", "chamber", "reception", "reception__packaging", "reception__batch")
+    samples = Sample.objects.select_related(
+        "study",
+        "study__client",
+        "sampling_point",
+        "chamber",
+        "reception",
+        "reception__packaging",
+        "reception__batch",
+    )
     
     if study_id:
         samples = samples.filter(study_id=study_id)
+    if search_term:
+        samples = samples.filter(
+            Q(sample_code__icontains=search_term)
+            | Q(study__code__icontains=search_term)
+            | Q(study__client__description__icontains=search_term)
+            | Q(study__client__code__icontains=search_term)
+        )
 
-    samples = list(samples.order_by("-created_at"))
+    samples = samples.order_by("-created_at")
+    paginator = Paginator(samples, page_size)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    page_numbers = []
+    for page_number in range(1, paginator.num_pages + 1):
+        if paginator.num_pages <= 7 or abs(page_number - page_obj.number) <= 1 or page_number in {1, paginator.num_pages}:
+            page_numbers.append(page_number)
+    filter_params = {
+        "study": study_id,
+        "q": search_term,
+        "page_size": page_size,
+    }
+    query_string = urlencode({key: value for key, value in filter_params.items() if value not in {"", None}})
+    samples = list(page_obj.object_list)
     for sample in samples:
         sample.assigned_quantity_live = recalculate_reception_assigned_quantity(sample)
 
@@ -653,6 +734,14 @@ def samples_list(request):
             "sample_code_preview": sample_code_preview,
             "client_code": client_code,
             "auto_open_create_sample": auto_open_create,
+            "search_term": search_term,
+            "page_obj": page_obj,
+            "page_numbers": page_numbers,
+            "page_size": page_size,
+            "query_string": query_string,
+            "total_count": paginator.count,
+            "start_index": page_obj.start_index() if paginator.count else 0,
+            "end_index": page_obj.end_index() if paginator.count else 0,
         },
     )
 
@@ -674,14 +763,33 @@ def sample_schedules_view(request, pk):
 @login_required
 def planning_list_view(request):
     status_filter = (request.GET.get("status") or "").strip()
+    page_size = _get_page_size(request)
     studies = Study.objects.select_related("study_type", "client", "product")
     if status_filter in {choice for choice, _label in Study.Status.choices}:
         studies = studies.filter(status=status_filter)
     studies = studies.order_by("-created_at")
+    paginator = Paginator(studies, page_size)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    page_numbers = []
+    for page_number in range(1, paginator.num_pages + 1):
+        if paginator.num_pages <= 7 or abs(page_number - page_obj.number) <= 1 or page_number in {1, paginator.num_pages}:
+            page_numbers.append(page_number)
+    filter_params = {
+        "status": status_filter,
+        "page_size": page_size,
+    }
+    query_string = urlencode({key: value for key, value in filter_params.items() if value not in {"", None}})
     context = {
-        "studies": studies,
+        "studies": page_obj.object_list,
         "selected_status": status_filter,
         "status_choices": Study.Status.choices,
+        "page_obj": page_obj,
+        "page_numbers": page_numbers,
+        "page_size": page_size,
+        "query_string": query_string,
+        "total_count": paginator.count,
+        "start_index": page_obj.start_index() if paginator.count else 0,
+        "end_index": page_obj.end_index() if paginator.count else 0,
     }
     return render(request, "web/planning_list.html", context)
 
@@ -692,6 +800,7 @@ def planning_study_view(request, pk):
         Study.objects.select_related("study_type", "client", "product"),
         pk=pk,
     )
+    page_size = _get_page_size(request)
     ensure_sampling_point_templates()
     chambers = list(Chamber.objects.filter(is_active=True).order_by("code"))
     templates = list(SamplingPointTemplate.objects.filter(is_active=True).order_by("month_number"))
@@ -725,38 +834,335 @@ def planning_study_view(request, pk):
                 return redirect("web-study-planning", pk=study.pk)
             messages.error(request, error_message or "No se pudo guardar la planificacion.")
 
-    study_samples = (
-        Sample.objects.select_related("chamber", "sampling_point")
+    study_samples = list(
+        Sample.objects.select_related("chamber", "sampling_point", "reception", "reception__packaging", "reception__batch")
         .filter(study=study)
         .order_by("sample_code")
     )
+    for sample in study_samples:
+        sample.assigned_quantity_live = recalculate_reception_assigned_quantity(sample)
     planning_rows = (
         SampleSchedule.objects.select_related("sample", "chamber", "chamber_location")
         .filter(sample__study=study)
         .order_by("planned_date", "sample__sample_code", "id")[:25]
     )
     planning_matrix_rows = _build_planning_matrix(study, chambers, templates)
-    generated_subsamples = study.planned_subsamples.select_related("sampling_point_template", "chamber").order_by(
+    generated_subsamples_qs = study.planned_subsamples.select_related("sampling_point_template", "chamber").order_by(
         "sampling_point_template__month_number",
         "code",
     )
+    paginator = Paginator(generated_subsamples_qs, page_size)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    page_numbers = []
+    for page_number in range(1, paginator.num_pages + 1):
+        if paginator.num_pages <= 7 or abs(page_number - page_obj.number) <= 1 or page_number in {1, paginator.num_pages}:
+            page_numbers.append(page_number)
+    query_string = urlencode({"page_size": page_size})
     context = {
         "study": study,
         "study_samples": study_samples,
         "planning_rows": planning_rows,
-        "planning_rows_count": SampleSchedule.objects.filter(sample__study=study).count(),
         "planning_matrix_rows": planning_matrix_rows,
         "active_chambers": chambers,
         "sampling_point_templates": templates,
-        "generated_subsamples": generated_subsamples,
+        "generated_subsamples": page_obj.object_list,
+        "page_obj": page_obj,
+        "page_numbers": page_numbers,
+        "page_size": page_size,
+        "query_string": query_string,
+        "total_count": paginator.count,
+        "start_index": page_obj.start_index() if paginator.count else 0,
+        "end_index": page_obj.end_index() if paginator.count else 0,
     }
     return render(request, "web/planning.html", context)
 
 
+def _build_client_report_context(study):
+    study_samples = list(
+        Sample.objects.select_related("reception", "reception__packaging", "reception__batch")
+        .filter(study=study)
+        .order_by("sample_code")
+    )
+    for sample in study_samples:
+        sample.assigned_quantity_live = recalculate_reception_assigned_quantity(sample)
+
+    planned_subsamples = list(
+        study.planned_subsamples.select_related(
+            "sampling_point_template",
+            "chamber",
+            "chamber__storage_condition",
+        ).order_by(
+            "sampling_point_template__month_number",
+            "chamber__code",
+            "code",
+        )
+    )
+
+    chamber_conditions = []
+    chamber_seen = set()
+    for subsample in planned_subsamples:
+        if subsample.chamber_id in chamber_seen:
+            continue
+        chamber_seen.add(subsample.chamber_id)
+        chamber_conditions.append(
+            {
+                "chamber_code": subsample.chamber.code,
+                "condition_label": (
+                    subsample.chamber.storage_condition.name
+                    if subsample.chamber.storage_condition
+                    else "-"
+                ),
+                "temperature": (
+                    f"{subsample.chamber.temperature_set_point:g} C"
+                    if subsample.chamber.temperature_set_point is not None
+                    else "-"
+                ),
+                "humidity": (
+                    f"{subsample.chamber.humidity_set_point:g} %"
+                    if subsample.chamber.humidity_set_point is not None
+                    else "-"
+                ),
+            }
+        )
+
+    planning_groups_map = {}
+    for subsample in planned_subsamples:
+        key = subsample.sampling_point_template_id
+        if key not in planning_groups_map:
+            planning_groups_map[key] = {
+                "title": f"Punto de muestreo: {subsample.sampling_point_template.label}",
+                "month_number": subsample.sampling_point_template.month_number,
+                "rows": [],
+            }
+        planning_groups_map[key]["rows"].append(subsample)
+
+    planning_groups = sorted(
+        planning_groups_map.values(),
+        key=lambda item: item["month_number"],
+    )
+
+    total_received = sum((sample.reception.quantity_received or sample.quantity or 0) for sample in study_samples)
+    total_assigned = sum(sample.assigned_quantity_live or 0 for sample in study_samples)
+    total_subsamples = len(planned_subsamples)
+    withdrawn_subsamples = sum(
+        1 for subsample in planned_subsamples if subsample.status == PlannedSubsample.Status.WITHDRAWN
+    )
+    pending_subsamples = total_subsamples - withdrawn_subsamples
+    summary_copy = (
+        f"Se han recibido {len(study_samples)} muestras con un total de {total_received} unidades y "
+        f"se han asignado {total_assigned}. La planificacion incluye {total_subsamples} submuestras, "
+        f"de las cuales {withdrawn_subsamples} han sido retiradas y {pending_subsamples} siguen programadas o en camara."
+    )
+
+    return {
+        "study": study,
+        "study_samples": study_samples,
+        "planned_subsamples": planned_subsamples,
+        "chamber_conditions": chamber_conditions,
+        "planning_groups": planning_groups,
+        "summary_copy": summary_copy,
+        "generated_at": timezone.localtime(timezone.now()),
+        "default_email_subject": f"Informe global del estudio {study.code}",
+        "default_email_message": (
+            f"Adjuntamos el informe global del estudio {study.code} - {study.title}.\n\n"
+            "Este correo se ha generado desde NetLab One Stability."
+        ),
+    }
+
+
+def _parse_email_recipients(raw_value):
+    recipients = []
+    for chunk in (raw_value or "").replace(";", ",").split(","):
+        email = chunk.strip()
+        if not email:
+            continue
+        validate_email(email)
+        recipients.append(email)
+    return recipients
+
+
+def _get_runtime_email_setting(name, default=""):
+    load_dotenv(BASE_DIR / ".env", override=True)
+    raw_value = os.getenv(name, getattr(settings, name, default))
+    if raw_value is None:
+        return default
+    return str(raw_value).strip().strip('"').strip("'")
+
+
+def _client_report_pdf_link_callback(uri, rel):
+    if uri.startswith(settings.STATIC_URL):
+        relative_path = uri.replace(settings.STATIC_URL, "", 1).lstrip("/")
+        return str(BASE_DIR / "static" / relative_path)
+    if uri.startswith(settings.MEDIA_URL):
+        relative_path = uri.replace(settings.MEDIA_URL, "", 1).lstrip("/")
+        return str(Path(settings.MEDIA_ROOT) / relative_path)
+    return uri
+
+
+def _render_client_report_pdf(context, request=None):
+    try:
+        from xhtml2pdf import pisa
+    except ImportError as exc:
+        raise ValueError(
+            "No se pudo generar el PDF porque falta instalar xhtml2pdf en este entorno."
+        ) from exc
+
+    pdf_html = render_to_string("web/client_report_pdf.html", context, request=request)
+    pdf_buffer = BytesIO()
+    pdf = pisa.CreatePDF(
+        src=pdf_html,
+        dest=pdf_buffer,
+        encoding="utf-8",
+        link_callback=_client_report_pdf_link_callback,
+    )
+    if pdf.err:
+        raise ValueError("No se pudo generar el PDF del informe.")
+    return pdf_buffer.getvalue()
+
+
+def _send_client_report_email(request, study, context):
+    if _get_runtime_email_setting("REPORT_EMAIL_ENABLED", "true").lower() != "true":
+        raise ValueError("El envio de correo esta desactivado en la configuracion actual.")
+    email_host_user = _get_runtime_email_setting("EMAIL_HOST_USER")
+    email_host_password = _get_runtime_email_setting("EMAIL_HOST_PASSWORD")
+    default_from_email = _get_runtime_email_setting("DEFAULT_FROM_EMAIL") or email_host_user
+
+    if not email_host_user or not email_host_password:
+        raise ValueError("Falta configurar EMAIL_HOST_USER y EMAIL_HOST_PASSWORD en el archivo .env.")
+
+    recipients = _parse_email_recipients(request.POST.get("email_to"))
+    if not recipients:
+        raise ValueError("Debes indicar al menos un destinatario.")
+
+    subject = (request.POST.get("email_subject") or "").strip() or context["default_email_subject"]
+    message = (request.POST.get("email_message") or "").strip() or context["default_email_message"]
+    report_url = request.build_absolute_uri(f"/app/studies/{study.pk}/client-report/")
+    html_body = (
+        f"<p>{message.replace(chr(10), '<br>')}</p>"
+        f"<p><strong>Estudio:</strong> {study.code} - {study.title}</p>"
+        f"<p>Puedes consultar tambien la vista web del informe aqui: "
+        f"<a href=\"{report_url}\">{report_url}</a></p>"
+    )
+
+    attachment_context = {
+        **context,
+        "email_mode": True,
+    }
+    report_pdf = _render_client_report_pdf(attachment_context, request=request)
+
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body=message,
+        from_email=default_from_email,
+        to=recipients,
+    )
+    email.connection = get_connection(
+        host=_get_runtime_email_setting("EMAIL_HOST", "smtp.gmail.com"),
+        port=int(_get_runtime_email_setting("EMAIL_PORT", "587") or 587),
+        username=email_host_user,
+        password=email_host_password,
+        use_tls=_get_runtime_email_setting("EMAIL_USE_TLS", "true").lower() == "true",
+        use_ssl=_get_runtime_email_setting("EMAIL_USE_SSL", "false").lower() == "true",
+    )
+    email.attach_alternative(html_body, "text/html")
+    email.attach(
+        filename=f"informe_{study.code}.pdf",
+        content=report_pdf,
+        mimetype="application/pdf",
+    )
+    email.send(fail_silently=False)
+    return recipients
+
+
+@login_required
+def client_report_view(request, pk):
+    study = get_object_or_404(
+        Study.objects.select_related("study_type", "client", "product"),
+        pk=pk,
+    )
+    if not _study_has_generated_planning(study):
+        messages.error(request, "Solo se puede generar el informe cliente cuando el estudio tenga la planificacion generada.")
+        return redirect("web-study-planning", pk=study.pk)
+
+    context = _build_client_report_context(study)
+    if request.method == "POST" and request.POST.get("action") == "send_email":
+        context["email_to_value"] = request.POST.get("email_to", "").strip()
+        context["email_subject_value"] = request.POST.get("email_subject", "").strip() or context["default_email_subject"]
+        context["email_message_value"] = request.POST.get("email_message", "").strip() or context["default_email_message"]
+        context["open_email_modal"] = True
+        try:
+            recipients = _send_client_report_email(request, study, context)
+            register_audit_event(
+                study,
+                "web_send_client_report_email",
+                payload={"code": study.code, "recipients": recipients},
+                changes={"report_email_sent": {"before": False, "after": True}},
+            )
+            messages.success(request, f"Informe enviado correctamente a {', '.join(recipients)}.")
+            return redirect("web-client-report", pk=study.pk)
+        except (ValueError, ValidationError) as exc:
+            messages.error(request, str(exc))
+        except Exception as exc:
+            messages.error(request, f"No se pudo enviar el correo: {exc}")
+    return render(request, "web/client_report.html", context)
+
+
+@login_required
+def planned_subsample_label_batch_view(request, pk):
+    study = get_object_or_404(
+        Study.objects.select_related("study_type", "client", "product"),
+        pk=pk,
+    )
+    if not _study_has_generated_planning(study):
+        messages.error(request, "Solo se pueden imprimir etiquetas cuando el estudio tenga la planificacion generada.")
+        return redirect("web-study-planning", pk=study.pk)
+
+    subsamples = list(
+        study.planned_subsamples.select_related("chamber", "chamber__storage_condition", "sampling_point_template")
+        .order_by("sampling_point_template__month_number", "chamber__code", "code")
+    )
+    for subsample in subsamples:
+        if not subsample.label_printed_at:
+            _mark_planned_subsample_label_printed(subsample)
+        qr_value = f"QR::{subsample.code}"
+        qr = qrcode.QRCode(version=1, box_size=5, border=2)
+        qr.add_data(qr_value)
+        qr.make(fit=True)
+        image = qr.make_image(fill_color="black", back_color="white")
+        buffer = BytesIO()
+        image.save(buffer, format="PNG")
+        subsample.qr_value = qr_value
+        subsample.qr_image_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+    context = {
+        "study": study,
+        "subsamples": subsamples,
+        "autoprint": request.GET.get("autoprint") == "1",
+    }
+    return render(request, "web/planned_subsample_label_batch.html", context)
+
+
 @login_required
 def alerts_list(request):
+    page_size = _get_page_size(request)
     alerts = StabilityAlert.objects.select_related("study", "sample").order_by("status", "due_date")
-    return render(request, "web/alerts.html", {"alerts": alerts})
+    paginator = Paginator(alerts, page_size)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    page_numbers = []
+    for page_number in range(1, paginator.num_pages + 1):
+        if paginator.num_pages <= 7 or abs(page_number - page_obj.number) <= 1 or page_number in {1, paginator.num_pages}:
+            page_numbers.append(page_number)
+    query_string = urlencode({"page_size": page_size})
+    return render(request, "web/alerts.html", {
+        "alerts": page_obj.object_list,
+        "page_obj": page_obj,
+        "page_numbers": page_numbers,
+        "page_size": page_size,
+        "query_string": query_string,
+        "total_count": paginator.count,
+        "start_index": page_obj.start_index() if paginator.count else 0,
+        "end_index": page_obj.end_index() if paginator.count else 0,
+    })
 
 
 @login_required
@@ -764,6 +1170,7 @@ def operations_hub(request):
     selected_chamber = request.GET.get("chamber", "").strip()
     selected_study = request.GET.get("study", "").strip()
     show_history = request.GET.get("show") == "all"
+    page_size = _get_page_size(request)
     chamber_contents = SampleSchedule.objects.select_related(
         "sample",
         "sample__study",
@@ -787,41 +1194,184 @@ def operations_hub(request):
         "selected_chamber": selected_chamber,
         "selected_study": selected_study,
         "show_history": show_history,
-        "chamber_contents": chamber_contents.order_by("chamber__code", "planned_date", "sample__sample_code", "id"),
         "chamber_summary": chamber_summary,
         "active_count": chamber_contents.filter(is_active=True).count() if show_history else chamber_contents.count(),
         "retired_count": chamber_contents.filter(is_active=False).count() if show_history else 0,
     }
+    chamber_contents = chamber_contents.order_by("chamber__code", "planned_date", "sample__sample_code", "id")
+    paginator = Paginator(chamber_contents, page_size)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    page_numbers = []
+    for page_number in range(1, paginator.num_pages + 1):
+        if paginator.num_pages <= 7 or abs(page_number - page_obj.number) <= 1 or page_number in {1, paginator.num_pages}:
+            page_numbers.append(page_number)
+    filter_params = {
+        "chamber": selected_chamber,
+        "study": selected_study,
+        "show": "all" if show_history else "active",
+        "page_size": page_size,
+    }
+    context.update({
+        "chamber_contents": page_obj.object_list,
+        "page_obj": page_obj,
+        "page_numbers": page_numbers,
+        "page_size": page_size,
+        "query_string": urlencode({key: value for key, value in filter_params.items() if value not in {"", None}}),
+        "total_count": paginator.count,
+        "start_index": page_obj.start_index() if paginator.count else 0,
+        "end_index": page_obj.end_index() if paginator.count else 0,
+    })
     return render(request, "web/operations.html", context)
 
 
 @login_required
 def annual_plan_view(request):
-    active_studies = Study.objects.filter(status=Study.Status.ACTIVE).order_by("start_date", "code")
-    planned_studies = Study.objects.filter(status=Study.Status.DRAFT).order_by("start_date", "code")
-    closed_studies = Study.objects.filter(status=Study.Status.CLOSED).order_by("-updated_at", "code")
-    upcoming_points = SamplingPoint.objects.select_related("study").order_by("recalculated_date", "target_date")[:20]
-    upcoming_entries = Sample.objects.select_related("study").filter(
-        status__in=[Sample.Status.RECEIVED, Sample.Status.LABELLED]
-    ).order_by("created_at")[:20]
-    upcoming_extractions = Sample.objects.select_related("study", "sampling_point").filter(
-        sampling_point__isnull=False,
-        current_stock__gt=0,
-    ).order_by("sampling_point__recalculated_date", "sampling_point__target_date")[:20]
-    chamber_load = Chamber.objects.annotate(sample_count=Count("samples")).order_by("-sample_count", "code")
-    open_alerts = StabilityAlert.objects.filter(status=StabilityAlert.Status.OPEN).order_by("due_date", "severity")[:20]
-    deviations = ChamberDeviation.objects.select_related("chamber", "study").order_by("-detected_at")[:20]
+    today = timezone.localdate()
+    next_30_days = today + timedelta(days=30)
+    located_in_chamber_filter = Q(status=PlannedSubsample.Status.IN_CHAMBER) & ~Q(storage_location="")
+
+    active_studies = list(
+        Study.objects.select_related("client", "product")
+        .filter(status=Study.Status.ACTIVE)
+        .order_by("start_date", "code")
+    )
+    planned_studies = list(
+        Study.objects.select_related("client", "product")
+        .filter(status=Study.Status.DRAFT)
+        .order_by("start_date", "code")
+    )
+
+    upcoming_pending_subsamples = (
+        PlannedSubsample.objects.select_related("study", "chamber", "sampling_point_template")
+        .filter(located_in_chamber_filter, planned_date__gte=today)
+        .order_by("planned_date", "study__code", "sampling_point_template__month_number")
+    )
+    next_subsample_by_study = {}
+    for subsample in upcoming_pending_subsamples:
+        next_subsample_by_study.setdefault(subsample.study_id, subsample)
+
+    active_study_rows = []
+    for study in active_studies[:6]:
+        next_hito = next_subsample_by_study.get(study.id)
+        active_study_rows.append(
+            {
+                "study": study,
+                "next_hito_label": (
+                    f"{next_hito.sampling_point_template.label} - {next_hito.planned_date.strftime('%d/%m/%Y')}"
+                    if next_hito and next_hito.planned_date
+                    else "Sin proximos hitos"
+                ),
+            }
+        )
+
+    chamber_rows = []
+    chambers = list(
+        Chamber.objects.select_related("storage_condition")
+        .filter(is_active=True)
+        .annotate(
+            active_subsample_count=Count(
+                "planned_subsamples",
+                filter=Q(planned_subsamples__status=PlannedSubsample.Status.IN_CHAMBER) & ~Q(planned_subsamples__storage_location=""),
+            ),
+            open_deviation_count=Count("deviations", filter=Q(deviations__ended_at__isnull=True)),
+        )
+        .order_by("code")
+    )
+    for chamber in chambers:
+        chamber_rows.append(
+            {
+                "chamber": chamber,
+                "condition_label": chamber.storage_condition.name if chamber.storage_condition else "-",
+                "state_label": "En desviacion" if chamber.open_deviation_count else "Operativa",
+                "state_tone": "danger" if chamber.open_deviation_count else "success",
+                "subsample_count": chamber.active_subsample_count,
+            }
+        )
+
+    monthly_withdrawals = []
+    for offset in range(12):
+        month_anchor = (today.replace(day=1) + timedelta(days=offset * 32)).replace(day=1)
+        if offset == 11:
+            next_month = (month_anchor + timedelta(days=32)).replace(day=1)
+        else:
+            next_month = (month_anchor + timedelta(days=32)).replace(day=1)
+        month_subsamples = PlannedSubsample.objects.filter(
+            located_in_chamber_filter,
+            planned_date__gte=month_anchor,
+            planned_date__lt=next_month,
+        )
+        monthly_withdrawals.append(
+            {
+                "month_label": f"{calendar.month_name[month_anchor.month]} {month_anchor.year}",
+                "withdrawal_count": month_subsamples.count(),
+                "study_count": month_subsamples.values("study_id").distinct().count(),
+                "chamber_count": month_subsamples.values("chamber_id").distinct().count(),
+            }
+        )
+
+    recent_deviations = list(
+        ChamberDeviation.objects.select_related("chamber")
+        .order_by("-detected_at")[:8]
+    )
+    for deviation in recent_deviations:
+        deviation.state_label = "Abierta" if not deviation.ended_at else "Cerrada"
+        deviation.state_tone = "danger" if not deviation.ended_at else "neutral"
+
+    overdue_subsamples = list(
+        PlannedSubsample.objects.select_related("study", "study__client", "chamber")
+        .filter(located_in_chamber_filter, planned_date__lt=today)
+        .order_by("study__code", "planned_date", "code")
+    )
+    overdue_alerts_map = {}
+    for subsample in overdue_subsamples:
+        bucket = overdue_alerts_map.setdefault(
+            subsample.study_id,
+            {
+                "study": subsample.study,
+                "client_label": subsample.study.client.description if subsample.study.client else "-",
+                "count": 0,
+                "oldest_date": subsample.planned_date,
+                "chambers": set(),
+            },
+        )
+        bucket["count"] += 1
+        if subsample.planned_date and subsample.planned_date < bucket["oldest_date"]:
+            bucket["oldest_date"] = subsample.planned_date
+        if subsample.chamber_id:
+            bucket["chambers"].add(subsample.chamber.code)
+
+    overdue_alerts = []
+    for study_id, data in sorted(overdue_alerts_map.items(), key=lambda item: (item[1]["oldest_date"], item[1]["study"].code)):
+        chambers_involved = sorted(data["chambers"])
+        overdue_alerts.append(
+            {
+                "study": data["study"],
+                "client_label": data["client_label"],
+                "count": data["count"],
+                "oldest_date": data["oldest_date"],
+                "chamber_label": chambers_involved[0] if len(chambers_involved) == 1 else "Varias",
+            }
+        )
+
     context = {
         "active_studies": active_studies,
         "planned_studies": planned_studies,
-        "closed_studies": closed_studies,
-        "upcoming_points": upcoming_points,
-        "upcoming_entries": upcoming_entries,
-        "upcoming_extractions": upcoming_extractions,
-        "chamber_load": chamber_load,
-        "open_alerts": open_alerts,
-        "deviations": deviations,
-        "today": timezone.localdate(),
+        "studies_in_progress_count": len(active_studies),
+        "studies_in_planning_count": len(planned_studies),
+        "subsamples_in_chamber_count": PlannedSubsample.objects.filter(
+            located_in_chamber_filter
+        ).count(),
+        "withdrawals_next_30_days_count": PlannedSubsample.objects.filter(
+            located_in_chamber_filter,
+            planned_date__gte=today,
+            planned_date__lte=next_30_days,
+        ).count(),
+        "active_study_rows": active_study_rows,
+        "chamber_rows": chamber_rows,
+        "monthly_withdrawals": monthly_withdrawals,
+        "recent_deviations": recent_deviations,
+        "overdue_alerts": overdue_alerts,
+        "today": today,
     }
     return render(request, "web/annual_plan.html", context)
 
@@ -850,6 +1400,11 @@ def reports_view(request):
         "pending_extraction": pending_extraction,
         "receptions_with_gap": receptions_with_gap,
         "recent_movements": recent_movements,
+        "low_stock_count": low_stock_samples.count(),
+        "pending_labelling_count": pending_labelling.count(),
+        "pending_chamber_count": pending_chamber.count(),
+        "pending_extraction_count": pending_extraction.count(),
+        "receptions_with_gap_count": receptions_with_gap.count(),
     }
     return render(request, "web/reports.html", context)
 
@@ -857,14 +1412,28 @@ def reports_view(request):
 @login_required
 def deviations_view(request):
     selected_chamber = request.GET.get("chamber", "").strip()
+    page_size = _get_page_size(request)
     deviations = ChamberDeviation.objects.select_related("chamber").order_by("-detected_at")
     if selected_chamber:
         deviations = deviations.filter(chamber_id=selected_chamber)
+    paginator = Paginator(deviations, page_size)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    page_numbers = []
+    for page_number in range(1, paginator.num_pages + 1):
+        if paginator.num_pages <= 7 or abs(page_number - page_obj.number) <= 1 or page_number in {1, paginator.num_pages}:
+            page_numbers.append(page_number)
     context = {
         "deviation_form": ChamberDeviationForm(),
-        "deviations": deviations,
+        "deviations": page_obj.object_list,
         "chambers": Chamber.objects.filter(is_active=True).order_by("code"),
         "selected_chamber": selected_chamber,
+        "page_obj": page_obj,
+        "page_numbers": page_numbers,
+        "page_size": page_size,
+        "query_string": urlencode({key: value for key, value in {"chamber": selected_chamber, "page_size": page_size}.items() if value not in {"", None}}),
+        "total_count": paginator.count,
+        "start_index": page_obj.start_index() if paginator.count else 0,
+        "end_index": page_obj.end_index() if paginator.count else 0,
     }
     return render(request, "web/deviations.html", context)
 
@@ -1138,6 +1707,9 @@ def edit_sample_web(request, pk):
 def delete_sample_web(request, pk):
     sample = get_object_or_404(Sample, pk=pk)
     if request.method == "POST":
+        if sample.study.status == Study.Status.ACTIVE:
+            messages.error(request, "No se pueden eliminar muestras de estudios aprobados.")
+            return redirect("web-samples")
         register_audit_event(
             sample,
             "web_delete_sample",

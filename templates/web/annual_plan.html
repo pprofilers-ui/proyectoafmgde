@@ -3,152 +3,133 @@
 {% block content %}
 <div class="page-hero">
     <div>
-        <h1 class="page-title">Plan anual y calendario maestro</h1>
-        <p class="page-subtitle">Vista ejecutiva para controlar estudios planificados, activos, cierres, entradas, extracciones, carga de camaras y riesgos operativos.</p>
+        <h1 class="page-title">Plan anual</h1>
+        <p class="page-subtitle">Vista interna del estado de los estudios de estabilidad, camaras, retiradas previstas y alertas operativas.</p>
     </div>
     <div class="recommendation-card">
-        <p class="recommendation-label">Lectura recomendada</p>
-        <p class="recommendation-text">Usa este panel para anticipar carga de trabajo y entra despues al modulo operativo cuando necesites actuar.</p>
+        <p class="recommendation-label">Uso recomendado</p>
+        <p class="recommendation-text">Panel operativo para detectar rapido estudios activos, carga de camaras, retiradas pendientes y desviaciones.</p>
     </div>
 </div>
 
-<div class="row g-4 summary-grid">
+<div class="row g-4 summary-grid mb-4">
     <div class="col-md-6 col-xl-3">
         <div class="summary-card">
-            <p class="summary-card-label">Planificados</p>
-            <p class="summary-card-value summary-card-value-sm">{{ planned_studies|length }}</p>
-        </div>
-    </div>
-    <div class="col-md-6 col-xl-3">
-        <div class="summary-card">
-            <p class="summary-card-label">Activos</p>
-            <p class="summary-card-value summary-card-value-sm">{{ active_studies|length }}</p>
-        </div>
-    </div>
-    <div class="col-md-6 col-xl-3">
-        <div class="summary-card">
-            <p class="summary-card-label">Finalizados</p>
-            <p class="summary-card-value summary-card-value-sm">{{ closed_studies|length }}</p>
-        </div>
-    </div>
-    <div class="col-md-6 col-xl-3">
-        <div class="summary-card">
-            <p class="summary-card-label">Alertas abiertas</p>
-            <p class="summary-card-value summary-card-value-sm">{{ open_alerts|length }}</p>
-        </div>
-    </div>
-</div>
-
-<div class="row g-4 mb-4">
-    <div class="col-lg-4">
-        <div class="dashboard-block">
-            <div class="dashboard-block-body">
-                <h3 class="dashboard-section-title">Estudios planificados</h3>
-                <p class="dashboard-section-copy">Estudios en elaboracion pendientes de pasar a operativo.</p>
-                <ul class="insight-list">
-                    {% for study in planned_studies %}
-                    <li class="insight-list-item">
-                        <p class="insight-list-title">{{ study.code }}</p>
-                        <p class="insight-list-copy">{{ study.title }} | Inicio {{ study.start_date|date:"d/m/Y"|default:"-" }}</p>
-                    </li>
-                    {% empty %}
-                    <li class="insight-list-item">
-                        <p class="insight-list-copy">No hay estudios en elaboracion.</p>
-                    </li>
-                    {% endfor %}
-                </ul>
+            <div class="summary-card-top">
+                <span class="summary-card-icon summary-card-icon-teal"><i class="bi bi-journal-medical"></i></span>
+                <p class="summary-card-label">Estudios en marcha</p>
             </div>
+            <p class="summary-card-value summary-card-value-sm">{{ studies_in_progress_count }}</p>
+            <p class="summary-card-copy">Estudios actualmente activos</p>
         </div>
     </div>
-    <div class="col-lg-4">
-        <div class="dashboard-block">
-            <div class="dashboard-block-body">
-                <h3 class="dashboard-section-title">Estudios activos</h3>
-                <p class="dashboard-section-copy">Seguimiento de estudios actualmente aprobados.</p>
-                <ul class="insight-list">
-                    {% for study in active_studies %}
-                    <li class="insight-list-item">
-                        <p class="insight-list-title">{{ study.code }}</p>
-                        <p class="insight-list-copy">{{ study.title }} | {% if study.product %}{{ study.product.name }}{% else %}{{ study.product_name|default:"-" }}{% endif %}</p>
-                    </li>
-                    {% empty %}
-                    <li class="insight-list-item">
-                        <p class="insight-list-copy">No hay estudios activos.</p>
-                    </li>
-                    {% endfor %}
-                </ul>
+    <div class="col-md-6 col-xl-3">
+        <div class="summary-card">
+            <div class="summary-card-top">
+                <span class="summary-card-icon summary-card-icon-violet"><i class="bi bi-clipboard-data"></i></span>
+                <p class="summary-card-label">Estudios en planificacion</p>
             </div>
+            <p class="summary-card-value summary-card-value-sm">{{ studies_in_planning_count }}</p>
+            <p class="summary-card-copy">Pendientes de completar o generar planificacion</p>
         </div>
     </div>
-    <div class="col-lg-4">
-        <div class="dashboard-block">
-            <div class="dashboard-block-body">
-                <h3 class="dashboard-section-title">Estudios finalizados</h3>
-                <p class="dashboard-section-copy">Historico reciente de cierres completados.</p>
-                <ul class="insight-list">
-                    {% for study in closed_studies %}
-                    <li class="insight-list-item">
-                        <p class="insight-list-title">{{ study.code }}</p>
-                        <p class="insight-list-copy">{{ study.title }} | Fin {{ study.end_date|date:"d/m/Y"|default:"-" }}</p>
-                    </li>
-                    {% empty %}
-                    <li class="insight-list-item">
-                        <p class="insight-list-copy">No hay estudios finalizados.</p>
-                    </li>
-                    {% endfor %}
-                </ul>
+    <div class="col-md-6 col-xl-3">
+        <div class="summary-card">
+            <div class="summary-card-top">
+                <span class="summary-card-icon summary-card-icon-blue"><i class="bi bi-box-seam"></i></span>
+                <p class="summary-card-label">Submuestras en camara</p>
             </div>
+            <p class="summary-card-value summary-card-value-sm">{{ subsamples_in_chamber_count }}</p>
+            <p class="summary-card-copy">Submuestras actualmente almacenadas en camaras</p>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="summary-card">
+            <div class="summary-card-top">
+                <span class="summary-card-icon summary-card-icon-orange"><i class="bi bi-calendar-event"></i></span>
+                <p class="summary-card-label">Retiradas proximos 30 dias</p>
+            </div>
+            <p class="summary-card-value summary-card-value-sm">{{ withdrawals_next_30_days_count }}</p>
+            <p class="summary-card-copy">Submuestras con retirada prevista en los proximos 30 dias</p>
         </div>
     </div>
 </div>
 
 <div class="row g-4 mb-4">
-    <div class="col-lg-6">
-        <div class="dashboard-block">
-            <div class="dashboard-block-body">
-                <h3 class="dashboard-section-title">Proximas entradas en camara</h3>
-                <p class="dashboard-section-copy">Muestras pendientes de pasar al circuito de camaras.</p>
+    <div class="col-xl-5">
+        <div class="dashboard-block h-100">
+            <div class="dashboard-block-body d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                <div>
+                    <h3 class="dashboard-section-title"><span class="dashboard-title-icon dashboard-title-icon-teal"><i class="bi bi-journal-medical"></i></span>A. Estudios en marcha</h3>
+                    <p class="dashboard-section-copy">Lista corta de estudios activos y su proximo hito pendiente.</p>
+                </div>
+                <a class="dashboard-link-action" href="/app/studies/?status=active">Ver todos <i class="bi bi-chevron-right"></i></a>
             </div>
             <div class="table-responsive">
                 <table class="table dashboard-table">
                     <thead>
-                        <tr><th>Muestra</th><th>Estudio</th><th>Estado</th></tr>
+                        <tr>
+                            <th>Codigo</th>
+                            <th>Cliente</th>
+                            <th>Producto</th>
+                            <th>Estado</th>
+                            <th>Proximo hito</th>
+                        </tr>
                     </thead>
                     <tbody>
-                        {% for sample in upcoming_entries %}
+                        {% for row in active_study_rows %}
                         <tr>
-                            <td>{{ sample.sample_code }}</td>
-                            <td>{{ sample.study.code }}</td>
-                            <td>{{ sample.get_status_display }}</td>
+                            <td>{{ row.study.code }}</td>
+                            <td>{{ row.study.client.description|default:"-" }}</td>
+                            <td>{% if row.study.product %}{{ row.study.product.name }}{% else %}{{ row.study.product_name|default:"-" }}{% endif %}</td>
+                            <td>{{ row.study.get_status_display }}</td>
+                            <td>{{ row.next_hito_label }}</td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="3">No hay entradas pendientes.</td></tr>
+                        <tr>
+                            <td colspan="5">No hay estudios activos.</td>
+                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
-    <div class="col-lg-6">
-        <div class="dashboard-block">
-            <div class="dashboard-block-body">
-                <h3 class="dashboard-section-title">Proximas extracciones</h3>
-                <p class="dashboard-section-copy">Calendario de retiradas previstas segun puntos de muestreo.</p>
+    <div class="col-xl-7">
+        <div class="dashboard-block h-100">
+            <div class="dashboard-block-body d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                <div>
+                    <h3 class="dashboard-section-title"><span class="dashboard-title-icon dashboard-title-icon-violet"><i class="bi bi-clipboard2-pulse"></i></span>B. Estado de camaras</h3>
+                    <p class="dashboard-section-copy">Situacion operativa de cada camara activa y numero de submuestras actualmente dentro.</p>
+                </div>
+                <a class="dashboard-link-action" href="/app/operations/">Ver detalle de camaras <i class="bi bi-chevron-right"></i></a>
             </div>
             <div class="table-responsive">
                 <table class="table dashboard-table">
                     <thead>
-                        <tr><th>Muestra</th><th>Punto</th><th>Fecha objetivo</th></tr>
+                        <tr>
+                            <th>Camara</th>
+                            <th>Condicion</th>
+                            <th>Estado</th>
+                            <th>Nº submuestras</th>
+                        </tr>
                     </thead>
                     <tbody>
-                        {% for sample in upcoming_extractions %}
+                        {% for row in chamber_rows %}
                         <tr>
-                            <td>{{ sample.sample_code }}</td>
-                            <td>{{ sample.sampling_point.label|default:"-" }}</td>
-                            <td>{{ sample.sampling_point.effective_date|default:"-" }}</td>
+                            <td>{{ row.chamber.code }}</td>
+                            <td>{{ row.condition_label }}</td>
+                            <td>
+                                <span class="badge rounded-pill {% if row.state_tone == 'danger' %}text-bg-danger{% else %}text-bg-success{% endif %}">
+                                    {{ row.state_label }}
+                                </span>
+                            </td>
+                            <td>{{ row.subsample_count }}</td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="3">No hay extracciones programadas.</td></tr>
+                        <tr>
+                            <td colspan="4">No hay camaras activas registradas.</td>
+                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -158,52 +139,78 @@
 </div>
 
 <div class="row g-4 mb-4">
-    <div class="col-lg-6">
-        <div class="dashboard-block">
-            <div class="dashboard-block-body">
-                <h3 class="dashboard-section-title">Calendario maestro de puntos</h3>
-                <p class="dashboard-section-copy">Vision consolidada de los puntos planificados por estudio.</p>
+    <div class="col-xl-7">
+        <div class="dashboard-block h-100">
+            <div class="dashboard-block-body d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                <div>
+                    <h3 class="dashboard-section-title"><span class="dashboard-title-icon dashboard-title-icon-blue"><i class="bi bi-calendar3"></i></span>C. Retiradas por meses</h3>
+                    <p class="dashboard-section-copy">Vision agregada de retiradas previstas para los proximos 12 meses desde {{ today|date:"d/m/Y" }}.</p>
+                </div>
+                <a class="dashboard-link-action" href="/app/planning/">Ver calendario completo <i class="bi bi-chevron-right"></i></a>
             </div>
             <div class="table-responsive">
                 <table class="table dashboard-table">
                     <thead>
-                        <tr><th>Estudio</th><th>Punto</th><th>Fecha efectiva</th></tr>
+                        <tr>
+                            <th>Mes</th>
+                            <th>Retiradas previstas</th>
+                            <th>Estudios afectados</th>
+                            <th>Camaras afectadas</th>
+                        </tr>
                     </thead>
                     <tbody>
-                        {% for point in upcoming_points %}
+                        {% for row in monthly_withdrawals %}
                         <tr>
-                            <td>{{ point.study.code }}</td>
-                            <td>{{ point.label }}</td>
-                            <td>{{ point.effective_date|default:"-" }}</td>
+                            <td>{{ row.month_label }}</td>
+                            <td>{{ row.withdrawal_count }}</td>
+                            <td>{{ row.study_count }}</td>
+                            <td>{{ row.chamber_count }}</td>
                         </tr>
-                        {% empty %}
-                        <tr><td colspan="3">No hay puntos planificados.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
-    <div class="col-lg-6">
-        <div class="dashboard-block">
-            <div class="dashboard-block-body">
-                <h3 class="dashboard-section-title">Carga de camaras</h3>
-                <p class="dashboard-section-copy">Reparto actual de muestras por camara y condicion.</p>
+    <div class="col-xl-5">
+        <div class="dashboard-block h-100">
+            <div class="dashboard-block-body d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                <div>
+                    <h3 class="dashboard-section-title"><span class="dashboard-title-icon dashboard-title-icon-orange"><i class="bi bi-exclamation-triangle"></i></span>D. Historial de desviaciones de camaras</h3>
+                    <p class="dashboard-section-copy">Ultimas desviaciones registradas, abiertas o cerradas.</p>
+                </div>
+                <a class="dashboard-link-action" href="/app/deviations/">Ver todas las desviaciones <i class="bi bi-chevron-right"></i></a>
             </div>
             <div class="table-responsive">
                 <table class="table dashboard-table">
                     <thead>
-                        <tr><th>Camara</th><th>Condicion</th><th>Muestras</th></tr>
+                        <tr>
+                            <th>Camara</th>
+                            <th>Codigo</th>
+                            <th>Fecha inicio</th>
+                            <th>Fecha fin</th>
+                            <th>Descripcion</th>
+                            <th>Estado</th>
+                        </tr>
                     </thead>
                     <tbody>
-                        {% for chamber in chamber_load %}
+                        {% for deviation in recent_deviations %}
                         <tr>
-                            <td>{{ chamber.code }}</td>
-                            <td>{{ chamber.storage_condition.code|default:"-" }}</td>
-                            <td>{{ chamber.sample_count }}</td>
+                            <td>{{ deviation.chamber.code }}</td>
+                            <td>{{ deviation.deviation_code|default:"-" }}</td>
+                            <td>{{ deviation.detected_at|date:"d/m/Y H:i" }}</td>
+                            <td>{{ deviation.ended_at|date:"d/m/Y H:i"|default:"-" }}</td>
+                            <td>{{ deviation.description|truncatechars:80 }}</td>
+                            <td>
+                                <span class="badge rounded-pill {% if deviation.state_tone == 'danger' %}text-bg-danger{% else %}text-bg-secondary{% endif %}">
+                                    {{ deviation.state_label }}
+                                </span>
+                            </td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="3">No hay camaras registradas.</td></tr>
+                        <tr>
+                            <td colspan="6">No hay desviaciones registradas.</td>
+                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -212,46 +219,41 @@
     </div>
 </div>
 
-<div class="row g-4">
-    <div class="col-lg-6">
-        <div class="dashboard-block">
-            <div class="dashboard-block-body">
-                <h3 class="dashboard-section-title">Alertas abiertas</h3>
-                <p class="dashboard-section-copy">Seguimiento rapido de vencimientos y severidad.</p>
-                <ul class="insight-list">
-                    {% for alert in open_alerts %}
-                    <li class="insight-list-item">
-                        <p class="insight-list-title">{{ alert.title }}</p>
-                        <p class="insight-list-copy">{{ alert.get_severity_display }} | Vence {{ alert.due_date|date:"d/m/Y"|default:"-" }}</p>
-                    </li>
-                    {% empty %}
-                    <li class="insight-list-item">
-                        <p class="insight-list-copy">No hay alertas abiertas.</p>
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
+<div class="dashboard-block">
+    <div class="dashboard-block-body d-flex justify-content-between align-items-start gap-3 flex-wrap">
+        <div>
+            <h3 class="dashboard-section-title"><span class="dashboard-title-icon dashboard-title-icon-red"><i class="bi bi-exclamation-diamond"></i></span>E. Alertas</h3>
+            <p class="dashboard-section-copy">Solo se muestran estudios con submuestras vencidas pendientes de retirar.</p>
         </div>
+        <a class="dashboard-link-action" href="/app/alerts/">Ver todas las alertas <i class="bi bi-chevron-right"></i></a>
     </div>
-    <div class="col-lg-6">
-        <div class="dashboard-block">
-            <div class="dashboard-block-body">
-                <h3 class="dashboard-section-title">Riesgos y desviaciones recientes</h3>
-                <p class="dashboard-section-copy">Ultimos eventos que pueden afectar al calendario.</p>
-                <ul class="insight-list">
-                    {% for deviation in deviations %}
-                    <li class="insight-list-item">
-                        <p class="insight-list-title">{{ deviation.chamber.code }} | {{ deviation.detected_at|date:"d/m/Y H:i" }}</p>
-                        <p class="insight-list-copy">{{ deviation.description|truncatechars:120 }}</p>
-                    </li>
-                    {% empty %}
-                    <li class="insight-list-item">
-                        <p class="insight-list-copy">No hay desviaciones registradas.</p>
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
+    <div class="table-responsive">
+        <table class="table dashboard-table">
+            <thead>
+                <tr>
+                    <th>Estudio</th>
+                    <th>Cliente</th>
+                    <th>Nº submuestras vencidas</th>
+                    <th>Fecha vencida mas antigua</th>
+                    <th>Camara</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in overdue_alerts %}
+                <tr>
+                    <td>{{ row.study.code }}</td>
+                    <td>{{ row.client_label }}</td>
+                    <td>{{ row.count }}</td>
+                    <td>{{ row.oldest_date|date:"d/m/Y" }}</td>
+                    <td>{{ row.chamber_label }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5">No hay submuestras vencidas pendientes de retirada.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}

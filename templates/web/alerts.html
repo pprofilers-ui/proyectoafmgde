@@ -13,6 +13,19 @@
 </div>
 
 <div class="content-card">
+    <div class="filters-bar justify-content-end">
+        <div class="filter-field">
+            <label class="filter-label">Registros</label>
+            <form method="get" action="/app/alerts/">
+                <select class="form-select pagination-size" name="page_size" onchange="this.form.submit()">
+                    <option value="5" {% if page_size == 5 %}selected{% endif %}>5</option>
+                    <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
+                    <option value="25" {% if page_size == 25 %}selected{% endif %}>25</option>
+                    <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+                </select>
+            </form>
+        </div>
+    </div>
     <div class="section-card-body">
         <div class="table-shell">
             <table class="table table-app">
@@ -44,6 +57,22 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+        <div class="table-pagination">
+            <div class="pagination-summary">Mostrando {{ start_index }} a {{ end_index }} de {{ total_count }} resultados</div>
+            <div class="pagination-nav">
+                {% if page_obj.has_previous %}
+                <a class="pagination-link" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Pagina anterior"><i class="bi bi-chevron-left"></i></a>
+                {% endif %}
+                <div class="pagination-pages">
+                    {% for page_number in page_numbers %}
+                    <a class="pagination-link {% if page_obj.number == page_number %}active{% endif %}" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_number }}">{{ page_number }}</a>
+                    {% endfor %}
+                </div>
+                {% if page_obj.has_next %}
+                <a class="pagination-link" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Pagina siguiente"><i class="bi bi-chevron-right"></i></a>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>

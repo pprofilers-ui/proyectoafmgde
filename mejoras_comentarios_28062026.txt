@@ -1,0 +1,259 @@
+He aplicado ya el primer paso, solo en la cabecera y sin tocar funcionalidad.
+
+Cambios hechos:
+- Quité `Resumen` e `Informes` del menú en [templates/base.html](C:/desarollo/proyecto_afmgde/templates/base.html:34).
+- Reordené la navegación para que quede `Plan anual -> Estudios -> Muestras -> Planificacion` en [templates/base.html](C:/desarollo/proyecto_afmgde/templates/base.html:35).
+- Hice el logo un poco más grande y ajusté ligeramente el texto de marca para que mantenga coherencia visual en [static/css/netlabone.css](C:/desarollo/proyecto_afmgde/static/css/netlabone.css:73).
+
+También he revisado el Word y ya tengo localizados los siguientes bloques que pide: `Estudios`, `Muestras`, `Planificación`, `Informe Cliente` y `Plan anual`.
+
+El siguiente paso más seguro es `Estudios`, porque ahí ya entramos en reglas de negocio y conviene hacerlo con mucho control: columnas, estado, restricciones de borrado y lógica de aprobación. Si quieres, sigo directamente con ese bloque en la siguiente iteración.
+
+
+
+
+
+
+
+o	La fecha de aprobación es diferente a la fecha de inicio. La fecha de inicio es la que se usa para calcular las fechas de salida de las submuestras de las cámaras. Compruebalo
+
+
+
+
+
+
+
+Sí, lo he comprobado, y ahora mismo queda separado correctamente en el código.
+
+La lógica está así:
+- La `fecha de inicio` del estudio es la que se usa para calcular las fechas previstas de las submuestras en [stability/web_views.py](C:/desarollo/proyecto_afmgde/stability/web_views.py:324). Ahí `_apply_planned_dates_on_approval()` calcula cada `planned_date` con `study.start_date`.
+- La `fecha de aprobación` va aparte y se guarda en los nuevos campos `approved_at` y `approved_by` en [stability/models.py](C:/desarollo/proyecto_afmgde/stability/models.py:193) y se rellena al aprobar en [stability/web_views.py](C:/desarollo/proyecto_afmgde/stability/web_views.py:603).
+
+Además lo dejé cubierto con prueba:
+- En [stability/tests.py](C:/desarollo/proyecto_afmgde/stability/tests.py:251) se aprueba un estudio con `start_date = 2026-07-01`.
+- El test verifica que la submuestra queda con fecha prevista `2026-10-01`, o sea, calculada desde la fecha de inicio, no desde la fecha/hora real de aprobación.
+- También verifica que `approved_at` y `approved_by` se guardan aparte en [stability/tests.py](C:/desarollo/proyecto_afmgde/stability/tests.py:280).
+
+Así que en este punto, sí: está comprobado y está implementado como dice el Word. Si quieres, sigo ya con `Muestras`.
+
+
+
+
+
+
+He dejado aplicado el siguiente bloque de `Muestras`.
+
+Cambios hechos:
+- Añadí filtro por `codigo de estudio` o `cliente` en [templates/web/samples.html](C:/desarollo/proyecto_afmgde/templates/web/samples.html:27) y [stability/web_views.py](C:/desarollo/proyecto_afmgde/stability/web_views.py:638).
+- Quité `Ubicacion` y `Stock` del listado, y ahora la tabla muestra `Cantidad recibida` y `Cantidad asignada` en [templates/web/samples.html](C:/desarollo/proyecto_afmgde/templates/web/samples.html:55).
+- Bloqueé el borrado de muestras cuando el estudio está `Aprobado`, tanto en interfaz como en backend, en [templates/web/samples.html](C:/desarollo/proyecto_afmgde/templates/web/samples.html:113) y [stability/web_views.py](C:/desarollo/proyecto_afmgde/stability/web_views.py:1182).
+
+También añadí pruebas para este bloque en [stability/tests.py](C:/desarollo/proyecto_afmgde/stability/tests.py:393), y el conjunto completo de tests del módulo ha pasado con `20 OK`.
+
+El siguiente paso natural es `Planificación`, que ya es más grande: compactar el bloque superior, reordenar `Resumen -> Muestras -> Planificación base -> Submuestras generadas`, mover botones y ajustar columnas de submuestras. Cuando quieras, sigo por ahí.
+
+
+
+
+
+
+
+
+He dejado avanzado el bloque de `Planificación` siguiendo el Word y sin tocar la lógica operativa de generación/retirada.
+
+Cambios aplicados:
+- Simplifiqué el bloque superior de la pantalla para que el `Resumen del estudio` sea más compacto y solo muestre contexto útil en [templates/web/planning.html](C:/desarollo/proyecto_afmgde/templates/web/planning.html:16).
+- Reordené la pantalla para que quede `Resumen del estudio -> Muestras del estudio -> Planificacion base -> Submuestras generadas` en [templates/web/planning.html](C:/desarollo/proyecto_afmgde/templates/web/planning.html:16).
+- En `Muestras del estudio` ya no aparece ni `stock` ni `ubicacion`; ahora se muestran `cantidad recibida` y `cantidad asignada` en [templates/web/planning.html](C:/desarollo/proyecto_afmgde/templates/web/planning.html:75) y [stability/web_views.py](C:/desarollo/proyecto_afmgde/stability/web_views.py:769).
+- Junté los botones `Guardar planificacion base` y `Generar planificacion` en el mismo bloque en [templates/web/planning.html](C:/desarollo/proyecto_afmgde/templates/web/planning.html:168).
+- Eliminé el bloque `Submuestras ya existentes`.
+- En `Submuestras generadas` el orden ya pasa a incluir `Camara -> Ubicacion -> ... -> Fecha prevista -> Fecha corregida -> Fecha real`, y quité la duplicidad visual de `Retirada` en [templates/web/planning.html](C:/desarollo/proyecto_afmgde/templates/web/planning.html:190).
+
+También dejé pruebas para esta parte y el conjunto completo sigue pasando: `21 OK` con `manage.py test stability.tests`.
+
+Importante: `Fecha corregida` está visible ya en la tabla, pero de momento sale `-` porque la lógica completa de desviaciones y recálculo pendiente por submuestra todavía no la he implementado en este bloque. Eso encaja con el Word: primero estamos ajustando la estructura y luego iremos cerrando esa funcionalidad fina.
+
+El siguiente paso natural es precisamente terminar `Planificación` a nivel funcional: edición directa de ubicación en tabla, lógica real de `fecha corregida`, y después el bloque de `Informe Cliente`.
+
+
+
+
+
+
+Sí, ya está ajustado como me pedías.
+
+He hecho dos cambios concretos en el resumen de `Planificación`:
+- Quité los recuadros individuales que rodeaban cada label y valor.
+- Reorganicé el bloque en dos filas:
+  - primera fila: `Codigo de estudio`, `Titulo`, `Estado`
+  - segunda fila: `Cliente`, `Producto`, `Tipo de estudio`, `Protocolo`
+
+El `Estado` se mantiene como pastilla de color, pero el resto queda limpio, sin cajas alrededor de cada campo. Está en [templates/web/planning.html](C:/desarollo/proyecto_afmgde/templates/web/planning.html:24) y el ajuste visual en [static/css/netlabone.css](C:/desarollo/proyecto_afmgde/static/css/netlabone.css:1131).
+
+Si quieres, sigo ahora con el siguiente punto de esta misma pantalla hasta dejarla todavía más fiel al Word.
+
+
+
+
+
+
+He dejado ya funcional `Informe cliente` con cuidado y sin tocar el resto del flujo.
+
+Ahora:
+- El botón `Informe cliente` ya abre una vista HTML imprimible desde `Planificación` cuando el estudio sí tiene planificación generada, en [templates/web/planning.html](C:/desarollo/proyecto_afmgde/templates/web/planning.html:264).
+- Si todavía no hay planificación generada, el botón sigue deshabilitado.
+- La nueva vista está en [stability/web_views.py](C:/desarollo/proyecto_afmgde/stability/web_views.py:801) y la ruta en [config/urls.py](C:/desarollo/proyecto_afmgde/config/urls.py:63).
+- La plantilla imprimible está en [templates/web/client_report.html](C:/desarollo/proyecto_afmgde/templates/web/client_report.html:1).
+
+El informe incluye:
+- cabecera
+- datos del estudio con fechas de inicio y fin
+- datos de las muestras
+- planificación con submuestras, cámaras y fechas
+
+También dejé pruebas para esto y el módulo completo sigue bien: `23 OK`.
+
+Ahora mismo `Imprimir etiquetas` sigue siendo placeholder. El siguiente paso natural sería hacerlo funcional desde `Submuestras generadas`, o si prefieres podemos rematar antes la parte de `ubicación directa en tabla` y `fecha corregida`.
+
+
+
+
+
+Sí, aquí hay dos cosas distintas en el Word, y ahora mismo una está hecha y la otra todavía no del todo.
+
+`Tambien podrá generarse desde la pantalla “Estudio”`
+- Esto quiere decir que el `Informe cliente` no solo debe salir desde `Planificación`, sino también desde la pantalla `Estudios`.
+- Ahora mismo solo lo he dejado accesible desde `Planificación`.
+- Todavía no he añadido el botón o acceso desde [templates/web/studies.html](C:/desarollo/proyecto_afmgde/templates/web/studies.html), así que esa parte aún está pendiente.
+
+`Se pone un modelo a modo de ejemplo. El capitulo 3 no es necesario. Debe ser imprimible en A4 ya sea vertical u horizontal`
+- Sí lo he tenido en cuenta parcialmente.
+- Ya está hecho como HTML imprimible en [templates/web/client_report.html](C:/desarollo/proyecto_afmgde/templates/web/client_report.html:1).
+- También lo dejé preparado para impresión A4 con `@page size: A4 landscape`, así que ahora mismo está pensado para A4 horizontal.
+- Lo que no está todavía “clavado” al ejemplo del Word es el diseño visual completo:
+  - no he replicado todavía ese formato tipo informe paginado de varias secciones
+  - no he montado una versión adaptable vertical/horizontal
+  - no he construido una maquetación como la captura con bloques tipo `1. Datos generales`, `2. Condiciones`, etc.
+- Y sobre `El capitulo 3 no es necesario`: lo he respetado en el sentido funcional de no inventar un capítulo extra obligatorio, pero el diseño actual todavía es una versión simplificada, no una copia fiel del modelo visual del Word.
+
+Resumiendo:
+- `Desde Planificación`: sí, hecho.
+- `Desde Estudios`: no, pendiente.
+- `HTML imprimible A4`: sí, hecho.
+- `Parecido visual al modelo del Word`: todavía parcial, pendiente de refinar.
+
+Si quieres, el siguiente paso más lógico es este:
+1. Añadir `Informe cliente` también en `Estudios`.
+2. Después rehacer la plantilla [client_report.html](C:/desarollo/proyecto_afmgde/templates/web/client_report.html:1) para acercarla mucho más al modelo visual del Word.
+
+
+
+
+
+He dejado también `Informe cliente` accesible desde `Estudios`, que era la parte que faltaba del Word.
+
+Ahora:
+- En el menú de acciones de cada estudio aparece `Informe cliente` cuando ese estudio ya tiene planificación generada, en [templates/web/studies.html](C:/desarollo/proyecto_afmgde/templates/web/studies.html:133).
+- Si el estudio todavía no tiene submuestras/planificación generada, no se muestra ese acceso.
+- Lo he validado con pruebas y el módulo sigue bien: `24 OK`.
+
+Con esto, de ese punto del documento Word queda cubierto:
+- `Se generará desde la pantalla de planificación`: sí
+- `Tambien podrá generarse desde la pantalla Estudio`: sí
+
+Lo que sigue pendiente, si queremos acercarnos mucho más a la imagen del Word, es mejorar el diseño del propio informe para que se parezca más a ese “Informe global del estudio” paginado y maquetado.
+
+
+
+
+
+
+
+Sí, era eso.
+
+He dejado las tres cabeceras consistentes:
+- `C. Retiradas por meses` ahora tiene su enlace arriba a la derecha con flecha.
+- `D. Historial de desviaciones de cámaras` se mantiene arriba a la derecha, alineado como los demás.
+- `E. Alertas` ahora también tiene su enlace arriba a la derecha con flecha.
+
+El ajuste está en [annual_plan.html](C:/desarollo/proyecto_afmgde/templates/web/annual_plan.html). Si quieres, seguimos con el siguiente bloque del Word.
+
+
+
+
+
+
+He seguido con `Informes operativos básicos` y lo he dejado más útil visualmente para fase 1.
+
+Cambios hechos:
+- Añadí un bloque superior de resumen con 4 widgets:
+  - stock bajo
+  - pendientes de etiquetar
+  - pendientes de entrada
+  - pendientes de extracción
+- Mejoré la jerarquía visual del resto de bloques con iconos y títulos más claros.
+- Añadí también un indicador rápido en `Recepciones con cantidades pendientes`.
+
+Está tocado en:
+- [reports.html](C:/desarollo/proyecto_afmgde/templates/web/reports.html)
+- [web_views.py](C:/desarollo/proyecto_afmgde/stability/web_views.py:944)
+
+Si quieres, seguimos con el siguiente punto del Word o revisamos estos informes si ves algún matiz de diseño o de contenido.
+
+
+
+
+
+Sí, y ya lo he dejado montado con paginación nativa, no con `DataTables`.
+
+Ahora `Muestras`, `Planificación`, `Operaciones`, `Desviaciones` y `Alertas` siguen el mismo patrón que `Estudios` y `Auditoría`:
+- selector de registros `5 / 10 / 25 / 50`
+- paginación inferior
+- conservación de filtros al moverte entre páginas
+
+He tocado:
+- [web_views.py](C:/desarollo/proyecto_afmgde/stability/web_views.py)
+- [samples.html](C:/desarollo/proyecto_afmgde/templates/web/samples.html)
+- [planning_list.html](C:/desarollo/proyecto_afmgde/templates/web/planning_list.html)
+- [operations.html](C:/desarollo/proyecto_afmgde/templates/web/operations.html)
+- [deviations.html](C:/desarollo/proyecto_afmgde/templates/web/deviations.html)
+- [alerts.html](C:/desarollo/proyecto_afmgde/templates/web/alerts.html)
+
+Si quieres, el siguiente paso puede ser revisar visualmente una por una por si en alguna hay que ajustar el espacio del selector o la barra de filtros.
+
+
+pip install xhtml2pdf==0.2.17
+
+
+
+
+
+He revisado el Word de comentarios contra lo que hemos ido haciendo. A nivel general está **muy avanzado** y la mayor parte del documento ya está cubierta, pero te señalaría estas posibles diferencias o puntos para confirmar:
+
+1. `Informe cliente`: en el Word pone “El capítulo 3 no es necesario”. Ahora mismo el informe sigue llevando el bloque `3. Resumen ejecutivo`. Funciona y quedó bien visualmente, pero si queremos ajustarnos al Word al milímetro, ese sería el primer candidato a quitar.
+
+2. `Informe cliente`: el Word decía “Se generará un html que se puede imprimir…”. Nosotros hemos ido un paso más allá y ahora además lo enviamos por email como `PDF`, que me parece mejor solución práctica, pero estrictamente es una mejora adicional respecto al texto original.
+
+3. `Plan anual`: el Word insiste en que “Los enlaces de cada bloque deben llevar a la pantalla correspondiente con el filtro aplicado”. Hemos dejado bastante de la pantalla rediseñada, pero este punto conviene validarlo bloque por bloque en pruebas: `Ver todos`, `Ver operativa`, `Ver todas las desviaciones`, `Alertas`, etc., para confirmar que todos aterrizan con filtro correcto.
+
+4. `Plan anual`: el bloque `Alertas` debe mostrar cámara o `Varias` cuando haya varias cámaras. Si no lo hemos probado con datos que provoquen ese caso, lo dejaría como punto de validación funcional.
+
+5. `Submuestras generadas`: el Word decía que “Sería ideal que la ubicación se pueda poner directamente sobre esta tabla sin tener que editar la muestra”. Ahora se puede editar desde la tabla mediante el modal, que operativamente resuelve bastante bien, pero no es edición inline pura en la propia celda. Yo lo consideraría cubierto funcionalmente, aunque no literal al 100%.
+
+6. `Informes operativos básicos / Reports`: esto no aparece en este Word de comentarios. Lo que hicimos ahí fue una mejora adicional apoyada en el otro documento funcional, no en `Comentarios 28-06-26.docx`.
+
+Mi lectura rápida es: **no veo grandes huecos funcionales pendientes del Word**, salvo la posible eliminación del `capítulo 3` del informe cliente y la validación fina de los enlaces filtrados del `Plan anual`.
+
+El `commit` detallado que te propongo sería este:
+
+```bash
+git commit -m "Feat: aplicar rediseño funcional del módulo web de estabilidad según comentarios 28-06-26" -m "- actualiza la navegación superior reordenando menús, eliminando Resumen e Informes y ampliando el logo" -m "- refuerza la gestión de estudios ocultando código de producto, registrando aprobación con fecha/usuario, calculando fecha fin automática y bloqueando el borrado de estudios aprobados" -m "- mejora el módulo de muestras con filtros por estudio/cliente, columnas de cantidad recibida/asignada y restricción de borrado para estudios aceptados" -m "- reorganiza la pantalla de planificación en el orden resumen > muestras > planificación base > submuestras generadas y simplifica el bloque superior" -m "- ajusta la tabla de submuestras generadas con ubicación, fechas operativas, acciones compactas, impresión de etiquetas e informe cliente" -m "- añade impresión por lote de etiquetas planificadas y genera informe cliente desde planificación y estudios" -m "- implementa envío real del informe cliente por SMTP con configuración por .env, soporte Gmail/Office 365 y adjunto PDF" -m "- rediseña Plan anual como cuadro operativo con widgets, bloques de seguimiento, cámaras, retiradas, desviaciones y alertas" -m "- mejora Auditoría / Audit trail con vistas más claras, paginación y exportaciones" -m "- extiende la paginación consistente a estudios, muestras, planificación, operaciones, desviaciones, alertas y tablas operativas clave" -m "- actualiza estilos globales y plantillas web para alinear la interfaz con el documento funcional y los comentarios de revisión"
+```
+
+Si quieres, en el siguiente paso te preparo también una **lista de pruebas final** corta y ordenada para validar todo antes de hacer el commit real.
+
+
+
+
+
+

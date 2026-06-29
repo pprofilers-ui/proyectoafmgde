@@ -74,7 +74,6 @@
                         <th>Titulo del estudio</th>
                         <th>Cliente</th>
                         <th>Producto</th>
-                        <th>Codigo producto</th>
                         <th>Protocolo</th>
                         <th>Estado</th>
                         <th>Inicio</th>
@@ -89,7 +88,6 @@
                         <td class="cell-title-strong">{{ study.title }}</td>
                         <td>{{ study.client.description|default:"-" }}</td>
                         <td>{% if study.product %}{{ study.product.name }}{% else %}{{ study.product_name|default:"-" }}{% endif %}</td>
-                        <td>{{ study.product_code|default:"-" }}</td>
                         <td>{{ study.protocol|default:"-" }}</td>
                         <td>
                             <span class="status-badge status-{{ study.status }}">{{ study.get_status_display }}</span>
@@ -109,12 +107,12 @@
                                     href="#"
                                     title="Editar estudio"
                                     aria-label="Editar estudio"
-                                    onclick="openStudyEditModal('{{ study.id }}', '{{ study.code|escapejs }}', '{{ study.title|escapejs }}', '{{ study.study_type_id|default:'' }}', '{{ study.client_id|default:'' }}', '{{ study.product_id|default:'' }}', '{{ study.product_code|escapejs }}', '{{ study.protocol|escapejs }}', '{{ study.specification|escapejs }}', '{{ study.product_name|escapejs }}', '{{ study.comments|escapejs }}', '{{ study.status }}', '{{ study.start_date|date:'Y-m-d' }}', '{{ study.end_date|default:''|date:'Y-m-d' }}'); return false;">
+                                    onclick="openStudyEditModal('{{ study.id }}', '{{ study.code|escapejs }}', '{{ study.title|escapejs }}', '{{ study.study_type_id|default:'' }}', '{{ study.client_id|default:'' }}', '{{ study.product_id|default:'' }}', '{{ study.product_code|escapejs }}', '{{ study.protocol|escapejs }}', '{{ study.specification|escapejs }}', '{{ study.product_name|escapejs }}', '{{ study.comments|escapejs }}', '{{ study.status }}', '{{ study.get_status_display|escapejs }}', '{{ study.start_date|date:'Y-m-d' }}', '{{ study.end_date|default:''|date:'Y-m-d' }}'); return false;">
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 <form method="post" action="/app/studies/{{ study.id }}/delete/" class="d-inline study-delete-form">
                                     {% csrf_token %}
-                                    <button class="action-icon icon-delete" type="submit" title="Eliminar estudio" aria-label="Eliminar estudio">
+                                    <button class="action-icon icon-delete" type="submit" title="{% if study.status == 'draft' %}Eliminar estudio{% else %}Solo se puede eliminar en elaboracion{% endif %}" aria-label="Eliminar estudio" {% if study.status != 'draft' %}disabled{% endif %}>
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
@@ -132,10 +130,15 @@
                                         <a class="dropdown-item" href="/app/studies/{{ study.id }}/planning/">
                                             <i class="bi bi-calendar3"></i>Planificar estudio
                                         </a>
+                                        {% if study.planned_subsamples.exists %}
+                                        <a class="dropdown-item" href="/app/studies/{{ study.id }}/client-report/" target="_blank" rel="noopener">
+                                            <i class="bi bi-file-earmark-text"></i>Informe cliente
+                                        </a>
+                                        {% endif %}
                                         <a
                                             class="dropdown-item"
                                             href="#"
-                                            onclick="openStudyEditModal('{{ study.id }}', '{{ study.code|escapejs }}', '{{ study.title|escapejs }}', '{{ study.study_type_id|default:'' }}', '{{ study.client_id|default:'' }}', '{{ study.product_id|default:'' }}', '{{ study.product_code|escapejs }}', '{{ study.protocol|escapejs }}', '{{ study.specification|escapejs }}', '{{ study.product_name|escapejs }}', '{{ study.comments|escapejs }}', '{{ study.status }}', '{{ study.start_date|date:'Y-m-d' }}', '{{ study.end_date|default:''|date:'Y-m-d' }}'); return false;">
+                                            onclick="openStudyEditModal('{{ study.id }}', '{{ study.code|escapejs }}', '{{ study.title|escapejs }}', '{{ study.study_type_id|default:'' }}', '{{ study.client_id|default:'' }}', '{{ study.product_id|default:'' }}', '{{ study.product_code|escapejs }}', '{{ study.protocol|escapejs }}', '{{ study.specification|escapejs }}', '{{ study.product_name|escapejs }}', '{{ study.comments|escapejs }}', '{{ study.status }}', '{{ study.get_status_display|escapejs }}', '{{ study.start_date|date:'Y-m-d' }}', '{{ study.end_date|default:''|date:'Y-m-d' }}'); return false;">
                                             <i class="bi bi-pencil"></i>Editar estudio
                                         </a>
                                     </div>
@@ -145,7 +148,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="10" class="table-empty">No hay estudios con los filtros actuales.</td>
+                        <td colspan="9" class="table-empty">No hay estudios con los filtros actuales.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -185,7 +188,7 @@
     </div>
 
     <div class="form-panel">
-        <form method="post" action="/app/studies/create/" class="row g-4 study-status-form">
+        <form method="post" action="/app/studies/create/" class="row g-4 study-status-form" data-original-status="draft">
             {% csrf_token %}
 
             <div class="col-md-6">
@@ -251,11 +254,14 @@
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Editar estudio</h5>
+                <div class="d-flex align-items-center justify-content-between gap-3 w-100">
+                    <h5 class="modal-title mb-0">Editar estudio</h5>
+                    <span id="studyEditStatusBadge" class="status-badge status-draft">En Elaboracion</span>
+                </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
-                <form id="studyEditForm" method="post" action="" class="study-status-form">
+                <form id="studyEditForm" method="post" action="" class="study-status-form" data-original-status="draft">
                     {% csrf_token %}
                     <div class="row g-4">
                         <div class="col-md-6">
@@ -322,9 +328,11 @@
 </div>
 
 <script>
-function openStudyEditModal(studyId, code, title, studyTypeId, clientId, productId, productCode, protocol, specification, productName, comments, status, startDate, endDate) {
+function openStudyEditModal(studyId, code, title, studyTypeId, clientId, productId, productCode, protocol, specification, productName, comments, status, statusLabel, startDate, endDate) {
     const form = document.getElementById('studyEditForm');
     form.action = `/app/studies/${studyId}/edit/`;
+    form.dataset.originalStatus = status || 'draft';
+    delete form.dataset.approvalConfirmed;
     document.querySelector('#studyEditModal [name="code"]').value = code || '';
     document.querySelector('#studyEditModal [name="title"]').value = title || '';
     document.querySelector('#studyEditModal [name="study_type"]').value = studyTypeId || '';
@@ -338,6 +346,9 @@ function openStudyEditModal(studyId, code, title, studyTypeId, clientId, product
     document.querySelector('#studyEditModal [name="status"]').value = status || 'draft';
     document.querySelector('#studyEditModal [name="start_date"]').value = startDate || '';
     document.querySelector('#studyEditModal [name="end_date"]').value = endDate || '';
+    const statusBadge = document.getElementById('studyEditStatusBadge');
+    statusBadge.textContent = statusLabel || 'En Elaboracion';
+    statusBadge.className = `status-badge status-${status || 'draft'}`;
     const modal = new bootstrap.Modal(document.getElementById('studyEditModal'));
     modal.show();
 }
@@ -358,7 +369,9 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.study-status-form').forEach(function (form) {
         form.addEventListener('submit', function (event) {
             const statusField = form.querySelector('[name="status"]');
-            if (!statusField || statusField.value !== 'active' || form.dataset.approvalConfirmed === 'true') {
+            const originalStatus = form.dataset.originalStatus || 'draft';
+            const isApprovingNow = statusField && statusField.value === 'active' && originalStatus !== 'active';
+            if (!isApprovingNow || form.dataset.approvalConfirmed === 'true') {
                 return;
             }
 
@@ -381,6 +394,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.querySelectorAll('.study-delete-form').forEach(function (form) {
         form.addEventListener('submit', function (event) {
+            const deleteButton = form.querySelector('button[type="submit"]');
+            if (deleteButton && deleteButton.disabled) {
+                event.preventDefault();
+                return;
+            }
             event.preventDefault();
             Swal.fire({
                 title: 'Eliminar estudio',

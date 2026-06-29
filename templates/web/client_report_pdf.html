@@ -1,0 +1,377 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 12mm;
+        }
+
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 10pt;
+            color: #1b2f5b;
+        }
+
+        .page {
+            page-break-after: always;
+        }
+
+        .page.last {
+            page-break-after: auto;
+        }
+
+        .header-table,
+        .report-table,
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .header-table td {
+            vertical-align: top;
+        }
+
+        .brand-title {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #1d3164;
+        }
+
+        .brand-subtitle {
+            font-size: 9pt;
+            color: #7887b3;
+            letter-spacing: 2px;
+        }
+
+        .report-title {
+            font-size: 20pt;
+            font-weight: bold;
+            text-align: right;
+            color: #1d3164;
+        }
+
+        .report-meta {
+            font-size: 9pt;
+            text-align: right;
+            color: #6676a2;
+        }
+
+        .rule {
+            margin: 10px 0 14px;
+            border-top: 2px solid #a895ff;
+        }
+
+        .card {
+            border: 1px solid #d9e2fb;
+            border-radius: 10px;
+            padding: 0;
+        }
+
+        .card-title {
+            font-size: 10pt;
+            font-weight: bold;
+            color: #6b5bd6;
+            background: #f7f9ff;
+            border-bottom: 1px solid #d9e2fb;
+            padding: 8px 10px;
+        }
+
+        .card-body {
+            padding: 10px;
+        }
+
+        .grid-3 {
+            width: 100%;
+        }
+
+        .grid-3 td {
+            width: 33.33%;
+            vertical-align: top;
+            padding-right: 10px;
+        }
+
+        .grid-3 td.last-col {
+            padding-right: 0;
+        }
+
+        .definition-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .definition-table td {
+            padding: 4px 0;
+            vertical-align: top;
+        }
+
+        .label {
+            width: 42%;
+            font-weight: bold;
+            color: #50649e;
+        }
+
+        .value {
+            color: #1f315f;
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 3px 8px;
+            border: 1px solid #9edfd8;
+            background: #e8faf8;
+            color: #168c83;
+            border-radius: 12px;
+            font-size: 9pt;
+            font-weight: bold;
+        }
+
+        .report-table th,
+        .report-table td,
+        .summary-table th,
+        .summary-table td {
+            border: 1px solid #d9e2fb;
+            padding: 6px 7px;
+            font-size: 8.5pt;
+            vertical-align: top;
+        }
+
+        .report-table th,
+        .summary-table th {
+            background: #f5f8ff;
+            color: #5669a7;
+            font-weight: bold;
+            text-align: left;
+        }
+
+        .summary-copy {
+            font-size: 9.5pt;
+            line-height: 1.6;
+            color: #32446f;
+        }
+
+        .note {
+            margin-top: 10px;
+            border: 1px solid #d9e2fb;
+            background: #fbfcff;
+            padding: 8px 10px;
+            font-size: 8.5pt;
+            color: #6676a2;
+            border-radius: 8px;
+        }
+
+        .planning-block {
+            margin-bottom: 12px;
+        }
+
+        .planning-block.last {
+            margin-bottom: 0;
+        }
+
+        .footer {
+            margin-top: 10px;
+            font-size: 8pt;
+            color: #93a0c3;
+        }
+
+        .footer-left {
+            float: left;
+        }
+
+        .footer-right {
+            float: right;
+        }
+
+        .clearfix {
+            clear: both;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <table class="header-table">
+            <tr>
+                <td>
+                    <div class="brand-title">NetLab One</div>
+                    <div class="brand-subtitle">STABILITY</div>
+                </td>
+                <td>
+                    <div class="report-title">Informe global del estudio</div>
+                    <div class="report-meta">Generado el {{ generated_at|date:"d/m/Y H:i" }}</div>
+                </td>
+            </tr>
+        </table>
+        <div class="rule"></div>
+
+        <table class="grid-3">
+            <tr>
+                <td>
+                    <div class="card">
+                        <div class="card-title">1. Datos generales del estudio</div>
+                        <div class="card-body">
+                            <table class="definition-table">
+                                <tr><td class="label">Codigo del estudio</td><td class="value">{{ study.code }}</td></tr>
+                                <tr><td class="label">Titulo</td><td class="value">{{ study.title }}</td></tr>
+                                <tr><td class="label">Estado</td><td class="value"><span class="status-pill">{{ study.get_status_display }}</span></td></tr>
+                                <tr><td class="label">Cliente</td><td class="value">{{ study.client.description|default:"-" }}</td></tr>
+                                <tr><td class="label">Producto</td><td class="value">{% if study.product %}{{ study.product.name }}{% else %}{{ study.product_name|default:"-" }}{% endif %}</td></tr>
+                                <tr><td class="label">Tipo de estudio</td><td class="value">{{ study.study_type.name|default:"-" }}</td></tr>
+                                <tr><td class="label">Protocolo</td><td class="value">{{ study.protocol|default:"-" }}</td></tr>
+                                <tr><td class="label">Fecha de inicio</td><td class="value">{{ study.start_date|date:"d/m/Y"|default:"-" }}</td></tr>
+                                <tr><td class="label">Fecha de fin</td><td class="value">{{ study.end_date|date:"d/m/Y"|default:"-" }}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="card">
+                        <div class="card-title">2. Condiciones del estudio</div>
+                        <div class="card-body">
+                            <table class="report-table">
+                                <thead>
+                                    <tr>
+                                        <th>Camara / Condicion</th>
+                                        <th>Temperatura</th>
+                                        <th>Humedad</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for condition in chamber_conditions %}
+                                    <tr>
+                                        <td>{{ condition.chamber_code }} / {{ condition.condition_label }}</td>
+                                        <td>{{ condition.temperature }}</td>
+                                        <td>{{ condition.humidity }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="3">No hay condiciones registradas.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            <div class="note">Las condiciones se muestran a partir de las camaras utilizadas en la planificacion generada del estudio.</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="last-col">
+                    <div class="card">
+                        <div class="card-title">3. Resumen ejecutivo</div>
+                        <div class="card-body">
+                            <div class="summary-copy">{{ summary_copy }}</div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <div class="footer">
+            <div class="footer-left">Generado por NetLab One Stability</div>
+            <div class="footer-right">Pagina 1 de 3</div>
+            <div class="clearfix"></div>
+        </div>
+    </div>
+
+    <div class="page">
+        <div class="card" style="margin-bottom: 14px;">
+            <div class="card-title">4. Muestras del estudio</div>
+            <div class="card-body">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Codigo muestra</th>
+                            <th>Presentacion / Formato</th>
+                            <th>Lote</th>
+                            <th>Cantidad recibida</th>
+                            <th>Cantidad asignada</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sample in study_samples %}
+                        <tr>
+                            <td>{{ sample.sample_code }}</td>
+                            <td>
+                                {{ sample.reception.presentation|default:"-" }}
+                                {% if sample.reception.packaging %}
+                                / {{ sample.reception.packaging.name }}
+                                {% endif %}
+                            </td>
+                            <td>{% if sample.reception.batch_number_text %}{{ sample.reception.batch_number_text }}{% elif sample.reception.batch %}{{ sample.reception.batch.code }}{% else %}-{% endif %}</td>
+                            <td>{{ sample.reception.quantity_received|default:sample.quantity|default:"-" }}</td>
+                            <td>{{ sample.assigned_quantity_live|default:0 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5">No hay muestras registradas para este estudio.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">5. Observaciones de las muestras</div>
+            <div class="card-body">
+                Las muestras figuran vinculadas al estudio con la cantidad recibida y la cantidad ya asignada a la planificacion generada.
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="footer-left">Generado por NetLab One Stability</div>
+            <div class="footer-right">Pagina 2 de 3</div>
+            <div class="clearfix"></div>
+        </div>
+    </div>
+
+    <div class="page last">
+        <div class="card">
+            <div class="card-title">6. Planificacion de submuestras por punto de muestreo</div>
+            <div class="card-body">
+                {% for group in planning_groups %}
+                <div class="planning-block {% if forloop.last %}last{% endif %}">
+                    <div class="card">
+                        <div class="card-title">{{ group.title }}</div>
+                        <div class="card-body">
+                            <table class="summary-table">
+                                <thead>
+                                    <tr>
+                                        <th>Codigo</th>
+                                        <th>Camara</th>
+                                        <th>Analisis</th>
+                                        <th>Fecha prevista</th>
+                                        <th>Fecha real</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for subsample in group.rows %}
+                                    <tr>
+                                        <td>{{ subsample.code }}</td>
+                                        <td>{{ subsample.chamber.code }}</td>
+                                        <td>{{ subsample.get_analysis_type_display }}</td>
+                                        <td>{{ subsample.planned_date|date:"d/m/Y"|default:"-" }}</td>
+                                        <td>{{ subsample.actual_sampling_date|date:"d/m/Y"|default:"-" }}</td>
+                                        <td>{% if subsample.status == "withdrawn" %}Retirada{% else %}Programada{% endif %}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                No hay submuestras generadas para este estudio.
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="footer-left">Generado por NetLab One Stability</div>
+            <div class="footer-right">Pagina 3 de 3</div>
+            <div class="clearfix"></div>
+        </div>
+    </div>
+</body>
+</html>

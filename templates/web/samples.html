@@ -16,7 +16,7 @@
     <div class="panel-toggle pt-4 px-4">
         <div>
             <h2 class="panel-copy-title">Listado de muestras</h2>
-            <p class="panel-copy-text">Consulta operativa con stock, recepcion y acceso rapido a la etiqueta.</p>
+            <p class="panel-copy-text">Consulta operativa de muestras recibidas y asignadas dentro de cada estudio.</p>
         </div>
         <button class="btn btn-primary" type="button" onclick="toggleSampleForm()">
             <i class="bi bi-plus-lg me-2"></i>Nueva muestra
@@ -24,6 +24,31 @@
     </div>
 
     <div class="px-4 pt-3">
+        <form method="get" action="/app/samples/" class="filters-bar rounded-4 border mb-3">
+            {% if preselected_study %}
+            <input type="hidden" name="study" value="{{ preselected_study.id }}">
+            {% endif %}
+            <div class="filter-field filter-search">
+                <label class="filter-label" for="samplesSearchFilter">Buscar por estudio o cliente</label>
+                <div class="search-input-wrap">
+                    <input class="app-input w-100" id="samplesSearchFilter" name="q" type="text" value="{{ search_term }}" placeholder="Codigo de estudio o cliente">
+                    <i class="bi bi-search search-input-icon"></i>
+                </div>
+            </div>
+            <div class="filter-field">
+                <label class="filter-label">Registros</label>
+                <select class="form-select pagination-size" name="page_size">
+                    <option value="5" {% if page_size == 5 %}selected{% endif %}>5</option>
+                    <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
+                    <option value="25" {% if page_size == 25 %}selected{% endif %}>25</option>
+                    <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+                </select>
+            </div>
+            <div class="d-flex align-items-end gap-2 flex-wrap ms-auto">
+                <button class="btn btn-filter" type="submit"><i class="bi bi-funnel me-2"></i>Filtrar</button>
+                <a href="{% if preselected_study %}/app/samples/?study={{ preselected_study.id }}{% else %}/app/samples/{% endif %}" class="btn btn-ghost"><i class="bi bi-arrow-clockwise me-2"></i>Limpiar</a>
+            </div>
+        </form>
         {% if preselected_study %}
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 px-3 py-3 mb-3 rounded-4" style="background:#eef9ea;border:1px solid rgba(43,181,169,.18);">
             <div>Mostrando muestras del estudio: <strong>{{ preselected_study.code }}</strong></div>
@@ -39,11 +64,12 @@
                     <tr>
                         <th>Codigo</th>
                         <th>Estudio</th>
+                        <th>Cliente</th>
                         <th>Presentacion</th>
                         <th>Formato</th>
                         <th>Lote</th>
-                        <th>Stock</th>
-                        <th>Ubicacion</th>
+                        <th>Cantidad recibida</th>
+                        <th>Cantidad asignada</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -52,11 +78,12 @@
                     <tr>
                         <td class="cell-code">{{ sample.sample_code }}</td>
                         <td>{{ sample.study.code }}</td>
+                        <td>{{ sample.study.client.description|default:"-" }}</td>
                         <td>{{ sample.reception.presentation|default:"-" }}</td>
                         <td>{% if sample.reception.packaging %}{{ sample.reception.packaging.name }}{% else %}-{% endif %}</td>
                         <td>{% if sample.reception.batch_number_text %}{{ sample.reception.batch_number_text }}{% elif sample.reception.batch %}{{ sample.reception.batch.code }}{% else %}-{% endif %}</td>
-                        <td>{{ sample.current_stock }}</td>
-                        <td>{{ sample.shelf|default:"-" }} / {{ sample.tray|default:"-" }} / {{ sample.physical_position|default:"-" }}</td>
+                        <td>{{ sample.reception.quantity_received|default:sample.quantity|default:"-" }}</td>
+                        <td>{{ sample.assigned_quantity_live|default:0 }}</td>
                         <td>
                             <div class="row-actions">
                                 <a class="action-icon icon-plan" href="/app/samples/{{ sample.id }}/schedules/" title="Fechas de muestreo" aria-label="Fechas de muestreo">
@@ -95,7 +122,7 @@
                                 </a>
                                 <form method="post" action="/app/samples/{{ sample.id }}/delete/" class="d-inline sample-delete-form">
                                     {% csrf_token %}
-                                    <button class="action-icon icon-delete" type="submit" title="Eliminar muestra" aria-label="Eliminar muestra">
+                                    <button class="action-icon icon-delete" type="submit" title="{% if sample.study.status == 'active' %}No se puede eliminar una muestra de un estudio aprobado{% else %}Eliminar muestra{% endif %}" aria-label="Eliminar muestra" {% if sample.study.status == 'active' %}disabled{% endif %}>
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
@@ -107,6 +134,22 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+        <div class="table-pagination">
+            <div class="pagination-summary">Mostrando {{ start_index }} a {{ end_index }} de {{ total_count }} resultados</div>
+            <div class="pagination-nav">
+                {% if page_obj.has_previous %}
+                <a class="pagination-link" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Pagina anterior"><i class="bi bi-chevron-left"></i></a>
+                {% endif %}
+                <div class="pagination-pages">
+                    {% for page_number in page_numbers %}
+                    <a class="pagination-link {% if page_obj.number == page_number %}active{% endif %}" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_number }}">{{ page_number }}</a>
+                    {% endfor %}
+                </div>
+                {% if page_obj.has_next %}
+                <a class="pagination-link" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Pagina siguiente"><i class="bi bi-chevron-right"></i></a>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>
@@ -391,6 +434,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.querySelectorAll('.sample-delete-form').forEach(function (form) {
         form.addEventListener('submit', function (event) {
+            const deleteButton = form.querySelector('button[type="submit"]');
+            if (deleteButton && deleteButton.disabled) {
+                event.preventDefault();
+                return;
+            }
             event.preventDefault();
             Swal.fire({
                 title: 'Eliminar muestra',

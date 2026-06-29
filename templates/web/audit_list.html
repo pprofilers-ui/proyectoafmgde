@@ -3,8 +3,8 @@
 {% block content %}
 <div class="page-hero">
     <div>
-        <h1 class="page-title">Trazabilidad</h1>
-        <p class="page-subtitle">Consulta solo lectura de trazabilidad. Desde aqui se revisa lo ocurrido, pero no se modifica nada.</p>
+        <h1 class="page-title">Audit trail</h1>
+        <p class="page-subtitle">Consulta solo lectura de eventos auditados. Desde aqui se revisa lo ocurrido, pero no se modifica nada.</p>
     </div>
     <div class="recommendation-card">
         <p class="recommendation-label">Exportacion</p>
@@ -31,6 +31,15 @@
             <label class="filter-label">Company</label>
             <input class="app-input w-100" type="text" name="company_code" value="{{ request.GET.company_code }}">
         </div>
+        <div class="filter-field">
+            <label class="filter-label">Registros</label>
+            <select class="form-select pagination-size" name="page_size">
+                <option value="5" {% if page_size == 5 %}selected{% endif %}>5</option>
+                <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
+                <option value="25" {% if page_size == 25 %}selected{% endif %}>25</option>
+                <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+            </select>
+        </div>
         <div class="filter-field ms-auto">
             <label class="filter-label opacity-0">Acciones</label>
             <div class="audit-toolbar">
@@ -43,6 +52,10 @@
 </div>
 
 <div class="content-card">
+    <div class="content-card-body border-bottom">
+        <h3 class="dashboard-section-title mb-1">Eventos registrados</h3>
+        <p class="dashboard-section-copy mb-0">Cada fila representa una accion auditada con fecha, usuario, entidad y origen.</p>
+    </div>
     <div class="section-card-body">
         <div class="table-shell">
             <table class="table table-app">
@@ -75,6 +88,27 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+
+        <div class="table-pagination">
+            <div class="pagination-summary">Mostrando {{ start_index }} a {{ end_index }} de {{ total_count }} resultados</div>
+            <div class="pagination-nav">
+                {% if page_obj.has_previous %}
+                <a class="pagination-link" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Pagina anterior">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+                {% endif %}
+                <div class="pagination-pages">
+                    {% for page_number in page_numbers %}
+                    <a class="pagination-link {% if page_obj.number == page_number %}active{% endif %}" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_number }}">{{ page_number }}</a>
+                    {% endfor %}
+                </div>
+                {% if page_obj.has_next %}
+                <a class="pagination-link" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Pagina siguiente">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>

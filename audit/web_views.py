@@ -1,8 +1,10 @@
 from io import BytesIO
 
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.http import HttpResponse
 from django.shortcuts import render
+from urllib.parse import urlencode
 from openpyxl import Workbook
 
 from .models import AuditTrail
@@ -25,6 +27,10 @@ ACTION_LABELS = {
     "web_withdraw_sample_schedule": "Fecha de muestreo retirada de camara",
     "web_create_chamber_deviation": "Desviacion de camara registrada",
     "web_recalculate_sampling_point": "Fecha de muestreo recalculada",
+    "web_generate_study_planning": "Planificacion generada",
+    "web_save_study_planning": "Planificacion base actualizada",
+    "web_update_planned_subsample": "Submuestra planificada actualizada",
+    "web_print_planned_subsample_label": "Etiqueta de submuestra impresa",
     "recalculate_date": "Recalculo de fecha registrado",
     "label_sample": "Muestra etiquetada",
     "place_in_chamber": "Entrada en camara registrada",
@@ -62,12 +68,15 @@ def _friendly_entity(entity_name):
 def _friendly_route(item):
     route_map = {
         "/app/studies/create/": "Pantalla de estudios",
+        "/app/studies/": "Listado de estudios",
         "/app/samples/create/": "Pantalla de muestras",
+        "/app/samples/": "Listado de muestras",
         "/app/operations/reception/": "Pantalla de operaciones / recepcion",
         "/app/operations/label/": "Pantalla de operaciones / etiquetado",
         "/app/operations/chamber/": "Pantalla de operaciones / entrada en camara",
         "/app/operations/extract/": "Pantalla de operaciones / extraccion",
         "/app/deviations/create/": "Pantalla de desviaciones",
+        "/app/planning/": "Listado de planificaciones",
         "/login/": "Inicio de sesion",
     }
     return route_map.get(item.request_path, item.request_path or "-")
@@ -97,10 +106,39 @@ def _filtered_audits(request):
 
 @login_required
 def audit_list(request):
-    audits = [_decorate_audit(item) for item in _filtered_audits(request)[:300]]
+    try:
+        page_size = int(request.GET.get("page_size") or 10)
+    except (TypeError, ValueError):
+        page_size = 10
+    if page_size not in {5, 10, 25, 50}:
+        page_size = 10
+
+    audit_queryset = _filtered_audits(request)
+    paginator = Paginator(audit_queryset, page_size)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    page_numbers = []
+    for page_number in range(1, paginator.num_pages + 1):
+        if paginator.num_pages <= 7 or abs(page_number - page_obj.number) <= 1 or page_number in {1, paginator.num_pages}:
+            page_numbers.append(page_number)
+
+    filter_params = {
+        "entity_name": request.GET.get("entity_name", ""),
+        "action_type": request.GET.get("action_type", ""),
+        "company_code": request.GET.get("company_code", ""),
+        "page_size": page_size,
+    }
+    query_string = urlencode({key: value for key, value in filter_params.items() if value not in {"", None}})
+    audits = [_decorate_audit(item) for item in page_obj.object_list]
     context = {
         "audits": audits,
         "action_types": AuditTrail.ActionType.choices,
+        "page_obj": page_obj,
+        "page_numbers": page_numbers,
+        "page_size": page_size,
+        "query_string": query_string,
+        "total_count": paginator.count,
+        "start_index": page_obj.start_index() if paginator.count else 0,
+        "end_index": page_obj.end_index() if paginator.count else 0,
     }
     return render(request, "web/audit_list.html", context)
 

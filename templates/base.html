@@ -32,15 +32,13 @@
                 </button>
                 <div class="collapse navbar-collapse" id="mainNav">
                     <ul class="navbar-nav top-nav me-auto mb-2 mb-lg-0">
-                        <li class="nav-item"><a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">Resumen</a></li>
                         <li class="nav-item"><a class="nav-link {% if '/app/annual-plan/' in request.path %}active{% endif %}" href="/app/annual-plan/">Plan anual</a></li>
                         <li class="nav-item"><a class="nav-link {% if '/app/studies/' in request.path %}active{% endif %}" href="/app/studies/">Estudios</a></li>
-                        <li class="nav-item"><a class="nav-link {% if '/app/planning/' in request.path %}active{% endif %}" href="/app/planning/">Planificacion</a></li>
                         <li class="nav-item"><a class="nav-link {% if '/app/samples/' in request.path %}active{% endif %}" href="/app/samples/">Muestras</a></li>
+                        <li class="nav-item"><a class="nav-link {% if '/app/planning/' in request.path %}active{% endif %}" href="/app/planning/">Planificacion</a></li>
                         <li class="nav-item"><a class="nav-link {% if '/app/operations/' in request.path %}active{% endif %}" href="/app/operations/">Operaciones</a></li>
                         <li class="nav-item"><a class="nav-link {% if '/app/deviations/' in request.path %}active{% endif %}" href="/app/deviations/">Desviaciones</a></li>
                         <li class="nav-item"><a class="nav-link {% if '/app/alerts/' in request.path %}active{% endif %}" href="/app/alerts/">Alertas</a></li>
-                        <li class="nav-item"><a class="nav-link {% if '/app/reports/' in request.path %}active{% endif %}" href="/app/reports/">Informes</a></li>
                         <li class="nav-item"><a class="nav-link {% if '/app/audit/' in request.path %}active{% endif %}" href="/app/audit/">Auditoria</a></li>
                         {% if request.user.is_superuser %}
                         <li class="nav-item"><a class="nav-link {% if '/swagger/' in request.path %}active{% endif %}" href="/swagger/">API</a></li>

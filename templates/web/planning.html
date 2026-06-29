@@ -12,70 +12,103 @@
     </div>
 </div>
 
-<div class="row g-4 mb-4">
-    <div class="col-xl-8">
-        <div class="planning-info-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-                    <div>
-                        <h2 class="planning-card-title">Resumen del estudio</h2>
-                        <p class="planning-card-copy">Desde aqui puedes guardar la planificacion base y despues generar las submuestras del estudio.</p>
-                    </div>
-                    <a class="btn btn-neutral-soft d-inline-flex align-items-center justify-content-center" href="/app/studies/">Volver a estudios</a>
-                </div>
-
-                <div class="row g-3 planning-summary-grid">
-                    <div class="col-md-6 col-xl-3">
-                        <div class="mini-kpi h-100">
-                            <div class="small text-uppercase text-muted">Estado</div>
-                            <div class="fw-semibold mt-2">{{ study.get_status_display }}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 col-xl-3">
-                        <div class="mini-kpi h-100">
-                            <div class="small text-uppercase text-muted">Inicio</div>
-                            <div class="fw-semibold mt-2">{{ study.start_date|date:"d/m/Y" }}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 col-xl-3">
-                        <div class="mini-kpi h-100">
-                            <div class="small text-uppercase text-muted">Muestras</div>
-                            <div class="fw-semibold mt-2">{{ study_samples|length }}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 col-xl-3">
-                        <div class="mini-kpi h-100">
-                            <div class="small text-uppercase text-muted">Submuestras actuales</div>
-                            <div class="fw-semibold mt-2">{{ planning_rows_count }}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="planning-helper">
-                    Esta planificacion base guarda por estudio los puntos de muestreo y el numero de submuestras por camara para FQ y Micro. Cuando la base este correcta, puedes generar las submuestras automaticamente.
+<div class="content-card mb-4">
+    <div class="form-panel">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+            <div>
+                <h2 class="planning-card-title">Resumen del estudio</h2>
+                <p class="planning-card-copy">Contexto base del estudio antes de trabajar con muestras y submuestras.</p>
+            </div>
+            <a class="btn btn-neutral-soft d-inline-flex align-items-center justify-content-center" href="/app/studies/">Volver a estudios</a>
+        </div>
+        <div class="row g-3 planning-summary-grid">
+            <div class="col-md-6 col-xl-3">
+                <div class="summary-plain-field h-100">
+                    <div class="summary-field-label">Codigo de estudio</div>
+                    <div class="fw-semibold mt-2">{{ study.code }}</div>
                 </div>
             </div>
-        </div>
-    </div>
-    <div class="col-xl-4">
-        <div class="planning-info-card h-100">
-            <div class="card-body">
-                <h2 class="planning-card-title">Datos base</h2>
-                <p class="planning-card-copy">Informacion util antes de generar la planificacion.</p>
-                <div class="small text-uppercase text-muted">Cliente</div>
-                <div class="fw-semibold mb-3">{{ study.client.description|default:"-" }}</div>
-                <div class="small text-uppercase text-muted">Producto</div>
-                <div class="fw-semibold mb-3">{% if study.product %}{{ study.product.name }}{% else %}{{ study.product_name|default:"-" }}{% endif %}</div>
-                <div class="small text-uppercase text-muted">Tipo de estudio</div>
-                <div class="fw-semibold mb-3">{{ study.study_type.name|default:"-" }}</div>
-                <div class="small text-uppercase text-muted">Protocolo</div>
-                <div class="fw-semibold">{{ study.protocol|default:"-" }}</div>
+            <div class="col-md-6 col-xl-6">
+                <div class="summary-plain-field h-100">
+                    <div class="summary-field-label">Titulo</div>
+                    <div class="fw-semibold mt-2">{{ study.title }}</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="summary-plain-field h-100">
+                    <div class="summary-field-label">Estado</div>
+                    <div class="mt-2">
+                        <span class="summary-status-pill summary-status-pill-{{ study.status }}">{{ study.get_status_display }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-4">
+                <div class="summary-plain-field h-100">
+                    <div class="summary-field-label">Cliente</div>
+                    <div class="fw-semibold mt-2">{{ study.client.description|default:"-" }}</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-4">
+                <div class="summary-plain-field h-100">
+                    <div class="summary-field-label">Producto</div>
+                    <div class="fw-semibold mt-2">{% if study.product %}{{ study.product.name }}{% else %}{{ study.product_name|default:"-" }}{% endif %}</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-2">
+                <div class="summary-plain-field h-100">
+                    <div class="summary-field-label">Tipo de estudio</div>
+                    <div class="fw-semibold mt-2">{{ study.study_type.name|default:"-" }}</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-2">
+                <div class="summary-plain-field h-100">
+                    <div class="summary-field-label">Protocolo</div>
+                    <div class="fw-semibold mt-2">{{ study.protocol|default:"-" }}</div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <div class="row g-4">
+    <div class="col-12">
+        <div class="content-card">
+            <div class="form-panel">
+                <h2 class="planning-card-title">Muestras del estudio</h2>
+                <p class="planning-card-copy">Material recibido asociado al estudio. Las muestras no llevan ubicacion de camara en este bloque.</p>
+                <div class="table-shell mt-3">
+                    <table class="table table-app">
+                        <thead>
+                            <tr>
+                                <th>Codigo de muestra</th>
+                                <th>Presentacion</th>
+                                <th>Formato</th>
+                                <th>Lote</th>
+                                <th>Cantidad recibida</th>
+                                <th>Cantidad asignada</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sample in study_samples %}
+                            <tr>
+                                <td class="cell-code">{{ sample.sample_code }}</td>
+                                <td>{{ sample.reception.presentation|default:"-" }}</td>
+                                <td>{% if sample.reception.packaging %}{{ sample.reception.packaging.name }}{% else %}-{% endif %}</td>
+                                <td>{% if sample.reception.batch_number_text %}{{ sample.reception.batch_number_text }}{% elif sample.reception.batch %}{{ sample.reception.batch.code }}{% else %}-{% endif %}</td>
+                                <td>{{ sample.reception.quantity_received|default:sample.quantity|default:"-" }}</td>
+                                <td>{{ sample.assigned_quantity_live|default:0 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="table-empty">Todavia no hay muestras creadas para este estudio.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="col-12">
         <div class="content-card">
             <div class="form-panel">
@@ -138,14 +171,10 @@
                         <button class="btn btn-primary" type="submit">
                             <i class="bi bi-save me-2"></i>Guardar planificacion base
                         </button>
+                        <button class="btn btn-filter" type="submit" name="action" value="generate_planning">
+                            <i class="bi bi-diagram-3 me-2"></i>Generar planificacion
+                        </button>
                     </div>
-                </form>
-                <form method="post" class="planning-form-actions">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="generate_planning">
-                    <button class="btn btn-filter" type="submit">
-                        <i class="bi bi-diagram-3 me-2"></i>Generar planificacion
-                    </button>
                 </form>
                 {% endif %}
             </div>
@@ -154,55 +183,35 @@
     <div class="col-12">
         <div class="content-card h-100">
             <div class="form-panel">
-                <h2 class="planning-card-title">Muestras del estudio</h2>
-                <p class="planning-card-copy">Vista rapida para saber con que base estamos trabajando antes de pasar a la planificacion masiva. Total de submuestras planificadas: {{ generated_subsamples|length }}.</p>
-                <div class="table-shell mt-3">
-                    <table class="table table-app">
-                        <thead>
-                            <tr>
-                                <th>Codigo</th>
-                                <th>Estado</th>
-                                <th>Camara</th>
-                                <th>Stock</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for sample in study_samples %}
-                            <tr>
-                                <td class="cell-code">{{ sample.sample_code }}</td>
-                                <td>{{ sample.get_status_display }}</td>
-                                <td>{{ sample.chamber.code|default:"-" }}</td>
-                                <td>{{ sample.current_stock }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="4" class="table-empty">Todavia no hay muestras creadas para este estudio.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="d-flex justify-content-between align-items-end gap-3 flex-wrap">
+                    <div>
+                        <h2 class="planning-card-title">Submuestras generadas</h2>
+                        <p class="planning-card-copy mb-0">Unidades operativas que se ubican, etiquetan, planifican y retiran en camara.</p>
+                    </div>
+                    <form method="get" class="filter-field mb-0">
+                        <label class="filter-label">Registros</label>
+                        <select name="page_size" class="form-select pagination-size" onchange="this.form.submit()">
+                            <option value="5" {% if page_size == 5 %}selected{% endif %}>5</option>
+                            <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
+                            <option value="25" {% if page_size == 25 %}selected{% endif %}>25</option>
+                            <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+                        </select>
+                    </form>
                 </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-12">
-        <div class="content-card h-100">
-            <div class="form-panel">
-                <h2 class="planning-card-title">Submuestras generadas</h2>
-                <p class="planning-card-copy">Resultado de la generacion automatica a partir de la planificacion base del estudio.</p>
                 <div class="table-shell mt-3 mb-4">
                     <table class="table table-app">
                         <thead>
                             <tr>
                                 <th>Codigo</th>
                                 <th>Camara</th>
+                                <th>Ubicacion</th>
                                 <th>Analisis</th>
                                 <th>Punto</th>
                                 <th>Fecha prevista</th>
+                                <th>Fecha corregida</th>
                                 <th>Fecha real</th>
                                 <th>Fecha analisis</th>
                                 <th>Cantidad</th>
-                                <th>Ubicacion</th>
                                 <th>Estado</th>
                                 <th>Accion</th>
                             </tr>
@@ -212,13 +221,14 @@
                             <tr>
                                 <td class="cell-code">{{ subsample.code }}</td>
                                 <td>{{ subsample.chamber.code }}</td>
+                                <td>{{ subsample.storage_location|default:"-" }}</td>
                                 <td>{{ subsample.get_analysis_type_display }}</td>
                                 <td>{{ subsample.sampling_point_template.label }}</td>
                                 <td>{{ subsample.planned_date|date:"d/m/Y"|default:"-" }}</td>
+                                <td>-</td>
                                 <td>{{ subsample.actual_sampling_date|date:"d/m/Y"|default:"-" }}</td>
                                 <td>{{ subsample.analysis_date|date:"d/m/Y"|default:"-" }}</td>
                                 <td>{{ subsample.quantity|default:"-" }}</td>
-                                <td>{{ subsample.storage_location|default:"-" }}</td>
                                 <td>
                                     {% if subsample.status == "withdrawn" %}
                                     <span class="status-badge status-active">Retirada</span>
@@ -249,7 +259,7 @@
                                             <button class="btn btn-sm btn-danger-soft" type="submit">Retirar muestra</button>
                                         </form>
                                         {% elif subsample.status == "withdrawn" %}
-                                        <span class="status-badge status-active">Retirada</span>
+                                        <span class="status-badge status-active">Completada</span>
                                         {% else %}
                                         <span class="status-badge status-closed">Disponible al aprobar</span>
                                         {% endif %}
@@ -258,48 +268,39 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="11" class="table-empty">Todavia no se ha ejecutado la generacion de planificacion para este estudio.</td>
+                                <td colspan="12" class="table-empty">Todavia no se ha ejecutado la generacion de planificacion para este estudio.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
-
-            </div>
-        </div>
-    </div>
-    <div class="col-12">
-        <div class="content-card h-100">
-            <div class="form-panel">
-                <h2 class="planning-card-title">Submuestras ya existentes</h2>
-                <p class="planning-card-copy">Mientras migramos al nuevo modelo, aqui se ve si el estudio ya tiene fechas de muestreo creadas en el flujo anterior.</p>
-                <div class="table-shell mt-3">
-                    <table class="table table-app">
-                        <thead>
-                            <tr>
-                                <th>Codigo fecha</th>
-                                <th>Muestra</th>
-                                <th>Camara</th>
-                                <th>Fecha prevista</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in planning_rows %}
-                            <tr>
-                                <td class="cell-code">{{ row.label|default:"-" }}</td>
-                                <td>{{ row.sample.sample_code }}</td>
-                                <td>{{ row.chamber.code|default:"-" }}</td>
-                                <td>{{ row.planned_date|date:"d/m/Y" }}</td>
-                                <td>{% if row.is_active %}<span class="status-badge status-suspended">En camara</span>{% else %}<span class="status-badge status-active">Retirada</span>{% endif %}</td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="5" class="table-empty">No hay submuestras registradas todavia para este estudio.</td>
-                            </tr>
+                <div class="table-pagination mb-4">
+                    <div class="pagination-summary">Mostrando {{ start_index }} a {{ end_index }} de {{ total_count }} resultados</div>
+                    <div class="pagination-nav">
+                        {% if page_obj.has_previous %}
+                        <a class="pagination-link" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Pagina anterior"><i class="bi bi-chevron-left"></i></a>
+                        {% endif %}
+                        <div class="pagination-pages">
+                            {% for page_number in page_numbers %}
+                            <a class="pagination-link {% if page_obj.number == page_number %}active{% endif %}" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_number }}">{{ page_number }}</a>
                             {% endfor %}
-                        </tbody>
-                    </table>
+                        </div>
+                        {% if page_obj.has_next %}
+                        <a class="pagination-link" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Pagina siguiente"><i class="bi bi-chevron-right"></i></a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="label-actions">
+                    {% if generated_subsamples %}
+                    <a class="label-button" href="/app/studies/{{ study.id }}/planned-subsample-labels/?autoprint=1" target="_blank" rel="noopener">Imprimir etiquetas</a>
+                    {% else %}
+                    <button class="label-button" type="button" disabled title="Genera primero la planificacion del estudio">Imprimir etiquetas</button>
+                    {% endif %}
+                    {% if generated_subsamples %}
+                    <a class="label-button" href="/app/studies/{{ study.id }}/client-report/" target="_blank" rel="noopener">Informe cliente</a>
+                    {% else %}
+                    <button class="label-button" type="button" disabled title="Genera primero la planificacion del estudio">Informe cliente</button>
+                    {% endif %}
                 </div>
             </div>
         </div>

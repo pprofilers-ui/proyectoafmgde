@@ -1,0 +1,870 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informe global del estudio - {{ study.code }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --ink: #17254a;
+            --muted: #6676a2;
+            --line: #dfe7fb;
+            --line-strong: #ced8f4;
+            --surface: #f8faff;
+            --purple: #6b5bd6;
+            --purple-soft: rgba(107, 91, 214, 0.1);
+            --teal: #25b2a6;
+            --shadow: 0 18px 42px rgba(74, 95, 160, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: "Inter", "Segoe UI", Arial, sans-serif;
+            background: #f4f7ff;
+            color: var(--ink);
+        }
+
+        .report-shell {
+            max-width: 1260px;
+            margin: 0 auto;
+        }
+
+        .report-topbar {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .report-topbar-copy h1 {
+            margin: 0 0 4px;
+            font-size: 30px;
+            color: #1d3164;
+        }
+
+        .report-topbar-copy p {
+            margin: 0;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .report-topbar-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .flash-messages {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .flash-message {
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            background: #fff;
+            color: var(--ink);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .flash-message.success {
+            border-color: rgba(37, 178, 166, 0.28);
+            background: rgba(37, 178, 166, 0.08);
+            color: #177e76;
+        }
+
+        .flash-message.error {
+            border-color: rgba(233, 91, 91, 0.24);
+            background: rgba(233, 91, 91, 0.08);
+            color: #b03b3b;
+        }
+
+        .report-cta {
+            min-height: 40px;
+            padding: 0 16px;
+            border-radius: 12px;
+            border: 1px solid #d7def6;
+            background: #fff;
+            color: #5a6de0;
+            font-size: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .report-cta i {
+            font-size: 13px;
+            color: inherit;
+        }
+
+        .report-cta-primary {
+            background: linear-gradient(180deg, #7a6df0 0%, #6859e0 100%);
+            border-color: #6d5ee7;
+            color: #fff;
+            box-shadow: 0 12px 24px rgba(104, 89, 224, 0.22);
+        }
+
+        .report-page {
+            background: #fff;
+            border: 1px solid #e7edfb;
+            border-radius: 22px;
+            box-shadow: var(--shadow);
+            padding: 22px 24px 18px;
+            margin-bottom: 18px;
+            break-inside: avoid;
+        }
+
+        .report-page.page-break {
+            page-break-after: always;
+        }
+
+        .report-hero {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            align-items: flex-start;
+            margin-bottom: 18px;
+        }
+
+        .brand-lockup {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-badge {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, #fff, #f8fbff);
+            overflow: hidden;
+        }
+
+        .brand-badge img {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+        }
+
+        .brand-name {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 800;
+            color: #1d3164;
+        }
+
+        .brand-subtitle {
+            margin: 2px 0 0;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: #7a88b5;
+        }
+
+        .hero-title {
+            margin: 0;
+            font-size: 28px;
+            line-height: 1.05;
+            color: #1d3164;
+        }
+
+        .hero-meta {
+            margin: 6px 0 0;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .hero-rule {
+            height: 3px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #e6ddff 0%, #7a6df0 48%, #d5ecff 100%);
+            margin-top: 14px;
+        }
+
+        .report-grid-3 {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        .info-card {
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            overflow: hidden;
+            background: #fff;
+            min-height: 100%;
+        }
+
+        .info-card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: linear-gradient(180deg, #fbfcff 0%, #f4f7ff 100%);
+            border-bottom: 1px solid var(--line);
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--purple);
+        }
+
+        .section-header-icon,
+        .planning-header-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 6px;
+            border: 1px solid var(--line);
+            background: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--purple);
+            font-size: 10px;
+            flex: 0 0 auto;
+        }
+
+        .info-card-header-badge {
+            min-width: 28px;
+            height: 22px;
+            padding: 0 7px;
+            border-radius: 999px;
+            background: var(--purple-soft);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .info-card-body {
+            padding: 12px 14px;
+        }
+
+        .definition-grid {
+            display: grid;
+            grid-template-columns: 180px 1fr;
+            gap: 7px 12px;
+            font-size: 12px;
+        }
+
+        .definition-label {
+            color: #5f6f96;
+            font-weight: 700;
+        }
+
+        .definition-value {
+            color: var(--ink);
+            font-weight: 600;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            min-height: 26px;
+            padding: 0 10px;
+            border-radius: 999px;
+            background: rgba(43, 181, 169, 0.12);
+            border: 1px solid rgba(43, 181, 169, 0.24);
+            color: #168c83;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .report-table th,
+        .report-table td {
+            border: 1px solid var(--line);
+            padding: 7px 9px;
+            text-align: left;
+            vertical-align: top;
+            font-size: 11px;
+            word-break: break-word;
+        }
+
+        .report-table th {
+            background: var(--surface);
+            color: #5467a4;
+            font-weight: 800;
+        }
+
+        .card-note {
+            margin-top: 12px;
+            padding: 12px 14px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: #fbfcff;
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .section-block {
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .section-block + .section-block {
+            margin-top: 16px;
+        }
+
+        .section-block-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: linear-gradient(180deg, #fbfcff 0%, #f6f8ff 100%);
+            border-bottom: 1px solid var(--line);
+            color: var(--purple);
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .section-block-body {
+            padding: 12px 14px;
+        }
+
+        .planning-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .planning-card {
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            overflow: hidden;
+            background: #fff;
+            break-inside: avoid;
+        }
+
+        .planning-card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            background: #fafbff;
+            border-bottom: 1px solid var(--line);
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--purple);
+        }
+
+        .inline-icon-badge {
+            width: 20px;
+            height: 20px;
+            border-radius: 7px;
+            border: 1px solid var(--line);
+            background: #fff;
+            color: var(--purple);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            flex: 0 0 auto;
+        }
+
+        .planning-card-body {
+            padding: 0;
+        }
+
+        .page-footer {
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: #93a0c3;
+        }
+
+        .actions {
+            margin-top: 22px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .actions button,
+        .actions a {
+            min-height: 40px;
+            padding: 0 16px;
+            border-radius: 999px;
+            border: 1px solid #d5dff6;
+            background: #fff;
+            color: #3b5db4;
+            font-size: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .email-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 25, 52, 0.42);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            z-index: 1000;
+        }
+
+        .email-modal.is-open {
+            display: flex;
+        }
+
+        .email-modal-card {
+            width: min(720px, 100%);
+            background: #fff;
+            border: 1px solid #e3eafb;
+            border-radius: 22px;
+            box-shadow: var(--shadow);
+            padding: 22px;
+        }
+
+        .email-modal-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .email-modal-header h2 {
+            margin: 0 0 6px;
+            font-size: 22px;
+            color: #1d3164;
+        }
+
+        .email-modal-header p {
+            margin: 0;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .email-close {
+            min-width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            border: 1px solid #d7def6;
+            background: #fff;
+            color: #5a6de0;
+            cursor: pointer;
+        }
+
+        .email-form-grid {
+            display: grid;
+            gap: 14px;
+        }
+
+        .email-field label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 12px;
+            font-weight: 800;
+            color: #7080aa;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .email-field input,
+        .email-field textarea {
+            width: 100%;
+            border: 1px solid #d7def6;
+            border-radius: 14px;
+            padding: 12px 14px;
+            font: inherit;
+            color: var(--ink);
+            background: #fff;
+        }
+
+        .email-field textarea {
+            min-height: 132px;
+            resize: vertical;
+        }
+
+        .email-hint {
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .email-modal-actions {
+            margin-top: 18px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        @page {
+            size: A4 landscape;
+            margin: 10mm;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+                background: #fff;
+            }
+
+            .report-shell {
+                max-width: none;
+            }
+
+            .email-modal {
+                display: none !important;
+            }
+
+            .report-page {
+                margin: 0 0 10px;
+                box-shadow: none;
+                border-radius: 0;
+            }
+
+            .report-topbar,
+            .actions {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-shell">
+        {% if messages %}
+        <div class="flash-messages">
+            {% for message in messages %}
+            <div class="flash-message {% if message.tags %}{{ message.tags }}{% endif %}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        <div class="report-topbar">
+            <div class="report-topbar-copy">
+                <h1>Informe global del estudio</h1>
+                <p>Informe consolidado que compila la informacion del estudio, muestras y planificacion para el cliente.</p>
+            </div>
+            {% if not email_mode %}
+            <div class="report-topbar-actions">
+                <button type="button" class="report-cta" onclick="openEmailModal()"><i class="bi bi-envelope"></i><span>Enviar por email</span></button>
+                <button type="button" class="report-cta report-cta-primary" onclick="window.print()"><i class="bi bi-printer"></i><span>Imprimir</span></button>
+            </div>
+            {% endif %}
+        </div>
+
+        <section class="report-page page-break">
+            <div class="report-hero">
+                <div class="brand-lockup">
+                    <div class="brand-badge">
+                        <img src="{% static 'branding/netlabone-app-icon.png' %}" alt="NetLab One Stability">
+                    </div>
+                    <div>
+                        <p class="brand-name">NetLab One</p>
+                        <p class="brand-subtitle">Stability</p>
+                    </div>
+                </div>
+                <div>
+                    <h1 class="hero-title">Informe global del estudio</h1>
+                    <p class="hero-meta">Generado el {{ generated_at|date:"d/m/Y H:i" }}</p>
+                </div>
+            </div>
+            <div class="hero-rule"></div>
+
+            <div class="report-grid-3" style="margin-top: 18px;">
+                <div class="info-card">
+                    <div class="info-card-header">
+                        <span class="info-card-header-badge">1.</span>
+                        <span class="section-header-icon"><i class="bi bi-file-earmark-text"></i></span>
+                        Datos generales del estudio
+                    </div>
+                    <div class="info-card-body">
+                        <div class="definition-grid">
+                            <div class="definition-label">Codigo del estudio</div>
+                            <div class="definition-value">{{ study.code }}</div>
+                            <div class="definition-label">Titulo</div>
+                            <div class="definition-value">{{ study.title }}</div>
+                            <div class="definition-label">Estado</div>
+                            <div class="definition-value"><span class="status-pill">{{ study.get_status_display }}</span></div>
+                            <div class="definition-label">Cliente</div>
+                            <div class="definition-value">{{ study.client.description|default:"-" }}</div>
+                            <div class="definition-label">Producto</div>
+                            <div class="definition-value">{% if study.product %}{{ study.product.name }}{% else %}{{ study.product_name|default:"-" }}{% endif %}</div>
+                            <div class="definition-label">Tipo de estudio</div>
+                            <div class="definition-value">{{ study.study_type.name|default:"-" }}</div>
+                            <div class="definition-label">Protocolo</div>
+                            <div class="definition-value">{{ study.protocol|default:"-" }}</div>
+                            <div class="definition-label">Fecha de inicio</div>
+                            <div class="definition-value">{{ study.start_date|date:"d/m/Y"|default:"-" }}</div>
+                            <div class="definition-label">Fecha de fin</div>
+                            <div class="definition-value">{{ study.end_date|date:"d/m/Y"|default:"-" }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-card-header">
+                        <span class="info-card-header-badge">2.</span>
+                        <span class="section-header-icon"><i class="bi bi-thermometer-half"></i></span>
+                        Condiciones del estudio
+                    </div>
+                    <div class="info-card-body">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Camara / Condicion</th>
+                                    <th>Temperatura</th>
+                                    <th>Humedad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for condition in chamber_conditions %}
+                                <tr>
+                                    <td>{{ condition.chamber_code }} / {{ condition.condition_label }}</td>
+                                    <td>{{ condition.temperature }}</td>
+                                    <td>{{ condition.humidity }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3">No hay condiciones registradas.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <div class="card-note">
+                            Las condiciones se muestran a partir de las camaras utilizadas en la planificacion generada del estudio.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-card-header">
+                        <span class="info-card-header-badge">3.</span>
+                        <span class="section-header-icon"><i class="bi bi-card-text"></i></span>
+                        Resumen ejecutivo
+                    </div>
+                    <div class="info-card-body">
+                        <p style="margin: 0; font-size: 12px; line-height: 1.72; color: #32446f;">{{ summary_copy }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="page-footer">
+                <span>Generado por NetLab One Stability</span>
+                <span>Pagina 1 de 3</span>
+            </div>
+        </section>
+
+        <section class="report-page page-break">
+            <div class="section-block">
+                <div class="section-block-header">
+                    <span class="info-card-header-badge">4.</span>
+                    <span class="section-header-icon"><i class="bi bi-box-seam"></i></span>
+                    Muestras del estudio
+                </div>
+                <div class="section-block-body">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Codigo muestra</th>
+                                <th>Presentacion / Formato</th>
+                                <th>Lote</th>
+                                <th>Cantidad recibida</th>
+                                <th>Cantidad asignada</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sample in study_samples %}
+                            <tr>
+                                <td>{{ sample.sample_code }}</td>
+                                <td>
+                                    {{ sample.reception.presentation|default:"-" }}
+                                    {% if sample.reception.packaging %}
+                                    / {{ sample.reception.packaging.name }}
+                                    {% endif %}
+                                </td>
+                                <td>{% if sample.reception.batch_number_text %}{{ sample.reception.batch_number_text }}{% elif sample.reception.batch %}{{ sample.reception.batch.code }}{% else %}-{% endif %}</td>
+                                <td>{{ sample.reception.quantity_received|default:sample.quantity|default:"-" }}</td>
+                                <td>{{ sample.assigned_quantity_live|default:0 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5">No hay muestras registradas para este estudio.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section-block">
+                <div class="section-block-header">
+                    <span class="info-card-header-badge">5.</span>
+                    <span class="section-header-icon"><i class="bi bi-chat-left-text"></i></span>
+                    Observaciones de las muestras
+                </div>
+                <div class="section-block-body">
+                    <p style="margin: 0; font-size: 12px; line-height: 1.65; color: #5b6c97;">
+                        Las muestras figuran vinculadas al estudio con la cantidad recibida y la cantidad ya asignada a la planificacion generada.
+                    </p>
+                </div>
+            </div>
+
+            <div class="page-footer">
+                <span>Generado por NetLab One Stability</span>
+                <span>Pagina 2 de 3</span>
+            </div>
+        </section>
+
+        <section class="report-page">
+            <div class="section-block">
+                <div class="section-block-header">
+                    <span class="info-card-header-badge">6.</span>
+                    <span class="section-header-icon"><i class="bi bi-diagram-3"></i></span>
+                    Planificacion de submuestras por punto de muestreo
+                </div>
+                <div class="section-block-body">
+                    <div class="planning-grid">
+                        {% for group in planning_groups %}
+                        <div class="planning-card">
+                            <div class="planning-card-header">
+                                <span class="planning-header-icon"><i class="bi bi-calendar3"></i></span>
+                                {{ group.title }}
+                            </div>
+                            <div class="planning-card-body">
+                                <table class="report-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Codigo</th>
+                                            <th>Camara</th>
+                                            <th>Analisis</th>
+                                            <th>Fecha prevista</th>
+                                            <th>Fecha real</th>
+                                            <th>Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for subsample in group.rows %}
+                                        <tr>
+                                            <td>{{ subsample.code }}</td>
+                                            <td>{{ subsample.chamber.code }}</td>
+                                            <td>{{ subsample.get_analysis_type_display }}</td>
+                                            <td>{{ subsample.planned_date|date:"d/m/Y"|default:"-" }}</td>
+                                            <td>{{ subsample.actual_sampling_date|date:"d/m/Y"|default:"-" }}</td>
+                                            <td>{% if subsample.status == "withdrawn" %}Retirada{% else %}Programada{% endif %}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p style="margin: 0; font-size: 13px; color: #6676a2;">No hay submuestras generadas para este estudio.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="page-footer">
+                <span>Generado por NetLab One Stability</span>
+                <span>Pagina 3 de 3</span>
+            </div>
+        </section>
+
+        {% if not email_mode %}
+        <div class="actions">
+            <a href="/app/studies/{{ study.id }}/planning/">Volver</a>
+        </div>
+        {% endif %}
+    </div>
+    {% if not email_mode %}
+    <div class="email-modal {% if open_email_modal %}is-open{% endif %}" id="emailModal">
+        <div class="email-modal-card">
+            <div class="email-modal-header">
+                <div>
+                    <h2>Enviar informe por email</h2>
+                    <p>Se enviara desde la cuenta SMTP configurada en el proyecto. Puedes indicar uno o varios destinatarios.</p>
+                </div>
+                <button type="button" class="email-close" onclick="closeEmailModal()" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="send_email">
+                <div class="email-form-grid">
+                    <div class="email-field">
+                        <label for="email_to">Destinatarios</label>
+                        <input
+                            id="email_to"
+                            name="email_to"
+                            type="text"
+                            value="{{ email_to_value|default:'' }}"
+                            placeholder="cliente@empresa.com, calidad@empresa.com"
+                            required
+                        >
+                        <div class="email-hint">Puedes separar varios correos con coma o punto y coma.</div>
+                    </div>
+                    <div class="email-field">
+                        <label for="email_subject">Asunto</label>
+                        <input
+                            id="email_subject"
+                            name="email_subject"
+                            type="text"
+                            value="{{ email_subject_value|default:default_email_subject }}"
+                            required
+                        >
+                    </div>
+                    <div class="email-field">
+                        <label for="email_message">Mensaje</label>
+                        <textarea id="email_message" name="email_message">{{ email_message_value|default:default_email_message }}</textarea>
+                    </div>
+                </div>
+                <div class="email-modal-actions">
+                    <button type="button" class="report-cta" onclick="closeEmailModal()">Cancelar</button>
+                    <button type="submit" class="report-cta report-cta-primary"><i class="bi bi-send"></i><span>Enviar ahora</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+        function openEmailModal() {
+            document.getElementById("emailModal").classList.add("is-open");
+        }
+
+        function closeEmailModal() {
+            document.getElementById("emailModal").classList.remove("is-open");
+        }
+
+        window.addEventListener("click", function (event) {
+            var modal = document.getElementById("emailModal");
+            if (event.target === modal) {
+                closeEmailModal();
+            }
+        });
+    </script>
+    {% endif %}
+</body>
+</html>

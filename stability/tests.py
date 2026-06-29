@@ -8,7 +8,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Chamber, PlannedSubsample, Product, Sample, SamplingPointTemplate, Study, StudyPlanningEntry
+from .models import Chamber, Client as StudyClient, PlannedSubsample, Product, Sample, SampleReception, SamplingPointTemplate, Study, StudyPlanningEntry
 from .web_forms import StudyCreateForm, StudyEditForm
 
 
@@ -158,12 +158,14 @@ class PlanningViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Planificacion del estudio")
         self.assertContains(response, self.study.code)
+        self.assertContains(response, "Muestras del estudio")
+        self.assertNotContains(response, "Submuestras ya existentes")
 
     def test_planning_list_view_loads(self):
         response = self.client.get("/app/planning/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Seleccion de estudio")
+        self.assertContains(response, "Planificacion")
         self.assertContains(response, self.study.code)
 
     def test_planning_view_post_saves_entries(self):
@@ -183,6 +185,31 @@ class PlanningViewTests(TestCase):
         entries = StudyPlanningEntry.objects.filter(study=self.study).order_by("analysis_type")
         self.assertEqual(entries.count(), 2)
         self.assertEqual(entries[0].subsample_quantity + entries[1].subsample_quantity, 5)
+
+    def test_planning_view_shows_sample_quantities_without_stock_or_location(self):
+        reception = SampleReception.objects.create(
+            study=self.study,
+            reception_number="REC-PLAN-001",
+            presentation="Blister",
+            quantity_received=8,
+            quantity_assigned=0,
+        )
+        Sample.objects.create(
+            study=self.study,
+            reception=reception,
+            sample_code=f"{self.study.code}-M-0001",
+            quantity=8,
+            current_stock=8,
+            status=Sample.Status.RECEIVED,
+        )
+
+        response = self.client.get(f"/app/studies/{self.study.id}/planning/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Cantidad recibida")
+        self.assertContains(response, "Cantidad asignada")
+        self.assertNotContains(response, ">Stock<", html=False)
+        self.assertContains(response, "Submuestras generadas")
 
     def test_generate_planning_creates_planned_subsamples(self):
         template = SamplingPointTemplate.objects.create(month_number=99, label="99M", is_active=True)
@@ -277,8 +304,26 @@ class PlanningViewTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.study.refresh_from_db()
         self.assertEqual(self.study.status, Study.Status.ACTIVE)
+        self.assertEqual(str(self.study.end_date), "2026-10-01")
+        self.assertEqual(self.study.approved_by, self.user)
+        self.assertIsNotNone(self.study.approved_at)
         subsample = PlannedSubsample.objects.get(study=self.study)
         self.assertEqual(str(subsample.planned_date), "2026-10-01")
+
+    def test_delete_study_requires_draft_status(self):
+        self.study.status = Study.Status.ACTIVE
+        self.study.save(update_fields=["status", "updated_at"])
+
+        response = self.client.post(f"/app/studies/{self.study.id}/delete/")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Study.objects.filter(pk=self.study.pk).exists())
+
+    def test_delete_study_allows_draft_status(self):
+        response = self.client.post(f"/app/studies/{self.study.id}/delete/")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Study.objects.filter(pk=self.study.pk).exists())
 
     def test_withdraw_subsample_requires_approved_study(self):
         template = SamplingPointTemplate.objects.create(month_number=4, label="4M", is_active=True)
@@ -370,6 +415,177 @@ class PlanningViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         subsample.refresh_from_db()
         self.assertIsNotNone(subsample.label_printed_at)
+
+    def test_client_report_requires_generated_planning(self):
+        response = self.client.get(f"/app/studies/{self.study.id}/client-report/")
+
+        self.assertEqual(response.status_code, 302)
+
+    def test_client_report_renders_when_planning_exists(self):
+        template = SamplingPointTemplate.objects.create(month_number=9, label="9M", is_active=True)
+        reception = SampleReception.objects.create(
+            study=self.study,
+            reception_number="REC-PLAN-002",
+            presentation="Vial",
+            quantity_received=10,
+            quantity_assigned=0,
+        )
+        Sample.objects.create(
+            study=self.study,
+            reception=reception,
+            sample_code=f"{self.study.code}-M-0002",
+            quantity=10,
+            current_stock=10,
+            status=Sample.Status.RECEIVED,
+        )
+        PlannedSubsample.objects.create(
+            study=self.study,
+            sampling_point_template=template,
+            chamber=self.chamber,
+            analysis_type=PlannedSubsample.AnalysisType.FQ,
+            code=f"{self.study.code}-P-0300",
+            planned_date=date.today(),
+            status=PlannedSubsample.Status.IN_CHAMBER,
+        )
+
+        response = self.client.get(f"/app/studies/{self.study.id}/client-report/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Informe cliente")
+        self.assertContains(response, self.study.code)
+        self.assertContains(response, "Planificacion y submuestras")
+
+    def test_planned_subsample_label_batch_requires_generated_planning(self):
+        response = self.client.get(f"/app/studies/{self.study.id}/planned-subsample-labels/")
+
+        self.assertEqual(response.status_code, 302)
+
+    def test_planned_subsample_label_batch_renders_when_planning_exists(self):
+        template = SamplingPointTemplate.objects.create(month_number=10, label="10M", is_active=True)
+        subsample = PlannedSubsample.objects.create(
+            study=self.study,
+            sampling_point_template=template,
+            chamber=self.chamber,
+            analysis_type=PlannedSubsample.AnalysisType.FQ,
+            code=f"{self.study.code}-P-0301",
+            planned_date=date.today(),
+            status=PlannedSubsample.Status.IN_CHAMBER,
+        )
+
+        response = self.client.get(f"/app/studies/{self.study.id}/planned-subsample-labels/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Etiquetas de submuestras")
+        self.assertContains(response, subsample.code)
+        subsample.refresh_from_db()
+        self.assertIsNotNone(subsample.label_printed_at)
+
+
+class SamplesViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="samples.user",
+            email="samples@example.com",
+            password="Secret123!",
+        )
+        self.client.force_login(self.user)
+        self.study_client = StudyClient.objects.create(code="CLI-001", description="Cliente Demo")
+        self.study = Study.objects.create(
+            code="EST-SAM-001",
+            title="Estudio muestras",
+            client=self.study_client,
+            product_name="Producto demo",
+            batch_number="L-SAM-001",
+            company_code="ACME",
+            start_date=date.today(),
+            status=Study.Status.DRAFT,
+        )
+        self.reception = SampleReception.objects.create(
+            study=self.study,
+            reception_number="REC-2026-001",
+            presentation="Caja",
+            quantity_received=12,
+            quantity_assigned=4,
+        )
+        self.sample = Sample.objects.create(
+            study=self.study,
+            reception=self.reception,
+            sample_code="EST-SAM-001-M-0001",
+            quantity=12,
+            current_stock=12,
+            status=Sample.Status.RECEIVED,
+        )
+
+    def test_samples_list_filters_by_study_or_client(self):
+        response = self.client.get("/app/samples/", {"q": "Cliente Demo"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.sample.sample_code)
+        self.assertContains(response, "Cantidad recibida")
+        self.assertNotContains(response, "Ubicacion")
+        self.assertNotContains(response, ">Stock<", html=False)
+
+    def test_delete_sample_is_blocked_for_approved_study(self):
+        self.study.status = Study.Status.ACTIVE
+        self.study.save(update_fields=["status", "updated_at"])
+
+        response = self.client.post(f"/app/samples/{self.sample.id}/delete/")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Sample.objects.filter(pk=self.sample.pk).exists())
+
+    def test_delete_sample_is_allowed_for_non_approved_study(self):
+        response = self.client.post(f"/app/samples/{self.sample.id}/delete/")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Sample.objects.filter(pk=self.sample.pk).exists())
+
+
+class StudiesViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="studies.user",
+            email="studies@example.com",
+            password="Secret123!",
+        )
+        self.client.force_login(self.user)
+        self.study = Study.objects.create(
+            code="EST-LIST-001",
+            title="Estudio listado",
+            product_name="Producto listado",
+            batch_number="L-LIST-001",
+            company_code="ACME",
+            start_date=date.today(),
+            status=Study.Status.DRAFT,
+        )
+        self.chamber = Chamber.objects.create(
+            code="CH-LIST-001",
+            name="Camara listado",
+            location="Sala B",
+            temperature_set_point=25,
+            humidity_set_point=60,
+            is_active=True,
+        )
+
+    def test_studies_list_shows_client_report_link_only_when_planning_exists(self):
+        response = self.client.get("/app/studies/")
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "/client-report/")
+
+        template = SamplingPointTemplate.objects.create(month_number=15, label="15M", is_active=True)
+        PlannedSubsample.objects.create(
+            study=self.study,
+            sampling_point_template=template,
+            chamber=self.chamber,
+            analysis_type=PlannedSubsample.AnalysisType.FQ,
+            code=f"{self.study.code}-P-0400",
+            planned_date=date.today(),
+            status=PlannedSubsample.Status.IN_CHAMBER,
+        )
+
+        response = self.client.get("/app/studies/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f"/app/studies/{self.study.id}/client-report/")
 
 
 class AdminGroupingTests(TestCase):
