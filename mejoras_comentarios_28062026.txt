@@ -257,3 +257,23 @@ Si quieres, en el siguiente paso te preparo también una **lista de pruebas fina
 
 
 
+
+Feat: aplicar rediseño funcional del módulo web de estabilidad según comentarios 28-06-26" -m "- actualiza la navegación superior reordenando menús, eliminando Resumen e Informes y ampliando el logo" 
+-m "- refuerza la gestión de estudios ocultando código de producto, registrando aprobación con fecha/usuario, calculando fecha fin automática y bloqueando el borrado de estudios aprobados" 
+-m "- mejora el módulo de muestras con filtros por estudio/cliente, columnas de cantidad recibida/asignada y restricción de borrado para estudios aceptados" 
+-m "- reorganiza la pantalla de planificación en el orden resumen > muestras > planificación base > submuestras generadas y simplifica el bloque superior" 
+-m "- ajusta la tabla de submuestras generadas con ubicación, fechas operativas, acciones compactas, impresión de etiquetas e informe cliente" -m "- añade impresión por lote de etiquetas planificadas y genera informe cliente desde planificación y estudios" 
+-m "- implementa envío real del informe cliente por SMTP con configuración por .env, soporte Gmail/Office 365 y adjunto PDF" 
+-m "- rediseña Plan anual como cuadro operativo con widgets, bloques de seguimiento, cámaras, retiradas, desviaciones y alertas" 
+-m "- mejora Auditoría / Audit trail con vistas más claras, paginación y exportaciones" 
+-m "- extiende la paginación consistente a estudios, muestras, planificación, operaciones, desviaciones, alertas y tablas operativas clave" 
+-m "- actualiza estilos globales y plantillas web para alinear la interfaz con el documento funcional y los comentarios de revisión
+
+
+
+
+
+
+
+
+
