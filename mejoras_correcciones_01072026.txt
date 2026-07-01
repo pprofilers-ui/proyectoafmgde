@@ -12,3 +12,22 @@ He comprobado sintaxis de los archivos tocados. No pude ejecutar el suite Django
 
 
 
+
+
+
+He encontrado el punto exacto: vuestro admin no usa la portada estándar, tiene una agrupación manual de módulos, y ahí seguramente falta añadir Modalidades de Estudio a la lista de MAESTROS. Voy a corregir solo eso.
+
+
+
+
+Sí, faltaba una cosa y ya la he corregido.
+
+El modelo `StudyMode` estaba bien registrado, pero vuestro admin tiene una agrupación manual de la portada y en esa lista de `MAESTROS` no se había añadido `StudyMode`. Por eso el combo salía en la web pero no aparecía en la home del admin.
+
+Lo he añadido en [stability/admin.py](/abs/path/C:/desarollo/proyecto_afmgde/stability/admin.py) dentro de la agrupación `maestros_order`, y además dejé un test en [stability/tests.py](/abs/path/C:/desarollo/proyecto_afmgde/stability/tests.py) para que no vuelva a desaparecer en otra modificación.
+
+No hace falta tocar nada más de datos por esto. Si ya ejecutaste la migración, con recargar el admin deberías verlo en `MAESTROS` como `Modalidades de Estudio`.
+
+
+
+

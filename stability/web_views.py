@@ -607,7 +607,7 @@ def studies_list(request):
     if page_size not in {10, 25, 50}:
         page_size = 10
 
-    studies = Study.objects.select_related("study_type", "client", "product").annotate(sample_count=Count("samples", distinct=True))
+    studies = Study.objects.select_related("study_type", "study_mode", "client", "product").annotate(sample_count=Count("samples", distinct=True))
     if search_term:
         studies = studies.filter(
             Q(code__icontains=search_term)
@@ -891,7 +891,7 @@ def sample_schedules_view(request, pk):
 def planning_list_view(request):
     status_filter = (request.GET.get("status") or "").strip()
     page_size = _get_page_size(request)
-    studies = Study.objects.select_related("study_type", "client", "product")
+    studies = Study.objects.select_related("study_type", "study_mode", "client", "product")
     if status_filter in {choice for choice, _label in Study.Status.choices}:
         studies = studies.filter(status=status_filter)
     studies = studies.order_by("-created_at")
@@ -924,7 +924,7 @@ def planning_list_view(request):
 @login_required
 def planning_study_view(request, pk):
     study = get_object_or_404(
-        Study.objects.select_related("study_type", "client", "product"),
+        Study.objects.select_related("study_type", "study_mode", "client", "product"),
         pk=pk,
     )
     page_size = _get_page_size(request)
@@ -1219,7 +1219,7 @@ def _send_client_report_email(request, study, context):
 @login_required
 def client_report_view(request, pk):
     study = get_object_or_404(
-        Study.objects.select_related("study_type", "client", "product"),
+        Study.objects.select_related("study_type", "study_mode", "client", "product"),
         pk=pk,
     )
     if not _study_has_generated_planning(study):
@@ -1252,7 +1252,7 @@ def client_report_view(request, pk):
 @login_required
 def planned_subsample_label_batch_view(request, pk):
     study = get_object_or_404(
-        Study.objects.select_related("study_type", "client", "product"),
+        Study.objects.select_related("study_type", "study_mode", "client", "product"),
         pk=pk,
     )
     if not _study_has_generated_planning(study):

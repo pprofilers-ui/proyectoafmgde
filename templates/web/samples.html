@@ -127,7 +127,12 @@
                                 </a>
                                 <form method="post" action="/app/samples/{{ sample.id }}/delete/" class="d-inline sample-delete-form">
                                     {% csrf_token %}
-                                    <button class="action-icon icon-delete" type="submit" title="{% if sample.study.status == 'active' %}No se puede eliminar una muestra de un estudio aprobado{% else %}Eliminar muestra{% endif %}" aria-label="Eliminar muestra" {% if sample.study.status == 'active' %}disabled{% endif %}>
+                                    <button
+                                        class="action-icon icon-delete"
+                                        type="submit"
+                                        title="{% if sample.study.status == 'active' %}No se puede eliminar una muestra de un estudio aprobado{% else %}Eliminar muestra{% endif %}"
+                                        aria-label="Eliminar muestra"
+                                        data-blocked="{% if sample.study.status == 'active' %}true{% else %}false{% endif %}">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
@@ -440,8 +445,18 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.sample-delete-form').forEach(function (form) {
         form.addEventListener('submit', function (event) {
             const deleteButton = form.querySelector('button[type="submit"]');
-            if (deleteButton && deleteButton.disabled) {
+            if (deleteButton && deleteButton.dataset.blocked === 'true') {
                 event.preventDefault();
+                Swal.fire({
+                    title: 'Eliminación bloqueada',
+                    text: 'No se puede eliminar una muestra de un estudio aprobado.',
+                    icon: 'warning',
+                    confirmButtonText: 'Entendido',
+                    confirmButtonColor: '#6f5ef9',
+                    customClass: {
+                        popup: 'app-swal-popup'
+                    }
+                });
                 return;
             }
             event.preventDefault();

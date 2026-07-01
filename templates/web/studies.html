@@ -113,7 +113,7 @@
                                     href="#"
                                     title="Editar estudio"
                                     aria-label="Editar estudio"
-                                    onclick="openStudyEditModal('{{ study.id }}', '{{ study.code|escapejs }}', '{{ study.title|escapejs }}', '{{ study.study_type_id|default:'' }}', '{{ study.client_id|default:'' }}', '{{ study.product_id|default:'' }}', '{{ study.product_code|escapejs }}', '{{ study.protocol|escapejs }}', '{{ study.specification|escapejs }}', '{{ study.product_name|escapejs }}', '{{ study.comments|escapejs }}', '{{ study.status }}', '{{ study.get_status_display|escapejs }}', '{{ study.start_date|date:'Y-m-d' }}', '{{ study.approved_at|date:'Y-m-d' }}', '{{ study.end_date|default:''|date:'Y-m-d' }}'); return false;">
+                                    onclick="openStudyEditModal('{{ study.id }}', '{{ study.code|escapejs }}', '{{ study.title|escapejs }}', '{{ study.study_type_id|default:'' }}', '{{ study.study_mode_id|default:'' }}', '{{ study.client_id|default:'' }}', '{{ study.product_id|default:'' }}', '{{ study.product_code|escapejs }}', '{{ study.protocol|escapejs }}', '{{ study.specification|escapejs }}', '{{ study.product_name|escapejs }}', '{{ study.comments|escapejs }}', '{{ study.status }}', '{{ study.get_status_display|escapejs }}', '{{ study.start_date|date:'Y-m-d' }}', '{{ study.approved_at|date:'Y-m-d' }}', '{{ study.end_date|default:''|date:'Y-m-d' }}'); return false;">
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 <form method="post" action="/app/studies/{{ study.id }}/delete/" class="d-inline study-delete-form">
@@ -144,7 +144,7 @@
                                         <a
                                             class="dropdown-item"
                                             href="#"
-                                        onclick="openStudyEditModal('{{ study.id }}', '{{ study.code|escapejs }}', '{{ study.title|escapejs }}', '{{ study.study_type_id|default:'' }}', '{{ study.client_id|default:'' }}', '{{ study.product_id|default:'' }}', '{{ study.product_code|escapejs }}', '{{ study.protocol|escapejs }}', '{{ study.specification|escapejs }}', '{{ study.product_name|escapejs }}', '{{ study.comments|escapejs }}', '{{ study.status }}', '{{ study.get_status_display|escapejs }}', '{{ study.start_date|date:'Y-m-d' }}', '{{ study.approved_at|date:'Y-m-d' }}', '{{ study.end_date|default:''|date:'Y-m-d' }}'); return false;">
+                                        onclick="openStudyEditModal('{{ study.id }}', '{{ study.code|escapejs }}', '{{ study.title|escapejs }}', '{{ study.study_type_id|default:'' }}', '{{ study.study_mode_id|default:'' }}', '{{ study.client_id|default:'' }}', '{{ study.product_id|default:'' }}', '{{ study.product_code|escapejs }}', '{{ study.protocol|escapejs }}', '{{ study.specification|escapejs }}', '{{ study.product_name|escapejs }}', '{{ study.comments|escapejs }}', '{{ study.status }}', '{{ study.get_status_display|escapejs }}', '{{ study.start_date|date:'Y-m-d' }}', '{{ study.approved_at|date:'Y-m-d' }}', '{{ study.end_date|default:''|date:'Y-m-d' }}'); return false;">
                                             <i class="bi bi-pencil"></i>Editar estudio
                                         </a>
                                     </div>
@@ -238,6 +238,10 @@
                 {{ study_form.status }}
             </div>
             <div class="col-md-4">
+                <label class="form-label">{{ study_form.study_mode.label }}</label>
+                {{ study_form.study_mode }}
+            </div>
+            <div class="col-md-4">
                 <label class="form-label">{{ study_form.start_date.label }}</label>
                 {{ study_form.start_date }}
             </div>
@@ -272,43 +276,47 @@
                     <div class="row g-4">
                         <div class="col-md-6">
                             <label class="form-label">Codigo</label>
-                            {{ study_form.code }}
+                            {{ edit_study_form.code }}
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Titulo</label>
-                            {{ study_form.title }}
+                            {{ edit_study_form.title }}
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Tipo de estudio</label>
-                            {{ study_form.study_type }}
+                            {{ edit_study_form.study_type }}
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Cliente</label>
-                            {{ study_form.client }}
+                            {{ edit_study_form.client }}
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Producto</label>
-                            {{ study_form.product }}
+                            {{ edit_study_form.product }}
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Codigo producto</label>
-                            {{ study_form.product_code }}
+                            {{ edit_study_form.product_code }}
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Nombre del producto</label>
-                            {{ study_form.product_name }}
+                            {{ edit_study_form.product_name }}
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Protocolo</label>
-                            {{ study_form.protocol }}
+                            {{ edit_study_form.protocol }}
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Especificacion</label>
-                            {{ study_form.specification }}
+                            {{ edit_study_form.specification }}
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Estado</label>
                             {{ edit_study_form.status }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">{{ edit_study_form.study_mode.label }}</label>
+                            {{ edit_study_form.study_mode }}
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Fecha de inicio</label>
@@ -338,7 +346,7 @@
 </div>
 
 <script>
-function openStudyEditModal(studyId, code, title, studyTypeId, clientId, productId, productCode, protocol, specification, productName, comments, status, statusLabel, startDate, acceptanceDate, endDate) {
+function openStudyEditModal(studyId, code, title, studyTypeId, studyModeId, clientId, productId, productCode, protocol, specification, productName, comments, status, statusLabel, startDate, acceptanceDate, endDate) {
     const form = document.getElementById('studyEditForm');
     form.action = `/app/studies/${studyId}/edit/`;
     form.dataset.originalStatus = status || 'draft';
@@ -346,6 +354,7 @@ function openStudyEditModal(studyId, code, title, studyTypeId, clientId, product
     document.querySelector('#studyEditModal [name="code"]').value = code || '';
     document.querySelector('#studyEditModal [name="title"]').value = title || '';
     document.querySelector('#studyEditModal [name="study_type"]').value = studyTypeId || '';
+    document.querySelector('#studyEditModal [name="study_mode"]').value = studyModeId || '';
     document.querySelector('#studyEditModal [name="client"]').value = clientId || '';
     document.querySelector('#studyEditModal [name="product"]').value = productId || '';
     document.querySelector('#studyEditModal [name="product_code"]').value = productCode || '';

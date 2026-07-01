@@ -727,3 +727,4 @@ class AdminGroupingTests(TestCase):
         self.assertIsNotNone(maestros_group)
         model_names = [model.get("object_name") for model in maestros_group.get("models", [])]
         self.assertIn("SamplingPointTemplate", model_names)
+        self.assertIn("StudyMode", model_names)

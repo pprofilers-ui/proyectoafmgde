@@ -16,6 +16,7 @@ from .models import (
     SampleReception,
     SamplingPoint,
     Study,
+    StudyMode,
     StudyType,
 )
 
@@ -199,6 +200,7 @@ class StudyCreateForm(forms.ModelForm):
             "code",
             "title",
             "study_type",
+            "study_mode",
             "client",
             "product",
             "product_code",
@@ -219,12 +221,14 @@ class StudyCreateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["study_type"].queryset = StudyType.objects.filter(is_active=True).order_by("name")
+        self.fields["study_mode"].queryset = StudyMode.objects.filter(is_active=True).order_by("name")
         self.fields["client"].queryset = Client.objects.order_by("code")
         self.fields["product"].queryset = Product.objects.filter(is_active=True).order_by("code")
         labels = {
             "code": "Codigo",
             "title": "Titulo",
             "study_type": "Tipo de estudio",
+            "study_mode": "Modalidad",
             "client": "Cliente",
             "product": "Producto",
             "product_code": "Codigo Producto",
@@ -240,6 +244,7 @@ class StudyCreateForm(forms.ModelForm):
             "code": "Ej. EST-2026-003",
             "title": "Titulo del estudio",
             "study_type": "Selecciona el tipo de estudio",
+            "study_mode": "Selecciona la modalidad",
             "client": "Cliente del estudio",
             "product_code": "Codigo interno del producto",
             "protocol": "Codigo de protocolo",
@@ -283,6 +288,7 @@ class StudyEditForm(forms.ModelForm):
             "code",
             "title",
             "study_type",
+            "study_mode",
             "client",
             "product",
             "product_code",
@@ -303,12 +309,14 @@ class StudyEditForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["study_type"].queryset = StudyType.objects.filter(is_active=True).order_by("name")
+        self.fields["study_mode"].queryset = StudyMode.objects.filter(is_active=True).order_by("name")
         self.fields["client"].queryset = Client.objects.order_by("code")
         self.fields["product"].queryset = Product.objects.filter(is_active=True).order_by("code")
         labels = {
             "code": "Codigo",
             "title": "Titulo",
             "study_type": "Tipo de estudio",
+            "study_mode": "Modalidad",
             "client": "Cliente",
             "product": "Producto",
             "product_code": "Codigo Producto",
@@ -325,6 +333,7 @@ class StudyEditForm(forms.ModelForm):
             "code": "Ej. EST-2026-003",
             "title": "Titulo del estudio",
             "study_type": "Selecciona el tipo de estudio",
+            "study_mode": "Selecciona la modalidad",
             "client": "Cliente del estudio",
             "product_code": "Codigo interno del producto",
             "protocol": "Codigo de protocolo",

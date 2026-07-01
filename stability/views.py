@@ -22,6 +22,7 @@ from .models import (
     StockMovement,
     StorageCondition,
     Study,
+    StudyMode,
     StudyType,
 )
 from .serializers import (
@@ -38,6 +39,7 @@ from .serializers import (
     StockMovementSerializer,
     StorageConditionSerializer,
     StudySerializer,
+    StudyModeSerializer,
     StudyTypeSerializer,
 )
 
@@ -114,10 +116,17 @@ class StudyTypeViewSet(viewsets.ModelViewSet):
     search_fields = ["code", "name"]
 
 
+class StudyModeViewSet(viewsets.ModelViewSet):
+    queryset = StudyMode.objects.all()
+    serializer_class = StudyModeSerializer
+    filterset_fields = ["is_active"]
+    search_fields = ["code", "name"]
+
+
 class StudyViewSet(CompanyScopedViewSet):
-    queryset = Study.objects.select_related("study_type", "client", "product", "batch", "packaging").all()
+    queryset = Study.objects.select_related("study_type", "study_mode", "client", "product", "batch", "packaging").all()
     serializer_class = StudySerializer
-    filterset_fields = ["status", "company_code", "product", "study_type", "client", "batch"]
+    filterset_fields = ["status", "company_code", "product", "study_type", "study_mode", "client", "batch"]
     search_fields = ["code", "title", "product_name", "product_code", "protocol", "specification"]
     ordering_fields = ["start_date", "created_at", "code"]
 

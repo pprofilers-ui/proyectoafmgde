@@ -23,6 +23,7 @@ from .models import (
     StockMovement,
     StorageCondition,
     Study,
+    StudyMode,
     StudyPlanningEntry,
     StudyType,
 )
@@ -89,6 +90,7 @@ _apply_admin_field_labels(ChamberLocation, {
 _apply_admin_field_labels(Study, {
     "code": "Código",
     "title": "Título",
+    "study_mode": "Modalidad",
     "client": "Cliente",
     "packaging": "Formato",
     "product_name": "Nombre del producto",
@@ -100,6 +102,11 @@ _apply_admin_field_labels(Study, {
     "approved_at": "Fecha de aceptación",
     "approved_by": "Aprobado por",
     "end_date": "Fecha de fin",
+})
+_apply_admin_field_labels(StudyMode, {
+    "code": "Código",
+    "name": "Nombre",
+    "is_active": "Activo",
 })
 _apply_admin_field_labels(Chamber, {
     "code": "Código",
@@ -297,6 +304,25 @@ class StudyTypeAdmin(admin.ModelAdmin):
         return request.user.is_staff
 
 
+@admin.register(StudyMode)
+class StudyModeAdmin(admin.ModelAdmin):
+    list_display = ("code", "name", "is_active")
+    list_filter = ("is_active",)
+    search_fields = ("code", "name")
+
+    def has_module_permission(self, request):
+        return request.user.is_staff
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_staff
+
+    def has_add_permission(self, request):
+        return request.user.is_staff
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_staff
+
+
 @admin.register(ProductBatch)
 class ProductBatchAdmin(admin.ModelAdmin):
     list_display = ("code", "product", "packaging", "manufactured_at", "expiry_date", "quantity_released")
@@ -376,14 +402,15 @@ class ChamberLocationAdmin(admin.ModelAdmin):
 
 @admin.register(Study)
 class StudyAdmin(admin.ModelAdmin):
-    list_display = ("code", "title", "study_type", "client", "product", "product_code", "status", "start_date", "approved_at", "end_date")
-    list_filter = ("status", "company_code", "client", "study_type", "product")
+    list_display = ("code", "title", "study_type", "study_mode", "client", "product", "product_code", "status", "start_date", "approved_at", "end_date")
+    list_filter = ("status", "company_code", "client", "study_type", "study_mode", "product")
     search_fields = ("code", "title", "product_name", "product_code", "protocol", "specification", "client__code", "client__description")
     readonly_fields = ("approved_at", "approved_by")
     fields = (
         "code",
         "title",
         "study_type",
+        "study_mode",
         "client",
         "product",
         "product_code",
@@ -639,6 +666,7 @@ def _grouped_admin_app_list(request, app_label=None):
     maestros_order = [
         "Client",
         "StudyType",
+        "StudyMode",
         "SamplingPointTemplate",
         "Chamber",
         "ChamberLocation",
