@@ -28,7 +28,7 @@ import qrcode
 
 from audit.utils import register_audit_event
 
-from .models import Chamber, ChamberDeviation, Client, LabelTemplate, PlannedSubsample, Product, ProductBatch, Sample, SampleReception, SampleSchedule, SamplingPoint, SamplingPointTemplate, StabilityAlert, StockMovement, Study, StudyPlanningEntry
+from .models import Chamber, ChamberDeviation, ChamberLocation, Client, LabelTemplate, PlannedSubsample, Product, ProductBatch, Sample, SampleReception, SampleSchedule, SamplingPoint, SamplingPointTemplate, StabilityAlert, StockMovement, Study, StudyPlanningEntry
 from .web_forms import ChamberDeviationForm, ChamberPlacementForm, SampleCreateForm, SampleExtractionForm, SampleLabelForm, SampleRegistrationForm, SampleReceptionForm, SampleScheduleEditForm, SampleScheduleForm, StudyCreateForm, StudyEditForm
 
 
@@ -65,6 +65,45 @@ def generate_sample_code(study):
     existing = Sample.objects.filter(study=study).values_list("sample_code", flat=True)
     seq = _next_sequence(existing)
     return SAMPLE_CODE_PATTERN.format(study_code=study.code, seq=seq)
+
+
+def _planned_subsample_code_base(study):
+    first_sample = study.samples.order_by("created_at", "id").first()
+    if first_sample and first_sample.sample_code:
+        return first_sample.sample_code
+    return study.code
+
+
+def _generate_planned_subsample_code(study, seq):
+    return f"{_planned_subsample_code_base(study)}-P-{seq:04d}"
+
+
+def _refresh_planned_subsample_codes_for_study(study):
+    subsamples_to_update = []
+    for index, subsample in enumerate(study.planned_subsamples.order_by("id"), start=1):
+        subsample.code = _generate_planned_subsample_code(study, index)
+        subsamples_to_update.append(subsample)
+
+    if subsamples_to_update:
+        PlannedSubsample.objects.bulk_update(subsamples_to_update, ["code", "updated_at"])
+
+
+def _refresh_sample_dependent_codes(sample):
+    if sample.qr_code:
+        sample.qr_code = f"QR::{sample.sample_code}"
+        sample.save(update_fields=["qr_code", "updated_at"])
+
+    schedules_to_update = []
+    for index, schedule in enumerate(sample.schedules.order_by("created_at", "id"), start=1):
+        schedule.label = f"{sample.sample_code}-F{index:03d}"
+        if schedule.schedule_qr_code:
+            schedule.schedule_qr_code = f"QR::{schedule.label}"
+        schedules_to_update.append(schedule)
+
+    if schedules_to_update:
+        SampleSchedule.objects.bulk_update(schedules_to_update, ["label", "schedule_qr_code", "updated_at"])
+
+    _refresh_planned_subsample_codes_for_study(sample.study)
 
 
 def generate_reception_number():
@@ -154,14 +193,15 @@ def recalculate_reception_assigned_quantity(sample):
 
 def ensure_study_sampling_points(study):
     created_points = []
-    if study.sampling_points.exists():
+    base_start_date = getattr(study, "start_date", None)
+    if study.sampling_points.exists() or not base_start_date:
         return created_points
 
     for label, days_offset in DEFAULT_SAMPLING_SCHEDULE:
         point = SamplingPoint.objects.create(
             study=study,
             label=label,
-            target_date=study.start_date + timedelta(days=days_offset),
+            target_date=base_start_date + timedelta(days=days_offset),
             tolerance_days=3,
         )
         created_points.append(point)
@@ -309,10 +349,6 @@ def _request_planning_matches_saved(study, request, chambers, templates):
         for entry in study.planning_entries.all()
     }
     return request_entries == saved_entries
-
-
-def _generate_planned_subsample_code(study, seq):
-    return f"{study.code}-P-{seq:04d}"
 
 
 def _study_received_quantity_total(study):
@@ -473,6 +509,36 @@ def _update_planned_subsample(study, subsample_id, request):
     return True, None
 
 
+def _planned_location_matches_chamber(chamber, location_code):
+    chamber_code = (getattr(chamber, "code", "") or "").strip().upper().replace("-", "")
+    normalized_location_code = (location_code or "").strip().upper()
+    if not chamber_code or not normalized_location_code:
+        return False
+    return normalized_location_code.startswith(f"{chamber_code}-")
+
+
+def _update_planned_subsample_location(study, subsample_id, request):
+    subsample = study.planned_subsamples.select_related("chamber").filter(pk=subsample_id).first()
+    if not subsample:
+        return False, "La submuestra seleccionada no existe para este estudio."
+
+    storage_location = (request.POST.get("storage_location") or "").strip()
+    if storage_location and not _planned_location_matches_chamber(subsample.chamber, storage_location):
+        return False, "La ubicación seleccionada no pertenece a la cámara de esta submuestra."
+
+    before_location = subsample.storage_location
+    subsample.storage_location = storage_location
+    subsample.save(update_fields=["storage_location", "updated_at"])
+
+    register_audit_event(
+        subsample,
+        "web_update_planned_subsample_location",
+        payload={"study": study.code, "code": subsample.code},
+        changes={"storage_location": {"before": before_location, "after": subsample.storage_location}},
+    )
+    return True, None
+
+
 def _mark_planned_subsample_label_printed(subsample):
     subsample.label_printed_at = timezone.now()
     subsample.save(update_fields=["label_printed_at", "updated_at"])
@@ -541,7 +607,7 @@ def studies_list(request):
     if page_size not in {10, 25, 50}:
         page_size = 10
 
-    studies = Study.objects.select_related("study_type", "client", "product")
+    studies = Study.objects.select_related("study_type", "client", "product").annotate(sample_count=Count("samples", distinct=True))
     if search_term:
         studies = studies.filter(
             Q(code__icontains=search_term)
@@ -734,6 +800,7 @@ def samples_list(request):
             client_code = study.client.code
 
         sample_initial["study"] = study
+        sample_initial["sample_code"] = generate_sample_code(study)
         reception = (
             SampleReception.objects.filter(study=study)
             .order_by("-received_at", "-created_at")
@@ -863,6 +930,7 @@ def planning_study_view(request, pk):
     page_size = _get_page_size(request)
     ensure_sampling_point_templates()
     chambers = list(Chamber.objects.filter(is_active=True).order_by("code"))
+    chamber_locations = list(ChamberLocation.objects.filter(is_active=True).order_by("code"))
     templates = list(SamplingPointTemplate.objects.filter(is_active=True).order_by("month_number"))
 
     if request.method == "POST":
@@ -892,6 +960,13 @@ def planning_study_view(request, pk):
                 messages.success(request, "Submuestra actualizada correctamente.")
             else:
                 messages.error(request, error_message or "No se pudo actualizar la submuestra.")
+            return redirect("web-study-planning", pk=study.pk)
+        elif action == "update_subsample_location":
+            ok, error_message = _update_planned_subsample_location(study, request.POST.get("subsample_id"), request)
+            if ok:
+                messages.success(request, "Ubicación actualizada correctamente.")
+            else:
+                messages.error(request, error_message or "No se pudo actualizar la ubicación.")
             return redirect("web-study-planning", pk=study.pk)
         else:
             ok, error_message = _save_study_planning_entries(request, study, chambers, templates)
@@ -930,6 +1005,7 @@ def planning_study_view(request, pk):
         "planning_rows": planning_rows,
         "planning_matrix_rows": planning_matrix_rows,
         "active_chambers": chambers,
+        "chamber_locations": chamber_locations,
         "sampling_point_templates": templates,
         "generated_subsamples": page_obj.object_list,
         "page_obj": page_obj,
@@ -1652,11 +1728,10 @@ def create_sample_web(request):
             status=SampleReception.Status.RECEIVED,
             notes=data["notes"],
         )
-        sample_code = generate_sample_code(data["study"])
         sample = Sample(
             study=data["study"],
             reception=reception,
-            sample_code=sample_code,
+            sample_code=data["sample_code"],
             quantity=data["quantity_received"] or 1,
             current_stock=data["quantity_received"] or 1,
             status=Sample.Status.RECEIVED,
@@ -1686,11 +1761,12 @@ def edit_sample_web(request, pk):
     sample = get_object_or_404(Sample, pk=pk)
     if request.method != "POST":
         return redirect("web-samples")
-    form = SampleRegistrationForm(request.POST)
+    form = SampleRegistrationForm(request.POST, sample_instance=sample)
     if form.is_valid():
         data = form.cleaned_data
         previous_status = sample.status
         previous_stock = sample.current_stock
+        previous_sample_code = sample.sample_code
         reception = sample.reception
         batch = resolve_batch_from_code(data["batch"])
         if reception is None:
@@ -1745,14 +1821,15 @@ def edit_sample_web(request, pk):
             reception.save()
 
         sample.study = data["study"]
+        sample.sample_code = data["sample_code"]
         sample.quantity = data["quantity_received"] or sample.quantity or 1
         sample.current_stock = data["quantity_received"] or sample.current_stock or 1
         sample.status = Sample.Status.RECEIVED
         if not sample.received_at:
             sample.received_at = data["received_at"]
-        if not sample.sample_code:
-            sample.sample_code = generate_sample_code(data["study"])
         sample.save()
+        if sample.sample_code != previous_sample_code:
+            _refresh_sample_dependent_codes(sample)
         recalculate_reception_assigned_quantity(sample)
         register_audit_event(
             sample,

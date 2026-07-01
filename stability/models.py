@@ -188,7 +188,7 @@ class Study(TimeStampedModel):
     comments = models.TextField(blank=True)
     company_code = models.CharField(max_length=50)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
-    start_date = models.DateField()
+    start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     approved_at = models.DateTimeField(null=True, blank=True)
     approved_by = models.ForeignKey(

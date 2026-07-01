@@ -1333,6 +1333,56 @@ textarea.form-control {
     white-space: nowrap;
 }
 
+.planned-location-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 34px;
+    max-width: 100%;
+    padding: 6px 12px;
+    border: 1px dashed rgba(79, 124, 247, 0.28);
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(79, 124, 247, 0.08), rgba(79, 124, 247, 0.03));
+    color: #3d67d8;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: left;
+    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.planned-location-trigger:hover,
+.planned-location-trigger:focus-visible {
+    border-color: rgba(79, 124, 247, 0.45);
+    background: linear-gradient(180deg, rgba(79, 124, 247, 0.12), rgba(79, 124, 247, 0.05));
+    box-shadow: 0 10px 22px rgba(79, 124, 247, 0.14);
+    transform: translateY(-1px);
+    color: #3157bf;
+    outline: none;
+}
+
+.planned-location-trigger__text {
+    display: inline-block;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.planned-location-trigger__icon {
+    flex: 0 0 auto;
+    font-size: 12px;
+    opacity: 0.85;
+}
+
+.planned-location-inline-form {
+    min-width: 210px;
+}
+
+.planned-location-inline-select {
+    border-radius: 12px;
+    border-color: rgba(79, 124, 247, 0.24);
+    box-shadow: 0 8px 18px rgba(79, 124, 247, 0.1);
+}
+
 .planning-toolbar {
     display: flex;
     justify-content: space-between;

@@ -79,6 +79,19 @@ class StudyApiTests(APITestCase):
 
 
 class StudyFormValidationTests(TestCase):
+    def test_create_form_allows_draft_without_start_date(self):
+        form = StudyCreateForm(
+            data={
+                "title": "Estudio borrador",
+                "product_name": "Producto test",
+                "status": Study.Status.DRAFT,
+                "start_date": "",
+                "end_date": "",
+            }
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+
     def test_create_form_requires_end_date_when_study_is_closed(self):
         form = StudyCreateForm(
             data={
@@ -269,7 +282,7 @@ class PlanningViewTests(TestCase):
         subsamples = PlannedSubsample.objects.filter(study=self.study).order_by("code")
         self.assertEqual(subsamples.count(), 2)
         self.assertEqual(subsamples.first().status, PlannedSubsample.Status.IN_CHAMBER)
-        self.assertTrue(subsamples.first().code.startswith(f"{self.study.code}-P-"))
+        self.assertTrue(subsamples.first().code.startswith(f"{self.study.code}-M-0003-P-"))
         self.assertEqual(subsamples.first().quantity, 2)
         self.assertEqual(subsamples.last().quantity, 1)
 

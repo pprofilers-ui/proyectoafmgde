@@ -18,9 +18,14 @@
             <h2 class="panel-copy-title">Listado de muestras</h2>
             <p class="panel-copy-text">Consulta operativa de muestras recibidas y asignadas dentro de cada estudio.</p>
         </div>
-        <button class="btn btn-primary" type="button" onclick="toggleSampleForm()">
-            <i class="bi bi-plus-lg me-2"></i>Nueva muestra
-        </button>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <a class="btn btn-neutral-soft" href="/app/studies/">
+                <i class="bi bi-arrow-left me-2"></i>Volver a estudios
+            </a>
+            <button class="btn btn-primary" type="button" onclick="toggleSampleForm()">
+                <i class="bi bi-plus-lg me-2"></i>Nueva muestra
+            </button>
+        </div>
     </div>
 
     <div class="px-4 pt-3">
@@ -177,7 +182,7 @@
             </div>
             <div class="col-md-4">
                 <label class="form-label">Codigo de muestra</label>
-                <input class="form-control" type="text" value="{% if sample_code_preview %}{{ sample_code_preview }}{% else %}Se generara automaticamente{% endif %}" readonly>
+                {{ sample_form.sample_code }}
             </div>
 
             <div class="col-md-6">
@@ -288,7 +293,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Codigo de muestra</label>
-                            <input class="form-control" id="edit_sample_code" name="sample_code" type="text" readonly>
+                            <input class="form-control" id="edit_sample_code" name="sample_code" type="text">
                         </div>
 
                         <div class="col-md-6">

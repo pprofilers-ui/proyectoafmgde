@@ -99,7 +99,13 @@
                                 <a class="action-icon icon-view" href="/app/samples/?study={{ study.id }}" title="Ver muestras del estudio" aria-label="Ver muestras del estudio">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                <a class="action-icon icon-plan" href="/app/studies/{{ study.id }}/planning/" title="Planificar estudio" aria-label="Planificar estudio">
+                                <a
+                                    class="action-icon icon-plan study-planning-link"
+                                    href="/app/studies/{{ study.id }}/planning/"
+                                    title="Planificar estudio"
+                                    aria-label="Planificar estudio"
+                                    data-has-samples="{% if study.sample_count %}true{% else %}false{% endif %}"
+                                >
                                     <i class="bi bi-calendar3"></i>
                                 </a>
                                 <a
@@ -127,7 +133,7 @@
                                         <a class="dropdown-item" href="/app/samples/?study={{ study.id }}&open=create">
                                             <i class="bi bi-plus-circle"></i>Crear muestra
                                         </a>
-                                        <a class="dropdown-item" href="/app/studies/{{ study.id }}/planning/">
+                                        <a class="dropdown-item study-planning-link" href="/app/studies/{{ study.id }}/planning/" data-has-samples="{% if study.sample_count %}true{% else %}false{% endif %}">
                                             <i class="bi bi-calendar3"></i>Planificar estudio
                                         </a>
                                         {% if study.planned_subsamples.exists %}
@@ -371,6 +377,26 @@ function toggleStudyForm() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.study-planning-link').forEach(function (link) {
+        link.addEventListener('click', function (event) {
+            if (link.dataset.hasSamples === 'true') {
+                return;
+            }
+
+            event.preventDefault();
+            Swal.fire({
+                title: 'Muestras requeridas',
+                text: 'No puedes crear plantillas sin antes crear la muestra.',
+                icon: 'warning',
+                confirmButtonText: 'Entendido',
+                confirmButtonColor: '#6f5ef9',
+                customClass: {
+                    popup: 'app-swal-popup'
+                }
+            });
+        });
+    });
+
     document.querySelectorAll('.study-status-form').forEach(function (form) {
         form.addEventListener('submit', function (event) {
             const statusField = form.querySelector('[name="status"]');

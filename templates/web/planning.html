@@ -222,7 +222,30 @@
                             <tr>
                                 <td class="cell-code">{{ subsample.code }}</td>
                                 <td>{{ subsample.chamber.code }}</td>
-                                <td>{{ subsample.storage_location|default:"-" }}</td>
+                                <td>
+                                    <button
+                                        class="planned-location-trigger"
+                                        type="button"
+                                        data-subsample-id="{{ subsample.id }}"
+                                        data-chamber-id="{{ subsample.chamber_id }}"
+                                        data-current-location="{{ subsample.storage_location|default:''|escapejs }}"
+                                        title="Haz clic para cambiar la ubicación"
+                                    >
+                                        <span class="planned-location-trigger__text">{{ subsample.storage_location|default:"Sin ubicar" }}</span>
+                                        <i class="bi bi-pencil-square planned-location-trigger__icon" aria-hidden="true"></i>
+                                    </button>
+                                    <form method="post" class="d-none planned-location-inline-form mt-1">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="update_subsample_location">
+                                        <input type="hidden" name="subsample_id" value="{{ subsample.id }}">
+                                        <select class="form-select form-select-sm planned-location-inline-select" name="storage_location">
+                                            <option value="">---------</option>
+                                            {% for option in chamber_locations %}
+                                            <option value="{{ option.code }}" data-chamber-key="{% if option.code %}{{ option.code|upper|slice:':5' }}{% endif %}">{{ option.code }} - {{ option.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </form>
+                                </td>
                                 <td>{{ subsample.get_analysis_type_display }}</td>
                                 <td>{{ subsample.sampling_point_template.label }}</td>
                                 <td>{{ subsample.planned_date|date:"d/m/Y"|default:"-" }}</td>
@@ -244,6 +267,7 @@
                                             type="button"
                                             data-subsample-id="{{ subsample.id }}"
                                             data-code="{{ subsample.code }}"
+                                            data-chamber-id="{{ subsample.chamber_id }}"
                                             data-analysis-date="{{ subsample.analysis_date|date:'Y-m-d'|default:'' }}"
                                             data-quantity="{{ subsample.quantity|default:'' }}"
                                             data-storage-location="{{ subsample.storage_location|default:''|escapejs }}"
@@ -335,7 +359,12 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Ubicacion</label>
-                            <input class="form-control" id="edit_planned_storage_location" name="storage_location" type="text">
+                            <select class="form-select" id="edit_planned_storage_location" name="storage_location">
+                                <option value="">---------</option>
+                                {% for option in chamber_locations %}
+                                <option value="{{ option.code }}" data-chamber-key="{% if option.code %}{{ option.code|upper|slice:':5' }}{% endif %}">{{ option.code }} - {{ option.name }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                         <div class="col-12">
                             <label class="form-label">Observaciones de ubicacion</label>
@@ -399,6 +428,73 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function markPlanningDirty() {
         planningDirty = true;
+    }
+
+    function filterPlannedLocationOptions(chamberId, locationSelectId) {
+        const locationSelect = document.getElementById(locationSelectId);
+        if (!locationSelect) {
+            return;
+        }
+
+        const chamberMap = {
+            {% for chamber in active_chambers %}
+            "{{ chamber.id }}": "{{ chamber.code|upper|cut:'-' }}",
+            {% endfor %}
+        };
+
+        const selectedChamberKey = chamberMap[String(chamberId || '')] || '';
+        const currentValue = locationSelect.value;
+
+        Array.from(locationSelect.options).forEach((option, index) => {
+            if (index === 0) {
+                option.hidden = false;
+                option.disabled = false;
+                return;
+            }
+
+            const optionKey = option.dataset.chamberKey || '';
+            const belongsToChamber = !selectedChamberKey || optionKey === selectedChamberKey;
+            option.hidden = !belongsToChamber;
+            option.disabled = !belongsToChamber;
+        });
+
+        const selectedOption = Array.from(locationSelect.options).find((option) => option.value === currentValue);
+        if (!selectedOption || selectedOption.disabled) {
+            locationSelect.value = '';
+        }
+    }
+
+    function filterPlannedLocationOptionsForElement(chamberId, locationSelect) {
+        if (!locationSelect) {
+            return;
+        }
+
+        const chamberMap = {
+            {% for chamber in active_chambers %}
+            "{{ chamber.id }}": "{{ chamber.code|upper|cut:'-' }}",
+            {% endfor %}
+        };
+
+        const selectedChamberKey = chamberMap[String(chamberId || '')] || '';
+        const currentValue = locationSelect.value;
+
+        Array.from(locationSelect.options).forEach((option, index) => {
+            if (index === 0) {
+                option.hidden = false;
+                option.disabled = false;
+                return;
+            }
+
+            const optionKey = option.dataset.chamberKey || '';
+            const belongsToChamber = !selectedChamberKey || optionKey === selectedChamberKey;
+            option.hidden = !belongsToChamber;
+            option.disabled = !belongsToChamber;
+        });
+
+        const selectedOption = Array.from(locationSelect.options).find((option) => option.value === currentValue);
+        if (!selectedOption || selectedOption.disabled) {
+            locationSelect.value = '';
+        }
     }
 
     function attachRowEvents(row) {
@@ -500,10 +596,62 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('edit_planned_subsample_code').value = button.dataset.code || '';
             document.getElementById('edit_planned_analysis_date').value = button.dataset.analysisDate || '';
             document.getElementById('edit_planned_quantity').value = button.dataset.quantity || '';
+            filterPlannedLocationOptions(button.dataset.chamberId || '', 'edit_planned_storage_location');
             document.getElementById('edit_planned_storage_location').value = button.dataset.storageLocation || '';
             document.getElementById('edit_planned_location_notes').value = button.dataset.locationNotes || '';
             const modal = new bootstrap.Modal(document.getElementById('plannedSubsampleEditModal'));
             modal.show();
+        });
+    });
+
+    document.querySelectorAll('.planned-location-trigger').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const cell = button.closest('td');
+            const form = cell ? cell.querySelector('.planned-location-inline-form') : null;
+            const select = form ? form.querySelector('.planned-location-inline-select') : null;
+            if (!form || !select) {
+                return;
+            }
+
+            document.querySelectorAll('.planned-location-inline-form').forEach(function (openForm) {
+                if (openForm !== form) {
+                    openForm.classList.add('d-none');
+                }
+            });
+            document.querySelectorAll('.planned-location-trigger').forEach(function (openButton) {
+                if (openButton !== button) {
+                    openButton.classList.remove('d-none');
+                }
+            });
+
+            filterPlannedLocationOptionsForElement(button.dataset.chamberId || '', select);
+            select.value = button.dataset.currentLocation || '';
+            form.classList.remove('d-none');
+            button.classList.add('d-none');
+            select.focus();
+        });
+    });
+
+    document.querySelectorAll('.planned-location-inline-select').forEach(function (select) {
+        select.addEventListener('change', function () {
+            const form = select.closest('form');
+            if (form) {
+                form.submit();
+            }
+        });
+
+        select.addEventListener('blur', function () {
+            window.setTimeout(function () {
+                const form = select.closest('form');
+                const cell = form ? form.closest('td') : null;
+                const trigger = cell ? cell.querySelector('.planned-location-trigger') : null;
+                if (form) {
+                    form.classList.add('d-none');
+                }
+                if (trigger) {
+                    trigger.classList.remove('d-none');
+                }
+            }, 120);
         });
     });
 });

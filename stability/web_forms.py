@@ -253,6 +253,7 @@ class StudyCreateForm(forms.ModelForm):
         self.fields["code"].required = False
         self.fields["code"].widget.attrs["readonly"] = True
         self.fields["code"].widget.attrs["tabindex"] = "-1"
+        self.fields["start_date"].required = False
         self.fields["end_date"].required = False
 
     def clean(self):
@@ -338,6 +339,7 @@ class StudyEditForm(forms.ModelForm):
         self.fields["code"].widget.attrs["readonly"] = True
         self.fields["code"].widget.attrs["tabindex"] = "-1"
         self.fields["acceptance_date"].widget.attrs["tabindex"] = "-1"
+        self.fields["start_date"].required = False
         self.fields["end_date"].required = False
         if self.instance and self.instance.pk and self.instance.approved_at:
             self.fields["acceptance_date"].initial = timezone.localtime(self.instance.approved_at).date()
@@ -422,6 +424,7 @@ class SampleCreateForm(forms.ModelForm):
 
 class SampleRegistrationForm(forms.Form):
     study = forms.ModelChoiceField(queryset=Study.objects.none())
+    sample_code = forms.CharField(max_length=100)
     presentation = forms.CharField(required=False)
     packaging = forms.ModelChoiceField(queryset=PackagingConfiguration.objects.none(), required=False)
     batch = forms.CharField(required=False)
@@ -441,13 +444,15 @@ class SampleRegistrationForm(forms.Form):
     quantity_contingency = forms.IntegerField(min_value=0, initial=0)
     notes = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 3}))
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, sample_instance=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.sample_instance = sample_instance
         self.fields["study"].queryset = Study.objects.order_by("code")
         self.fields["packaging"].queryset = PackagingConfiguration.objects.filter(is_active=True).order_by("code")
         self.fields["received_at"].input_formats = ["%Y-%m-%dT%H:%M"]
         labels = {
             "study": "Estudio",
+            "sample_code": "Codigo de muestra",
             "presentation": "Presentacion",
             "packaging": "Formato",
             "batch": "Lote",
@@ -468,6 +473,7 @@ class SampleRegistrationForm(forms.Form):
             "notes": "Observaciones",
         }
         placeholders = {
+            "sample_code": "Ej. EST-2026-003-M-001",
             "presentation": "Presentacion del producto",
             "batch": "Ej. LOT-328",
             "batch_size": "Tamano del batch",
@@ -490,6 +496,15 @@ class SampleRegistrationForm(forms.Form):
         self.fields["reception_number"].initial = _next_reception_number()
         self.fields["reception_number"].widget.attrs["readonly"] = True
         self.fields["quantity_assigned"].widget.attrs["readonly"] = True
+
+    def clean_sample_code(self):
+        sample_code = (self.cleaned_data.get("sample_code") or "").strip()
+        existing = Sample.objects.filter(sample_code=sample_code)
+        if self.sample_instance and self.sample_instance.pk:
+            existing = existing.exclude(pk=self.sample_instance.pk)
+        if existing.exists():
+            raise forms.ValidationError("Ya existe una muestra con este codigo.")
+        return sample_code
 
 
 class ChamberPlacementForm(forms.Form):
