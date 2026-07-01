@@ -125,6 +125,23 @@ class StudyFormValidationTests(TestCase):
 
         self.assertTrue(form.is_valid(), form.errors)
 
+    def test_edit_form_shows_acceptance_date_from_approval(self):
+        study = Study.objects.create(
+            code="EST-VAL-002",
+            title="Estudio con aprobacion",
+            product_name="Producto test",
+            batch_number="L-002",
+            company_code="ACME",
+            status=Study.Status.ACTIVE,
+            start_date=date.today(),
+            approved_at=timezone.now(),
+        )
+
+        form = StudyEditForm(instance=study)
+
+        self.assertIn("acceptance_date", form.fields)
+        self.assertEqual(form.fields["acceptance_date"].initial, timezone.localdate(study.approved_at))
+
 
 class PlanningViewTests(TestCase):
     def setUp(self):
@@ -213,6 +230,21 @@ class PlanningViewTests(TestCase):
 
     def test_generate_planning_creates_planned_subsamples(self):
         template = SamplingPointTemplate.objects.create(month_number=99, label="99M", is_active=True)
+        reception = SampleReception.objects.create(
+            study=self.study,
+            reception_number="REC-PLAN-003",
+            presentation="Blister",
+            quantity_received=10,
+            quantity_assigned=0,
+        )
+        Sample.objects.create(
+            study=self.study,
+            reception=reception,
+            sample_code=f"{self.study.code}-M-0003",
+            quantity=10,
+            current_stock=10,
+            status=Sample.Status.RECEIVED,
+        )
         StudyPlanningEntry.objects.create(
             study=self.study,
             sampling_point_template=template,
@@ -235,9 +267,85 @@ class PlanningViewTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         subsamples = PlannedSubsample.objects.filter(study=self.study).order_by("code")
-        self.assertEqual(subsamples.count(), 3)
+        self.assertEqual(subsamples.count(), 2)
         self.assertEqual(subsamples.first().status, PlannedSubsample.Status.IN_CHAMBER)
         self.assertTrue(subsamples.first().code.startswith(f"{self.study.code}-P-"))
+        self.assertEqual(subsamples.first().quantity, 2)
+        self.assertEqual(subsamples.last().quantity, 1)
+
+    def test_generate_planning_blocks_when_planned_quantity_exceeds_received(self):
+        template = SamplingPointTemplate.objects.create(month_number=98, label="98M", is_active=True)
+        reception = SampleReception.objects.create(
+            study=self.study,
+            reception_number="REC-PLAN-004",
+            presentation="Blister",
+            quantity_received=2,
+            quantity_assigned=0,
+        )
+        Sample.objects.create(
+            study=self.study,
+            reception=reception,
+            sample_code=f"{self.study.code}-M-0004",
+            quantity=2,
+            current_stock=2,
+            status=Sample.Status.RECEIVED,
+        )
+        StudyPlanningEntry.objects.create(
+            study=self.study,
+            sampling_point_template=template,
+            chamber=self.chamber,
+            analysis_type=StudyPlanningEntry.AnalysisType.FQ,
+            subsample_quantity=3,
+        )
+
+        response = self.client.post(
+            f"/app/studies/{self.study.id}/planning/",
+            data={"action": "generate_planning"},
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "no puede superar la cantidad recibida")
+        self.assertEqual(PlannedSubsample.objects.filter(study=self.study).count(), 0)
+
+    def test_generate_planning_requires_saving_updated_base_first(self):
+        template = SamplingPointTemplate.objects.create(month_number=97, label="97M", is_active=True)
+        reception = SampleReception.objects.create(
+            study=self.study,
+            reception_number="REC-PLAN-005",
+            presentation="Blister",
+            quantity_received=10,
+            quantity_assigned=0,
+        )
+        Sample.objects.create(
+            study=self.study,
+            reception=reception,
+            sample_code=f"{self.study.code}-M-0005",
+            quantity=10,
+            current_stock=10,
+            status=Sample.Status.RECEIVED,
+        )
+        StudyPlanningEntry.objects.create(
+            study=self.study,
+            sampling_point_template=template,
+            chamber=self.chamber,
+            analysis_type=StudyPlanningEntry.AnalysisType.FQ,
+            subsample_quantity=3,
+        )
+
+        response = self.client.post(
+            f"/app/studies/{self.study.id}/planning/",
+            data={
+                "action": "generate_planning",
+                "sampling_point_template": [str(template.id)],
+                f"qty_{template.id}_{self.chamber.id}_fq": "2",
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Hay cambios sin guardar en la planificacion base")
+        self.assertEqual(PlannedSubsample.objects.filter(study=self.study).count(), 0)
 
     def test_approving_study_requires_generated_planning(self):
         response = self.client.post(

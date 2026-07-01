@@ -1,0 +1,14 @@
+Sí: ahora, si actualizas la plantilla y pulsas `Guardar planificación base`, esa versión guardada es la que se usará después en `Generar planificación`.
+
+He aplicado justo ese comportamiento sin mezclar acciones:
+- `Generar planificación` se bloquea si detecta cambios en pantalla sin guardar.
+- Sale un aviso claro para que primero guardes la plantilla actualizada.
+- Además, la validación también está en servidor, así que no depende solo del navegador.
+
+Los cambios están en [stability/web_views.py](/C:/desarollo/proyecto_afmgde/stability/web_views.py), [templates/web/planning.html](/C:/desarollo/proyecto_afmgde/templates/web/planning.html) y dejé cobertura en [stability/tests.py](/C:/desarollo/proyecto_afmgde/stability/tests.py).
+
+He comprobado sintaxis de los archivos tocados. No pude ejecutar el suite Django completo en este entorno porque falta `python-dotenv`, pero la lógica quedó cerrada para ese caso que detectaste.
+
+
+
+

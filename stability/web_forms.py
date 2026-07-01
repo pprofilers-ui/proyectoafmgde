@@ -271,6 +271,11 @@ class StudyCreateForm(forms.ModelForm):
 
 
 class StudyEditForm(forms.ModelForm):
+    acceptance_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={"type": "date", "readonly": "readonly"}),
+    )
+
     class Meta:
         model = Study
         fields = [
@@ -311,6 +316,7 @@ class StudyEditForm(forms.ModelForm):
             "product_name": "Nombre del producto",
             "status": "Estado",
             "start_date": "Fecha de inicio",
+            "acceptance_date": "Fecha de aceptacion",
             "end_date": "Fecha de fin",
             "comments": "Comentarios",
         }
@@ -331,7 +337,10 @@ class StudyEditForm(forms.ModelForm):
         self.fields["code"].required = False
         self.fields["code"].widget.attrs["readonly"] = True
         self.fields["code"].widget.attrs["tabindex"] = "-1"
+        self.fields["acceptance_date"].widget.attrs["tabindex"] = "-1"
         self.fields["end_date"].required = False
+        if self.instance and self.instance.pk and self.instance.approved_at:
+            self.fields["acceptance_date"].initial = timezone.localtime(self.instance.approved_at).date()
 
     def clean(self):
         cleaned_data = super().clean()

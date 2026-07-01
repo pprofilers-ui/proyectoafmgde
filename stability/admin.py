@@ -97,6 +97,8 @@ _apply_admin_field_labels(Study, {
     "company_code": "Código empresa",
     "status": "Estado",
     "start_date": "Fecha de inicio",
+    "approved_at": "Fecha de aceptación",
+    "approved_by": "Aprobado por",
     "end_date": "Fecha de fin",
 })
 _apply_admin_field_labels(Chamber, {
@@ -374,9 +376,10 @@ class ChamberLocationAdmin(admin.ModelAdmin):
 
 @admin.register(Study)
 class StudyAdmin(admin.ModelAdmin):
-    list_display = ("code", "title", "study_type", "client", "product", "product_code", "status", "start_date", "end_date")
+    list_display = ("code", "title", "study_type", "client", "product", "product_code", "status", "start_date", "approved_at", "end_date")
     list_filter = ("status", "company_code", "client", "study_type", "product")
     search_fields = ("code", "title", "product_name", "product_code", "protocol", "specification", "client__code", "client__description")
+    readonly_fields = ("approved_at", "approved_by")
     fields = (
         "code",
         "title",
@@ -389,6 +392,8 @@ class StudyAdmin(admin.ModelAdmin):
         "product_name",
         "status",
         "start_date",
+        "approved_at",
+        "approved_by",
         "end_date",
         "comments",
         "company_code",

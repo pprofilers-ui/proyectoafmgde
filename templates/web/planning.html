@@ -28,7 +28,7 @@
                     <div class="fw-semibold mt-2">{{ study.code }}</div>
                 </div>
             </div>
-            <div class="col-md-6 col-xl-6">
+            <div class="col-md-6 col-xl-3">
                 <div class="summary-plain-field h-100">
                     <div class="summary-field-label">Titulo</div>
                     <div class="fw-semibold mt-2">{{ study.title }}</div>
@@ -42,30 +42,31 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-6 col-xl-4">
-                <div class="summary-plain-field h-100">
-                    <div class="summary-field-label">Cliente</div>
-                    <div class="fw-semibold mt-2">{{ study.client.description|default:"-" }}</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-4">
-                <div class="summary-plain-field h-100">
-                    <div class="summary-field-label">Producto</div>
-                    <div class="fw-semibold mt-2">{% if study.product %}{{ study.product.name }}{% else %}{{ study.product_name|default:"-" }}{% endif %}</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-2">
-                <div class="summary-plain-field h-100">
-                    <div class="summary-field-label">Tipo de estudio</div>
-                    <div class="fw-semibold mt-2">{{ study.study_type.name|default:"-" }}</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-xl-2">
+            <div class="col-md-6 col-xl-3">
                 <div class="summary-plain-field h-100">
                     <div class="summary-field-label">Protocolo</div>
                     <div class="fw-semibold mt-2">{{ study.protocol|default:"-" }}</div>
                 </div>
             </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="summary-plain-field h-100">
+                    <div class="summary-field-label">Cliente</div>
+                    <div class="fw-semibold mt-2">{{ study.client.description|default:"-" }}</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="summary-plain-field h-100">
+                    <div class="summary-field-label">Producto</div>
+                    <div class="fw-semibold mt-2">{% if study.product %}{{ study.product.name }}{% else %}{{ study.product_name|default:"-" }}{% endif %}</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="summary-plain-field h-100">
+                    <div class="summary-field-label">Tipo de estudio</div>
+                    <div class="fw-semibold mt-2">{{ study.study_type.name|default:"-" }}</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3"></div>
         </div>
     </div>
 </div>
@@ -127,7 +128,7 @@
                     No hay camaras activas configuradas. Para planificar por camara primero hay que tener camaras dadas de alta.
                 </div>
                 {% else %}
-                <form method="post" class="mt-4">
+                <form method="post" class="mt-4" id="planningBaseForm">
                     {% csrf_token %}
                     <div class="table-shell">
                         <table class="table table-app planning-matrix-table" id="planningMatrixTable">
@@ -171,7 +172,7 @@
                         <button class="btn btn-primary" type="submit">
                             <i class="bi bi-save me-2"></i>Guardar planificacion base
                         </button>
-                        <button class="btn btn-filter" type="submit" name="action" value="generate_planning">
+                        <button class="btn btn-filter" type="submit" name="action" value="generate_planning" id="generatePlanningButton">
                             <i class="bi bi-diagram-3 me-2"></i>Generar planificacion
                         </button>
                     </div>
@@ -392,6 +393,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const table = document.getElementById('planningMatrixTable');
     const addButton = document.getElementById('addPlanningRowButton');
     const rowTemplate = document.getElementById('planningRowTemplate');
+    const planningForm = document.getElementById('planningBaseForm');
+    const generatePlanningButton = document.getElementById('generatePlanningButton');
+    let planningDirty = false;
+
+    function markPlanningDirty() {
+        planningDirty = true;
+    }
 
     function attachRowEvents(row) {
         const select = row.querySelector('.planning-template-select');
@@ -400,8 +408,13 @@ document.addEventListener('DOMContentLoaded', function () {
             refreshPlanningRowNames(row);
             select.addEventListener('change', function () {
                 refreshPlanningRowNames(row);
+                markPlanningDirty();
             });
         }
+        row.querySelectorAll('.planning-qty-input').forEach(function (input) {
+            input.addEventListener('input', markPlanningDirty);
+            input.addEventListener('change', markPlanningDirty);
+        });
         if (removeButton) {
             removeButton.addEventListener('click', function () {
                 const rows = table.querySelectorAll('.planning-row');
@@ -409,8 +422,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     row.querySelectorAll('.planning-qty-input').forEach(function (input) {
                         input.value = 0;
                     });
+                    markPlanningDirty();
                     return;
                 }
+                markPlanningDirty();
                 row.remove();
             });
         }
@@ -428,6 +443,31 @@ document.addEventListener('DOMContentLoaded', function () {
             const tbody = table.querySelector('tbody') || table;
             tbody.appendChild(clone);
             attachRowEvents(clone);
+            markPlanningDirty();
+        });
+    }
+
+    if (planningForm && generatePlanningButton) {
+        planningForm.addEventListener('submit', function (event) {
+            const submitter = event.submitter;
+            const isGenerateAction = submitter && submitter.value === 'generate_planning';
+            if (isGenerateAction && planningDirty) {
+                event.preventDefault();
+                Swal.fire({
+                    title: 'Cambios sin guardar',
+                    text: 'Guarda primero la planificacion base actualizada antes de generar la planificacion.',
+                    icon: 'warning',
+                    confirmButtonText: 'Entendido',
+                    confirmButtonColor: '#6f5ef9',
+                    customClass: {
+                        popup: 'app-swal-popup'
+                    }
+                });
+                return;
+            }
+            if (!isGenerateAction) {
+                planningDirty = false;
+            }
         });
     }
 

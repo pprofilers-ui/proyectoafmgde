@@ -724,6 +724,13 @@ textarea.form-control {
     color: var(--color-navy);
 }
 
+.status-badge-lg {
+    min-height: 40px;
+    padding: 0 16px;
+    font-size: 15px;
+    font-weight: 700;
+}
+
 .row-actions {
     display: flex;
     align-items: center;

@@ -141,9 +141,11 @@ def recalculate_reception_assigned_quantity(sample):
     reception = getattr(sample, "reception", None)
     if not reception:
         return 0
-    assigned_total = (
-        sample.schedules.filter(is_active=True).aggregate(total=Sum("quantity")).get("total") or 0
-    )
+    assigned_total = sample.schedules.filter(is_active=True).aggregate(total=Sum("quantity")).get("total") or 0
+    if assigned_total == 0:
+        assigned_total = (
+            sample.study.planned_subsamples.aggregate(total=Sum("quantity")).get("total") or 0
+        )
     if reception.quantity_assigned != assigned_total:
         reception.quantity_assigned = assigned_total
         reception.save(update_fields=["quantity_assigned", "updated_at"])
@@ -275,8 +277,55 @@ def _save_study_planning_entries(request, study, chambers, templates):
     return True, None
 
 
+def _extract_planning_entries_from_request(request, chambers, templates):
+    submitted_template_ids = request.POST.getlist("sampling_point_template")
+    valid_templates = {str(template.id): template for template in templates}
+    extracted_entries = {}
+    has_valid_template = False
+
+    for raw_template_id in submitted_template_ids:
+        template = valid_templates.get(str(raw_template_id))
+        if not template:
+            continue
+        has_valid_template = True
+        for chamber in chambers:
+            fq_value = max(_safe_int(request.POST.get(f"qty_{template.id}_{chamber.id}_fq")), 0)
+            micro_value = max(_safe_int(request.POST.get(f"qty_{template.id}_{chamber.id}_micro")), 0)
+            if fq_value > 0:
+                extracted_entries[(template.id, chamber.id, StudyPlanningEntry.AnalysisType.FQ)] = fq_value
+            if micro_value > 0:
+                extracted_entries[(template.id, chamber.id, StudyPlanningEntry.AnalysisType.MICRO)] = micro_value
+
+    return has_valid_template, extracted_entries
+
+
+def _request_planning_matches_saved(study, request, chambers, templates):
+    has_valid_template, request_entries = _extract_planning_entries_from_request(request, chambers, templates)
+    if not has_valid_template:
+        return True
+
+    saved_entries = {
+        (entry.sampling_point_template_id, entry.chamber_id, entry.analysis_type): entry.subsample_quantity
+        for entry in study.planning_entries.all()
+    }
+    return request_entries == saved_entries
+
+
 def _generate_planned_subsample_code(study, seq):
     return f"{study.code}-P-{seq:04d}"
+
+
+def _study_received_quantity_total(study):
+    total = (
+        Sample.objects.filter(study=study, reception__isnull=False)
+        .aggregate(total=Sum("reception__quantity_received"))
+        .get("total")
+    )
+    return total or 0
+
+
+def _study_planned_quantity_total(study):
+    return study.planning_entries.aggregate(total=Sum("subsample_quantity")).get("total") or 0
 
 
 def _generate_study_planning(study):
@@ -290,29 +339,39 @@ def _generate_study_planning(study):
     if not planning_entries:
         return False, "Primero debes guardar una planificacion base con cantidades por punto y camara."
 
+    planned_quantity_total = _study_planned_quantity_total(study)
+    received_quantity_total = _study_received_quantity_total(study)
+    if planned_quantity_total > received_quantity_total:
+        return (
+            False,
+            f"La cantidad total planificada ({planned_quantity_total}) no puede superar la cantidad recibida ({received_quantity_total}).",
+        )
+
     planned_subsamples = []
     sequence = 1
     for entry in planning_entries:
-        for _index in range(entry.subsample_quantity):
-            planned_subsamples.append(
-                PlannedSubsample(
-                    study=study,
-                    sampling_point_template=entry.sampling_point_template,
-                    chamber=entry.chamber,
-                    analysis_type=entry.analysis_type,
-                    code=_generate_planned_subsample_code(study, sequence),
-                    planned_date=None,
-                    actual_sampling_date=None,
-                    analysis_date=None,
-                    location_notes="",
-                    status=PlannedSubsample.Status.IN_CHAMBER,
-                )
+        planned_subsamples.append(
+            PlannedSubsample(
+                study=study,
+                sampling_point_template=entry.sampling_point_template,
+                chamber=entry.chamber,
+                analysis_type=entry.analysis_type,
+                code=_generate_planned_subsample_code(study, sequence),
+                planned_date=None,
+                actual_sampling_date=None,
+                analysis_date=None,
+                quantity=entry.subsample_quantity,
+                location_notes="",
+                status=PlannedSubsample.Status.IN_CHAMBER,
             )
-            sequence += 1
+        )
+        sequence += 1
 
     with transaction.atomic():
         study.planned_subsamples.all().delete()
         PlannedSubsample.objects.bulk_create(planned_subsamples)
+        for sample in study.samples.select_related("reception"):
+            recalculate_reception_assigned_quantity(sample)
 
     register_audit_event(
         study,
@@ -531,6 +590,7 @@ def studies_list(request):
             "start_index": start_index,
             "end_index": end_index,
             "study_form": StudyCreateForm(),
+            "edit_study_form": StudyEditForm(),
             "search_term": search_term,
             "selected_status": status_filter,
             "selected_client": client_filter,
@@ -808,6 +868,12 @@ def planning_study_view(request, pk):
     if request.method == "POST":
         action = request.POST.get("action")
         if action == "generate_planning":
+            if not _request_planning_matches_saved(study, request, chambers, templates):
+                messages.error(
+                    request,
+                    "Hay cambios sin guardar en la planificacion base. Guarda primero la plantilla actualizada antes de generar.",
+                )
+                return redirect("web-study-planning", pk=study.pk)
             ok, result = _generate_study_planning(study)
             if ok:
                 messages.success(request, f"Planificacion generada correctamente con {result} submuestras.")
